@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "modelrs",
+    "opencascade"
+]
