@@ -13,9 +13,9 @@ pub enum ParseError{
     #[error("UnexpectedEndOfFile")]
     UnexpectedEndOfFile(PathBuf),
     #[error("Expected {0:?} but found {1:?}")]
-    Expected(&'static str, Token, PathBuf, Span),
+    Expected(&'static str, PathBuf, Span),
     #[error("Expected {0:?} but found {1:?}")]
-    ExpectedOneOf(Vec<&'static str>, Token, PathBuf, Span),
+    ExpectedOneOf(Vec<&'static str>, PathBuf, Span),
 }
 
 impl ParseError {
@@ -40,17 +40,17 @@ impl ParseError {
                     Some((line, text)) => println!("unexpected end of line [{}]: {}", line, text)
                 }
             }
-            ParseError::Expected(expected, found, file, span) => {
+            ParseError::Expected(expected, file, span) => {
                 let text = reader.read(file).unwrap();
 
                 println!("error: {}", file.display());
-                println!("expected {} but found {:?}: {}", expected, found, text.slice(span.clone()).unwrap())
+                println!("expected {} but found {}:", expected, text.slice(span.clone()).unwrap())
             }
-            ParseError::ExpectedOneOf(expected, found, file, span) => {
+            ParseError::ExpectedOneOf(expected, file, span) => {
                 let text = reader.read(file).unwrap();
 
                 println!("error: {}", file.display());
-                println!("expected one of {} but found {:?}: {}", expected.join(" or "), found, text.slice(span.clone()).unwrap())
+                println!("expected one of {} but found {}:", expected.join(" or "), text.slice(span.clone()).unwrap())
             }
         }
     }

@@ -35,14 +35,14 @@ macro_rules! take {
         match $lexer.next() {
             Some($token) => {},
             None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone())),
-            Some(t) => return Err(ParseError::Expected($name, t, $self.path.clone(), $lexer.span())),
+            Some(_) => return Err(ParseError::Expected($name, $self.path.clone(), $lexer.span())),
         };
     };
     ($self: ident, $lexer: ident, $($token: pat = $name: literal => $case: expr), *) => {
         match $lexer.next() {
             $(Some($token) => $case,)*
             None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone())),
-            Some(t) => return Err(ParseError::ExpectedOneOf(vec![$($name,)*], t, $self.path.clone(), $lexer.span())),
+            Some(_) => return Err(ParseError::ExpectedOneOf(vec![$($name,)*], $self.path.clone(), $lexer.span())),
         }
     };
 }
