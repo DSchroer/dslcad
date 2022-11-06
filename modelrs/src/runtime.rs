@@ -124,7 +124,7 @@ fn eval_expression(instance: &dyn Instance, expression: &Expression, ctx: &EvalC
 fn access(instance: &dyn Instance, ctx: &EvalContext, l: &Box<Expression>, name: &String) -> Result<Value, RuntimeError>  {
     let l = eval_expression(instance, l.deref(), ctx)?;
 
-    let lv = l.to_instance();
+    let lv = l.to_script();
 
     if lv.is_some() {
         match lv.unwrap().borrow().get(name) {

@@ -43,7 +43,14 @@ pub enum Value {
 
 impl Debug for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self {
+            Value::Number(n) => Display::fmt(n, f),
+            Value::Bool(n) => Display::fmt(n, f),
+            Value::Text(n) => Display::fmt(n, f),
+            Value::Script(i) => Display::fmt("INSTANCE", f),
+            Value::Shape(s) => Display::fmt("SHAPE", f),
+            Value::Empty => f.write_str("()")
+        }
     }
 }
 
@@ -69,7 +76,7 @@ impl Value {
         }
     }
 
-    pub fn to_instance(&self) -> Option<&Rc<RefCell<ScriptInstance>>> {
+    pub fn to_script(&self) -> Option<&Rc<RefCell<ScriptInstance>>> {
         match self {
             Value::Script(i) => Some(i),
             _ => None

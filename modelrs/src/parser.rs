@@ -4,8 +4,9 @@ mod reader;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use clap::builder::Str;
 use path_absolutize::*;
 use crate::syntax::{*};
 use logos::{Logos, Span};
@@ -16,7 +17,7 @@ pub use document::Document;
 pub use reader::Reader;
 
 pub struct Parser<'a, T: Reader> {
-    path: Cow<'a, Path>,
+    path: PathBuf,
     reader: &'a T,
     documents: HashMap<String, Document>,
 }
@@ -36,7 +37,9 @@ pub enum ParseError{
     #[error("UnexpectedEndOfLine")]
     UnexpectedEndOfLine,
     #[error("UnexpectedToken {0:?} at {1:?}")]
-    UnexpectedToken(Token, Span)
+    UnexpectedToken(Token, Span),
+    #[error("Expected {0:?} at {1:?}")]
+    Expected(String, Span)
 }
 
 macro_rules! take {
@@ -58,7 +61,7 @@ macro_rules! take {
 
 impl<'a, T: Reader> Parser<'a, T> {
     pub fn new(path: &'a str, reader: &'a T) -> Self {
-        let path = Path::new(path).absolutize().unwrap();
+        let path = reader.normalize(path);
         Parser { path, reader, documents: HashMap::new() }
     }
 
@@ -208,20 +211,20 @@ impl<'a, T: Reader> Parser<'a, T> {
             }
         );
 
-        let mut peek = lexer.clone();
-        let first = match peek.next() {
-            Some(Token::Period) => {
-                lexer.next();
-                let l = Box::new(first);
-                take!(lexer, Token::Identifier);
-                let r = lexer.slice().to_string();
-                Expression::Access(l, r)
-            },
-            _ => first,
-        };
+        self.parse_expression_rhs(first, lexer)
+    }
+
+    fn parse_expression_rhs(&mut self, lhs: Expression, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+        let first = lhs;
 
         let mut peek = lexer.clone();
         match peek.next() {
+            Some(Token::Period) => {
+                lexer.next();
+                let l = Box::new(first);
+                let r = take!(lexer, Token::Identifier => lexer.slice().to_string());
+                self.parse_expression_rhs(Expression::Access(l, r), lexer)
+            },
             Some(Token::Plus) => {
                 lexer.next();
                 let l = Box::new(first);
@@ -245,6 +248,23 @@ impl<'a, T: Reader> Parser<'a, T> {
                 let l = Box::new(first);
                 let r = Box::new(self.parse_expression(lexer)?);
                 Ok(Expression::Divide(l, r))
+            },
+            Some(Token::Inject) => {
+                lexer.next();
+                let prop = take!(lexer, Token::Identifier => lexer.slice().to_string());
+
+                // Grab the span for errors
+                let start = lexer.span().start;
+                let expr = self.parse_call(lexer)?;
+                let end = lexer.span().end;
+
+                match expr {
+                    Expression::Invocation { path, mut arguments } => {
+                        arguments.insert(prop, Box::new(first));
+                        self.parse_expression_rhs(Expression::Invocation {path, arguments}, lexer)
+                    },
+                    _ => Err(ParseError::Expected(String::from("call"), start..end))
+                }
             }
             _ => Ok(first)
         }
@@ -253,6 +273,7 @@ impl<'a, T: Reader> Parser<'a, T> {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
     use super::{*};
 
     impl ParseResult {
@@ -296,6 +317,27 @@ mod tests {
         Parser::new("test", &TestReader("test.area + 10;")).parse().unwrap();
     }
 
+    macro_rules! parse_statement {
+        ($code: literal) => {
+            {
+                let mut parsed = Parser::new("test", &TestReader($code)).parse().unwrap();
+                let mut doc = parsed.remove("test").unwrap();
+                let statement = doc.statements().next();
+                statement.unwrap().clone()
+            }
+        };
+    }
+
+    #[test]
+    fn it_can_parse_inject() {
+        Parser::new("test", &TestReader("5 ->value cube();")).parse().unwrap();
+
+        let mut p= parse_statement!("5 ->value cube() ->test cube();");
+        assert!(matches!(p, Statement::Return(
+            Expression::Invocation { arguments: x, .. }
+        ) if !x.contains_key("value")))
+    }
+
     #[test]
     fn it_can_parse_brackets() {
         Parser::new("test", &TestReader("3 - (3 + 2);")).parse().unwrap();
@@ -311,6 +353,10 @@ mod tests {
     impl<'a> Reader for TestReader<'a> {
         fn read(&self, _: &str) -> String {
             self.0.to_string()
+        }
+
+        fn normalize(&self, path: &str) -> PathBuf {
+            PathBuf::from(path)
         }
     }
 }

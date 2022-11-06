@@ -2,7 +2,7 @@ use std::io::ErrorKind;
 use path_absolutize::*;
 use std::path::{PathBuf};
 use crate::Point;
-use cxx::{h, UniquePtr};
+use cxx::{UniquePtr};
 use opencascade_sys::ffi::{BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepFilletAPI_MakeChamfer, TopoDS_Shape, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder, BRepAlgoAPI_Fuse, BRepFilletAPI_MakeFillet, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox_ctor, StlAPI_Writer_ctor, write_stl, BRepPrimAPI_MakeCylinder_ctor, BRepAlgoAPI_Fuse_ctor, BRepFilletAPI_MakeFillet_ctor, gp_Ax2_ctor, gp_DZ, TopExp_Explorer_ctor, TopAbs_ShapeEnum, TopoDS_cast_to_edge, BRepFilletAPI_MakeChamfer_ctor};
 
 pub enum Shape {

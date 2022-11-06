@@ -6,7 +6,7 @@ mod library;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use clap::Parser;
 use path_absolutize::Absolutize;
 use library::Library;
@@ -67,5 +67,9 @@ struct FileReader;
 impl Reader for FileReader {
     fn read(&self, name: &str) -> String {
         fs::read_to_string(name).unwrap()
+    }
+
+    fn normalize(&self, path: &str) -> PathBuf {
+        PathBuf::from(path).absolutize().unwrap().to_path_buf()
     }
 }

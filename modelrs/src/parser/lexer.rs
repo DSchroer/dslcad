@@ -25,6 +25,8 @@ pub enum Token {
     Multiply,
     #[token("/")]
     Divide,
+    #[token("->")]
+    Inject,
 
     #[regex(r"true|false")]
     Bool,
