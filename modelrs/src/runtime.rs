@@ -88,20 +88,22 @@ fn eval_expression(instance: &dyn Instance, expression: &Expression, ctx: &EvalC
     match expression {
         Expression::Literal(v) => Ok(v.clone()),
         Expression::Invocation{path, arguments} => {
-            let arguments = arguments.clone().into_iter()
-                .map(|(k,v)|(k, eval_expression(instance, v.deref(), ctx).unwrap()))
-                .collect();
+            let mut argument_values = HashMap::new();
+            for (name, argument) in arguments.clone().into_iter() {
+                let value = eval_expression(instance, argument.deref(), ctx)?;
+                argument_values.insert(name, value);
+            }
 
             let doc = ctx.documents.get(path);
             match doc {
                 None => {
                     match ctx.library.find(path) {
                         None => Err(RuntimeError::UnknownIdentifier(path.to_string())),
-                        Some(f) => Ok(f(&arguments)?)
+                        Some(f) => Ok(f(&argument_values)?)
                     }
                 },
                 Some(doc) => {
-                    let v = eval(doc, arguments, ctx)?;
+                    let v = eval(doc, argument_values, ctx)?;
                     return Ok(Value::Script(Rc::new(RefCell::new(v))))
                 }
             }
