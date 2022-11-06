@@ -20,13 +20,7 @@ pub enum Expression {
     Literal(Value),
     Reference(String),
     Invocation{ path: String, arguments: HashMap<String, Box<Expression>> },
-
     Access(Box<Expression>, String),
-
-    Add(Box<Expression>, Box<Expression>),
-    Subtract(Box<Expression>, Box<Expression>),
-    Multiply(Box<Expression>, Box<Expression>),
-    Divide(Box<Expression>, Box<Expression>),
 }
 
 #[derive(Clone)]

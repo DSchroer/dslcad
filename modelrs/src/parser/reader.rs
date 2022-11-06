@@ -1,6 +1,6 @@
-use std::path::{PathBuf};
+use std::path::{Path, PathBuf};
 
 pub trait Reader {
-    fn read(&self, name: &str) -> String;
-    fn normalize(&self, path: &str) -> PathBuf;
+    fn read(&self, path: &Path) -> Result<String, std::io::Error>;
+    fn normalize(&self, path: &Path) -> PathBuf;
 }

@@ -1,3 +1,5 @@
+extern crate core;
+
 mod syntax;
 mod parser;
 mod runtime;
@@ -41,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     match parser.parse() {
         ParseResult::Failure(errors) => {
             for err in errors {
-                eprintln!("{:?}", err);
+                err.print(&FileReader);
             }
         },
         ParseResult::Success(documents) => {
@@ -65,11 +67,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 struct FileReader;
 impl Reader for FileReader {
-    fn read(&self, name: &str) -> String {
-        fs::read_to_string(name).unwrap()
+    fn read(&self, name: &Path) -> Result<String, std::io::Error> {
+        fs::read_to_string(name)
     }
 
-    fn normalize(&self, path: &str) -> PathBuf {
+    fn normalize(&self, path: &Path) -> PathBuf {
         PathBuf::from(path).absolutize().unwrap().to_path_buf()
     }
 }

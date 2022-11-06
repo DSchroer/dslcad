@@ -10,23 +10,7 @@ use crate::syntax::{Instance, Value};
 
 use opencascade::{Shape, Point};
 
-macro_rules! number {
-    ($args: ident, $name: literal) => {
-        {
-            let value = $args.get($name).ok_or(RuntimeError::UnsetParameter(String::from($name)))?;
-            value.to_number().ok_or(RuntimeError::UnexpectedType(value.clone()))?
-        }
-    };
-}
-
-macro_rules! shape {
-    ($args: ident, $name: literal) => {
-        {
-            let value = $args.get($name).ok_or(RuntimeError::UnsetParameter(String::from($name)))?;
-            value.to_shape().ok_or(RuntimeError::UnexpectedType(value.clone()))?
-        }
-    };
-}
+use super::{*};
 
 pub fn cube(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let width = number!(args, "width");

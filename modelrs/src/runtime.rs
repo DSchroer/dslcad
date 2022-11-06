@@ -116,10 +116,6 @@ fn eval_expression(instance: &dyn Instance, expression: &Expression, ctx: &EvalC
             }
         },
         Expression::Access(l, name) => access(instance, ctx, l, name),
-        Expression::Add(l, r) => numeric(instance, ctx, l, r, f64::add),
-        Expression::Subtract(l, r) => numeric(instance, ctx, l, r, f64::sub),
-        Expression::Multiply(l, r) => numeric(instance, ctx, l, r, f64::mul),
-        Expression::Divide(l, r) => numeric(instance, ctx, l, r, f64::div),
     }
 }
 
@@ -135,20 +131,6 @@ fn access(instance: &dyn Instance, ctx: &EvalContext, l: &Box<Expression>, name:
         }
     } else {
         Err(RuntimeError::UnexpectedType(l))
-    }
-}
-
-fn numeric(instance: &dyn Instance, ctx: &EvalContext, l: &Box<Expression>, r: &Box<Expression>, op: impl FnOnce(f64, f64) -> f64) -> Result<Value, RuntimeError>  {
-    let l = eval_expression(instance, l.deref(), ctx)?;
-    let r = eval_expression(instance, r.deref(), ctx)?;
-
-    let lv = l.to_number();
-    let rv = r.to_number();
-
-    if lv.is_some() && rv.is_some() {
-        Ok(Value::Number(op(lv.unwrap(), rv.unwrap())))
-    } else {
-        Err(RuntimeError::MismatchedTypes(l, r))
     }
 }
 
