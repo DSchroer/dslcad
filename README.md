@@ -8,11 +8,11 @@ in progress. There will be breaking changes.
 ## Usage
 
 ```
-cargo run -- ./examples/table.ex -o file.stl
+cargo run -- ./examples/table.ex -o table.stl
 
 #OR
 
-model-script ./examples/table.ex -o file.stl
+model-script ./examples/table.ex -o table.stl
 ```
 
 ## Development Status
@@ -46,3 +46,6 @@ model-script ./examples/table.ex -o file.stl
   - [X] Pipe Operator
 - 2D Design:
   - [ ] Anything
+- CLI interface:
+  - [ ] Variable overriding
+  - [ ] Unified output format
