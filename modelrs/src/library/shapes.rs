@@ -8,7 +8,7 @@ use std::rc::Rc;
 use crate::runtime::RuntimeError;
 use crate::syntax::{Instance, Value};
 
-use opencascade::{Shape, Point};
+use opencascade::{Shape, Point, Axis};
 
 use super::{*};
 
@@ -53,6 +53,35 @@ pub fn fillet(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let radius = number!(args, "radius");
 
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::fillet(&mut shape, radius)))))
+}
+
+pub fn translate(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
+    let mut shape = shape!(args, "shape").borrow_mut();
+    let x = number!(args, "x", 0.);
+    let y = number!(args, "y", 0.);
+    let z = number!(args, "z", 0.);
+
+    Ok(Value::Shape(Rc::new(RefCell::new(Shape::translate(&mut shape, &Point::new(x, y, z))))))
+}
+
+pub fn rotate(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
+    let mut shape = shape!(args, "shape").borrow_mut();
+    let x = number!(args, "x", 0.);
+    let y = number!(args, "y", 0.);
+    let z = number!(args, "z", 0.);
+
+    let mut shape = Shape::rotate(&mut shape, Axis::X, x);
+    let mut shape = Shape::rotate(&mut shape, Axis::Y, y);
+    let mut shape = Shape::rotate(&mut shape, Axis::Z, z);
+
+    Ok(Value::Shape(Rc::new(RefCell::new(shape))))
+}
+
+pub fn scale(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
+    let mut shape = shape!(args, "shape").borrow_mut();
+    let size = number!(args, "size", 0.);
+
+    Ok(Value::Shape(Rc::new(RefCell::new(Shape::scale(&mut shape, size)))))
 }
 
 impl Instance for Shape {

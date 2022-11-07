@@ -7,7 +7,6 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use clap::builder::Str;
 use path_absolutize::*;
 use crate::syntax::{*};
 use logos::{Logos, Span};
@@ -176,6 +175,21 @@ impl<'a, T: Reader> Parser<'a, T> {
 
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
         let mut peek = lexer.clone();
+        let unary = take!(self, peek,
+            Token::Minus = "-" => {
+                lexer.next();
+                Some(|e|Expression::Invocation {
+                    path: String::from("subtract"),
+                    arguments: HashMap::from([
+                        ("left".to_string(), Box::new(Expression::Literal(Value::Number(0.0)))),
+                        ("right".to_string(), Box::new(e))
+                    ])
+                })
+            },
+            _ = "" => None
+        );
+
+        let mut peek = lexer.clone();
         let first = take!(self, peek,
             Token::Number = "number" => {
                 lexer.next();
@@ -205,6 +219,11 @@ impl<'a, T: Reader> Parser<'a, T> {
                 take!(self, lexer, Token::CloseBracket = ")" => expr)
             }
         );
+
+        let first = match unary {
+            Some(builder) => builder(first),
+            None => first
+        };
 
         self.parse_expression_rhs(first, lexer)
     }
@@ -303,6 +322,18 @@ mod tests {
     fn it_can_parse_adds() {
         Parser::new("test", &TestReader("2 + 2;")).parse().unwrap();
         Parser::new("test", &TestReader("test.area + 10;")).parse().unwrap();
+    }
+
+    #[test]
+    fn it_can_parse_divide() {
+        Parser::new("test", &TestReader("test(x=test / 2);")).parse().unwrap();
+    }
+
+    #[test]
+    fn it_can_parse_unary_minus() {
+        Parser::new("test", &TestReader("-2;")).parse().unwrap();
+        Parser::new("test", &TestReader("-foo;")).parse().unwrap();
+
     }
 
     macro_rules! parse_statement {

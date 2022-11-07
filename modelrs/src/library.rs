@@ -23,6 +23,9 @@ impl Library {
             "chamfer" => Some(&shapes::chamfer),
             "fillet" => Some(&shapes::fillet),
             "difference" => Some(&shapes::difference),
+            "translate" => Some(&shapes::translate),
+            "rotate" => Some(&shapes::rotate),
+            "scale" => Some(&shapes::scale),
             _ => None
         }
     }
@@ -33,6 +36,12 @@ macro_rules! number {
         {
             let value = $args.get($name).ok_or(RuntimeError::UnsetParameter(String::from($name)))?;
             value.to_number().ok_or(RuntimeError::UnexpectedType(value.clone()))?
+        }
+    };
+    ($args: ident, $name: literal, $default: literal) => {
+        match $args.get($name) {
+            Some(value) => value.to_number().ok_or(RuntimeError::UnexpectedType(value.clone()))?,
+            None => $default
         }
     };
 }

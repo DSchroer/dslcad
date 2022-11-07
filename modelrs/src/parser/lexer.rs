@@ -41,7 +41,7 @@ pub enum Token {
     #[regex("[a-zA-Z]+")]
     Identifier,
 
-    #[regex(r"(\.|\.\.|[a-zA-Z]+)(/(\.|\.\.|[a-zA-Z]+))*/[a-zA-Z]+")]
+    #[regex(r"(\.|\.\.)(/(\.|\.\.|[a-zA-Z]+))*/[a-zA-Z]+")]
     Path,
 
     #[error]
@@ -66,6 +66,11 @@ mod tests {
         assert_eq!(vec![Identifier, OpenBracket, Identifier, Equal, Number, CloseBracket], tokens("cube(x=10)"));
         assert_eq!(vec![Identifier, OpenBracket, CloseBracket], tokens("cube()"));
         assert_eq!(vec![Path, OpenBracket, CloseBracket], tokens("./test/cube()"));
+    }
+
+    #[test]
+    fn it_can_lex_ref_div() {
+        assert_eq!(vec![Identifier, Divide, Number], tokens("test/4"));
     }
 
     fn tokens(input: &str) -> Vec<Token> {

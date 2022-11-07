@@ -43,15 +43,31 @@ impl ParseError {
             ParseError::Expected(expected, file, span) => {
                 let text = reader.read(file).unwrap();
 
-                println!("error: {}", file.display());
-                println!("expected {} but found {}:", expected, text.slice(span.clone()).unwrap())
+                let (line, col) = line_col(&text, &span);
+                println!("error: {}[{}:{}]", file.display(), line, col.start);
+                println!("expected {} but found {}", expected, text.slice(span.clone()).unwrap())
             }
             ParseError::ExpectedOneOf(expected, file, span) => {
                 let text = reader.read(file).unwrap();
 
-                println!("error: {}", file.display());
-                println!("expected one of {} but found {}:", expected.join(" or "), text.slice(span.clone()).unwrap())
+                let (line, col) = line_col(&text, &span);
+                println!("error: {}[{}:{}]", file.display(), line, col.start);
+                println!("expected one of {} but found {}", expected.join(" or "), text.slice(span.clone()).unwrap())
             }
         }
     }
+}
+
+fn line_col(text: &str, span: &Span) -> (usize, Span) {
+    let mut target = span.clone();
+    for (i, line) in text.split("\n").enumerate() {
+        let len = line.len();
+        if target.start > len {
+            target.start -= len;
+            target.end -= len;
+        } else {
+            return (i, target)
+        }
+    }
+    return (0, target)
 }
