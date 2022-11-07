@@ -296,7 +296,7 @@ impl<'a, T: Reader> Parser<'a, T> {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use std::path::PathBuf;
 
@@ -338,7 +338,7 @@ mod tests {
 
     #[test]
     fn it_can_parse() {
-        Parser::new("test", &TestReader("test();")).parse().unwrap();
+        Parser::new("test", &TestReader("test(x=10,y=10);")).parse().unwrap();
     }
 
     #[test]
@@ -400,7 +400,7 @@ mod tests {
             .unwrap();
     }
 
-    struct TestReader<'a>(&'a str);
+    pub struct TestReader<'a>(pub &'a str);
     impl<'a> Reader for TestReader<'a> {
         fn read(&self, _: &Path) -> Result<String, std::io::Error> {
             Ok(self.0.to_string())

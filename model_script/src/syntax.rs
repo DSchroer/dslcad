@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use crate::runtime::ScriptInstance;
 pub use instance::Instance;
-use opencascade::Shape;
+use opencascade::{Edge, Point, Shape};
 
 #[derive(Debug, Clone)]
 pub enum Statement {
@@ -36,7 +36,11 @@ pub enum Value {
     Text(String),
 
     Script(Rc<RefCell<ScriptInstance>>),
+
+    Point(Rc<RefCell<Point>>),
+    Line(Rc<RefCell<Edge>>),
     Shape(Rc<RefCell<Shape>>),
+
 
     Empty,
 }
@@ -49,6 +53,8 @@ impl Debug for Value {
             Value::Text(n) => Display::fmt(n, f),
             Value::Script(i) => Display::fmt("INSTANCE", f),
             Value::Shape(s) => Display::fmt("SHAPE", f),
+            Value::Point(p) => Display::fmt("POINT", f),
+            Value::Line(p) => Display::fmt("LINE", f),
             Value::Empty => f.write_str("()"),
         }
     }
@@ -56,14 +62,7 @@ impl Debug for Value {
 
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Value::Number(n) => Display::fmt(n, f),
-            Value::Bool(n) => Display::fmt(n, f),
-            Value::Text(n) => Display::fmt(n, f),
-            Value::Script(i) => Display::fmt("INSTANCE", f),
-            Value::Shape(s) => Display::fmt("SHAPE", f),
-            Value::Empty => f.write_str("()"),
-        }
+        Debug::fmt(self, f)
     }
 }
 
@@ -79,6 +78,13 @@ impl Value {
     pub fn to_script(&self) -> Option<&Rc<RefCell<ScriptInstance>>> {
         match self {
             Value::Script(i) => Some(i),
+            _ => None,
+        }
+    }
+
+    pub fn to_point(&self) -> Option<&Rc<RefCell<Point>>> {
+        match self {
+            Value::Point(s) => Some(s),
             _ => None,
         }
     }

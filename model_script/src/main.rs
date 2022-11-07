@@ -78,3 +78,35 @@ impl Reader for FileReader {
         PathBuf::from(path).absolutize().unwrap().to_path_buf()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::parser::Document;
+    use crate::parser::tests::TestReader;
+
+    use crate::runtime::ScriptInstance;
+    use super::*;
+
+    fn run(code: &str) -> ScriptInstance {
+        let reader = TestReader(code);
+        let mut parser = parser::Parser::new("test", &reader);
+        let documents = parser.parse().unwrap();
+        let ctx = EvalContext {
+            documents,
+            library: Library,
+        };
+        let main = ctx.documents.get("test").unwrap();
+        eval(main, HashMap::new(), &ctx).expect("failed to eval")
+    }
+
+    #[test]
+    fn it_has_point() {
+        run("point(x=10,y=10);");
+    }
+
+    #[test]
+    fn it_has_lines() {
+        run("line(start=point(x=0,y=0), end=point(x=1,y=1));");
+        run("arc(start=point(x=0,y=0),center=point(x=1,y=0), end=point(x=0,y=1));");
+    }
+}
