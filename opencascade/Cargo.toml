@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 cxx = "1"
-opencascade-sys = { path = "../../opencascade-rs/crates/opencascade-sys" }
+opencascade-sys = { git = "https://github.com/bschwind/opencascade-rs" }
 path-absolutize = "3.0"

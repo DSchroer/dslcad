@@ -16,7 +16,7 @@ use parser::{ParseResult, Reader};
 use runtime::{eval, EvalContext};
 use syntax::Instance;
 
-/// modelrs cad compiler
+/// model_script cad compiler
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {

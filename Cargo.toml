@@ -1,6 +1,6 @@
 [workspace]
 
 members = [
-    "modelrs",
+    "model_script",
     "opencascade"
 ]

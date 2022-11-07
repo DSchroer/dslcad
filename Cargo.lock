@@ -191,7 +191,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "modelrs"
+name = "model-script"
 version = "0.1.0"
 dependencies = [
  "clap",
@@ -219,6 +219,7 @@ dependencies = [
 [[package]]
 name = "opencascade-sys"
 version = "0.1.0"
+source = "git+https://github.com/bschwind/opencascade-rs#fe8f8a1f67aa462552b77db9e2d1612c87db2581"
 dependencies = [
  "cmake",
  "cxx",
