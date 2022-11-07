@@ -1,0 +1,14 @@
+---
+kind: pipeline
+type: docker
+name: build
+
+steps:
+  - name: build
+    image: rust
+    commands:
+      - cargo build
+      - cargo test
+
+  - template: github-mirror
+    repo: git@github.com:DSchroer/model-script.git
