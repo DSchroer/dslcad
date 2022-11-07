@@ -8,6 +8,10 @@ in progress. There will be breaking changes.
 ## Usage
 
 ```
+cargo run -- ./examples/table.ex -o file.stl
+
+#OR
+
 model-script ./examples/table.ex -o file.stl
 ```
 
