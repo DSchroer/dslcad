@@ -1,19 +1,19 @@
 extern crate core;
 
-mod syntax;
+mod library;
 mod parser;
 mod runtime;
-mod library;
+mod syntax;
 
+use clap::Parser;
+use library::Library;
+use parser::{ParseResult, Reader};
+use path_absolutize::Absolutize;
+use runtime::{eval, EvalContext};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
-use clap::Parser;
-use path_absolutize::Absolutize;
-use library::Library;
-use parser::{ParseResult, Reader};
-use runtime::{eval, EvalContext};
 use syntax::Instance;
 
 /// model_script cad compiler
@@ -33,7 +33,7 @@ struct Args {
 
     /// Debug mode
     #[arg(short, long)]
-    debug: bool
+    debug: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             for err in errors {
                 err.print(&FileReader);
             }
-        },
+        }
         ParseResult::Success(documents) => {
             if args.debug {
                 println!("{:#?}", documents)
@@ -53,7 +53,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let path = Path::new(&args.source).absolutize().unwrap();
 
-            let ctx = EvalContext{ documents, library: Library };
+            let ctx = EvalContext {
+                documents,
+                library: Library,
+            };
             let main = ctx.documents.get(path.to_str().unwrap()).unwrap();
 
             let mut res = eval(main, HashMap::new(), &ctx)?;

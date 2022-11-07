@@ -1,4 +1,4 @@
-use logos::{Logos};
+use logos::Logos;
 
 pub type Lexer<'a> = logos::Lexer<'a, Token>;
 
@@ -51,8 +51,8 @@ pub enum Token {
 
 #[cfg(test)]
 mod tests {
-    use super::{*};
-    use super::Token::{*};
+    use super::Token::*;
+    use super::*;
 
     #[test]
     fn it_can_lex_variable() {
@@ -63,9 +63,25 @@ mod tests {
 
     #[test]
     fn it_can_lex_calls() {
-        assert_eq!(vec![Identifier, OpenBracket, Identifier, Equal, Number, CloseBracket], tokens("cube(x=10)"));
-        assert_eq!(vec![Identifier, OpenBracket, CloseBracket], tokens("cube()"));
-        assert_eq!(vec![Path, OpenBracket, CloseBracket], tokens("./test/cube()"));
+        assert_eq!(
+            vec![
+                Identifier,
+                OpenBracket,
+                Identifier,
+                Equal,
+                Number,
+                CloseBracket
+            ],
+            tokens("cube(x=10)")
+        );
+        assert_eq!(
+            vec![Identifier, OpenBracket, CloseBracket],
+            tokens("cube()")
+        );
+        assert_eq!(
+            vec![Path, OpenBracket, CloseBracket],
+            tokens("./test/cube()")
+        );
     }
 
     #[test]

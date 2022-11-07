@@ -1,5 +1,5 @@
-use std::slice::Iter;
 use crate::syntax::Statement;
+use std::slice::Iter;
 
 #[derive(Debug)]
 pub struct Document {

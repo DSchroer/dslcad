@@ -1,18 +1,18 @@
-mod lexer;
 mod document;
-mod reader;
+mod lexer;
 mod parse_error;
+mod reader;
 
+use crate::syntax::*;
+use lexer::{Lexer, Token};
+use logos::{Logos, Span};
+use parse_error::ParseError;
+use path_absolutize::*;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use path_absolutize::*;
-use crate::syntax::{*};
-use logos::{Logos, Span};
 use thiserror::Error;
-use lexer::{Token, Lexer};
-use parse_error::ParseError;
 
 pub use document::Document;
 pub use reader::Reader;
@@ -26,7 +26,7 @@ pub struct Parser<'a, T: Reader> {
 #[derive(Debug)]
 pub enum ParseResult {
     Success(HashMap<String, Document>),
-    Failure(Vec<ParseError>)
+    Failure(Vec<ParseError>),
 }
 
 macro_rules! take {
@@ -49,15 +49,17 @@ macro_rules! take {
 impl<'a, T: Reader> Parser<'a, T> {
     pub fn new(path: &'a str, reader: &'a T) -> Self {
         let path = reader.normalize(Path::new(path));
-        Parser { path, reader, documents: HashMap::new() }
+        Parser {
+            path,
+            reader,
+            documents: HashMap::new(),
+        }
     }
 
     pub fn parse(mut self) -> ParseResult {
         let input = self.reader.read(self.path.as_path());
         if let Err(_) = input {
-            return ParseResult::Failure(vec![
-                ParseError::NoSuchFile(self.path.clone())
-            ]);
+            return ParseResult::Failure(vec![ParseError::NoSuchFile(self.path.clone())]);
         }
 
         let input = input.unwrap();
@@ -67,15 +69,18 @@ impl<'a, T: Reader> Parser<'a, T> {
         loop {
             let statement = match lex.clone().next() {
                 Some(_) => self.parse_statement(&mut lex),
-                None => break
+                None => break,
             };
             match statement {
                 Ok(s) => statements.push(s),
-                Err(error) => return ParseResult::Failure(vec![error])
+                Err(error) => return ParseResult::Failure(vec![error]),
             }
         }
 
-        self.documents.insert(String::from(self.path.to_str().unwrap()), Document::new(statements));
+        self.documents.insert(
+            String::from(self.path.to_str().unwrap()),
+            Document::new(statements),
+        );
         return ParseResult::Success(self.documents);
     }
 
@@ -95,7 +100,8 @@ impl<'a, T: Reader> Parser<'a, T> {
 
     fn parse_variable_statement(&mut self, lexer: &mut Lexer) -> Result<Statement, ParseError> {
         take!(self, lexer, Token::Var = "var");
-        let name = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
+        let name =
+            take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
         let expr = take!(self, lexer,
             Token::Semicolon = ";" => None,
             Token::Equal = "=" => {
@@ -159,18 +165,24 @@ impl<'a, T: Reader> Parser<'a, T> {
             )
         }
 
-        Ok(Expression::Invocation { path, arguments: args })
+        Ok(Expression::Invocation {
+            path,
+            arguments: args,
+        })
     }
 
     fn parse_argument(&mut self, lexer: &mut Lexer) -> Result<(String, Expression), ParseError> {
-        let name = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
+        let name =
+            take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
         take!(self, lexer, Token::Equal = "=");
         let expr = self.parse_expression(lexer)?;
         Ok((name, expr))
     }
 
     fn parse_reference(&self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
-        Ok(take!(self, lexer, Token::Identifier = "identifier" => Expression::Reference(lexer.slice().to_string())))
+        Ok(
+            take!(self, lexer, Token::Identifier = "identifier" => Expression::Reference(lexer.slice().to_string())),
+        )
     }
 
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
@@ -222,30 +234,32 @@ impl<'a, T: Reader> Parser<'a, T> {
 
         let first = match unary {
             Some(builder) => builder(first),
-            None => first
+            None => first,
         };
 
         self.parse_expression_rhs(first, lexer)
     }
 
-    fn parse_expression_rhs(&mut self, lhs: Expression, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+    fn parse_expression_rhs(
+        &mut self,
+        lhs: Expression,
+        lexer: &mut Lexer,
+    ) -> Result<Expression, ParseError> {
         let first = lhs;
 
         macro_rules! op_shorthand {
-            ($name: literal, $left: ident, $lexer: ident) => {
-                {
-                    $lexer.next();
-                    let l = Box::new($left);
-                    let r = Box::new(self.parse_expression(lexer)?);
-                    Ok(Expression::Invocation {
-                        path: String::from($name),
-                        arguments: HashMap::from([
-                            (String::from("left"), l),
-                            (String::from("right"), r)
-                        ])
-                    })
-                }
-            };
+            ($name: literal, $left: ident, $lexer: ident) => {{
+                $lexer.next();
+                let l = Box::new($left);
+                let r = Box::new(self.parse_expression(lexer)?);
+                Ok(Expression::Invocation {
+                    path: String::from($name),
+                    arguments: HashMap::from([
+                        (String::from("left"), l),
+                        (String::from("right"), r),
+                    ]),
+                })
+            }};
         }
 
         let mut peek = lexer.clone();
@@ -255,42 +269,46 @@ impl<'a, T: Reader> Parser<'a, T> {
                 let l = Box::new(first);
                 let r = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
                 self.parse_expression_rhs(Expression::Access(l, r), lexer)
-            },
+            }
             Some(Token::Inject) => {
                 lexer.next();
                 let prop = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
 
                 let expr = self.parse_call(lexer)?;
                 match expr {
-                    Expression::Invocation { path, mut arguments } => {
+                    Expression::Invocation {
+                        path,
+                        mut arguments,
+                    } => {
                         arguments.insert(prop, Box::new(first));
-                        self.parse_expression_rhs(Expression::Invocation {path, arguments}, lexer)
-                    },
-                    _ => panic!("parse_call failed to return invocation")
+                        self.parse_expression_rhs(Expression::Invocation { path, arguments }, lexer)
+                    }
+                    _ => panic!("parse_call failed to return invocation"),
                 }
             }
             Some(Token::Plus) => op_shorthand!("add", first, lexer),
             Some(Token::Minus) => op_shorthand!("subtract", first, lexer),
             Some(Token::Multiply) => op_shorthand!("multiply", first, lexer),
             Some(Token::Divide) => op_shorthand!("divide", first, lexer),
-            _ => Ok(first)
+            _ => Ok(first),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::path::PathBuf;
-    use super::{*};
 
     impl ParseResult {
         #[inline]
         #[track_caller]
-        pub fn unwrap(self) -> HashMap<String, Document>
-        {
+        pub fn unwrap(self) -> HashMap<String, Document> {
             match self {
                 ParseResult::Success(t) => t,
-                ParseResult::Failure(e) => panic!("called `Result::unwrap()` on an `Err` value {:?}", e),
+                ParseResult::Failure(e) => {
+                    panic!("called `Result::unwrap()` on an `Err` value {:?}", e)
+                }
             }
         }
     }
@@ -298,19 +316,24 @@ mod tests {
     #[test]
     fn it_can_parse_variable() {
         Parser::new("test", &TestReader("test();"))
-            .parse_variable_statement(&mut Token::lexer("var x = 5;")).unwrap();
+            .parse_variable_statement(&mut Token::lexer("var x = 5;"))
+            .unwrap();
         Parser::new("test", &TestReader("test();"))
-            .parse_variable_statement(&mut Token::lexer("var x;")).unwrap();
+            .parse_variable_statement(&mut Token::lexer("var x;"))
+            .unwrap();
         Parser::new("test", &TestReader("test();"))
-            .parse_variable_statement(&mut Token::lexer("var x = true;")).unwrap();
+            .parse_variable_statement(&mut Token::lexer("var x = true;"))
+            .unwrap();
     }
 
     #[test]
     fn it_can_parse_calls() {
         Parser::new("test", &TestReader("test();"))
-            .parse_call(&mut Token::lexer("cube()")).unwrap();
+            .parse_call(&mut Token::lexer("cube()"))
+            .unwrap();
         Parser::new("test", &TestReader("test();"))
-            .parse_call(&mut Token::lexer("cube(x=5)")).unwrap();
+            .parse_call(&mut Token::lexer("cube(x=5)"))
+            .unwrap();
     }
 
     #[test]
@@ -321,37 +344,40 @@ mod tests {
     #[test]
     fn it_can_parse_adds() {
         Parser::new("test", &TestReader("2 + 2;")).parse().unwrap();
-        Parser::new("test", &TestReader("test.area + 10;")).parse().unwrap();
+        Parser::new("test", &TestReader("test.area + 10;"))
+            .parse()
+            .unwrap();
     }
 
     #[test]
     fn it_can_parse_divide() {
-        Parser::new("test", &TestReader("test(x=test / 2);")).parse().unwrap();
+        Parser::new("test", &TestReader("test(x=test / 2);"))
+            .parse()
+            .unwrap();
     }
 
     #[test]
     fn it_can_parse_unary_minus() {
         Parser::new("test", &TestReader("-2;")).parse().unwrap();
         Parser::new("test", &TestReader("-foo;")).parse().unwrap();
-
     }
 
     macro_rules! parse_statement {
-        ($code: literal) => {
-            {
-                let mut parsed = Parser::new("test", &TestReader($code)).parse().unwrap();
-                let mut doc = parsed.remove("test").unwrap();
-                let statement = doc.statements().next();
-                statement.unwrap().clone()
-            }
-        };
+        ($code: literal) => {{
+            let mut parsed = Parser::new("test", &TestReader($code)).parse().unwrap();
+            let mut doc = parsed.remove("test").unwrap();
+            let statement = doc.statements().next();
+            statement.unwrap().clone()
+        }};
     }
 
     #[test]
     fn it_can_parse_inject() {
-        Parser::new("test", &TestReader("5 ->value cube();")).parse().unwrap();
+        Parser::new("test", &TestReader("5 ->value cube();"))
+            .parse()
+            .unwrap();
 
-        let mut p= parse_statement!("5 ->value cube() ->test cube();");
+        let mut p = parse_statement!("5 ->value cube() ->test cube();");
         assert!(matches!(p, Statement::Return(
             Expression::Invocation { arguments: x, .. }
         ) if !x.contains_key("value")))
@@ -359,13 +385,19 @@ mod tests {
 
     #[test]
     fn it_can_parse_brackets() {
-        Parser::new("test", &TestReader("3 - (3 + 2);")).parse().unwrap();
-        Parser::new("test", &TestReader("(3 - 3) + 2;")).parse().unwrap();
+        Parser::new("test", &TestReader("3 - (3 + 2);"))
+            .parse()
+            .unwrap();
+        Parser::new("test", &TestReader("(3 - 3) + 2;"))
+            .parse()
+            .unwrap();
     }
 
     #[test]
     fn it_can_parse_access() {
-        Parser::new("test", &TestReader("foo.bar;")).parse().unwrap();
+        Parser::new("test", &TestReader("foo.bar;"))
+            .parse()
+            .unwrap();
     }
 
     struct TestReader<'a>(&'a str);

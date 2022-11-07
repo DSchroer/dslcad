@@ -1,5 +1,5 @@
-use std::fmt::Debug;
 use crate::syntax::Value;
+use std::fmt::Debug;
 
 pub trait Instance {
     fn get(&self, identifier: &str) -> Option<&Box<Value>>;

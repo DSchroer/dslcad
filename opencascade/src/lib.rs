@@ -1,7 +1,7 @@
-mod point;
 mod edge;
+mod point;
 mod shape;
 
-pub use point::{*};
-pub use edge::{*};
-pub use shape::{*};
+pub use edge::*;
+pub use point::*;
+pub use shape::*;

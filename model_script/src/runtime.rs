@@ -1,32 +1,35 @@
+use crate::library::Library;
+use crate::parser::Document;
+use crate::syntax::Instance;
+use crate::syntax::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{Error, ErrorKind};
 use std::ops::{Add, Deref, Div, Mul, Sub};
 use std::rc::Rc;
 use thiserror::Error;
-use crate::library::Library;
-use crate::parser::Document;
-use crate::syntax::Instance;
-use crate::syntax::{*};
 
 pub struct EvalContext {
     pub library: Library,
-    pub documents: HashMap<String, Document>
+    pub documents: HashMap<String, Document>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ScriptInstance {
     arguments: HashMap<String, Box<Value>>,
     variables: HashMap<String, Box<Value>>,
-    value: Box<Value>
+    value: Box<Value>,
 }
 
 impl ScriptInstance {
     pub fn new(arguments: HashMap<String, Value>) -> Self {
         ScriptInstance {
-            arguments: arguments.into_iter().map(|(k,v)|(k, Box::new(v))).collect(),
+            arguments: arguments
+                .into_iter()
+                .map(|(k, v)| (k, Box::new(v)))
+                .collect(),
             variables: HashMap::new(),
-            value: Box::new(Value::Empty)
+            value: Box::new(Value::Empty),
         }
     }
 
@@ -41,7 +44,9 @@ impl ScriptInstance {
 
 impl Instance for ScriptInstance {
     fn get(&self, identifier: &str) -> Option<&Box<Value>> {
-        self.arguments.get(identifier).or_else(||self.variables.get(identifier))
+        self.arguments
+            .get(identifier)
+            .or_else(|| self.variables.get(identifier))
     }
 
     fn value(&self) -> &Box<Value> {
@@ -49,29 +54,31 @@ impl Instance for ScriptInstance {
     }
 
     fn write_to_file(&mut self, path: &str) -> Result<(), Error> {
-        let instance = self.value.to_shape().ok_or(std::io::Error::from(ErrorKind::Other))?;
-        unsafe {
-            instance.borrow_mut().write_to_file(path)
-        }
-
+        let instance = self
+            .value
+            .to_shape()
+            .ok_or(std::io::Error::from(ErrorKind::Other))?;
+        unsafe { instance.borrow_mut().write_to_file(path) }
     }
 }
 
-pub fn eval(doc: &Document, arguments: HashMap<String, Value>, ctx: &EvalContext) -> Result<ScriptInstance, RuntimeError> {
+pub fn eval(
+    doc: &Document,
+    arguments: HashMap<String, Value>,
+    ctx: &EvalContext,
+) -> Result<ScriptInstance, RuntimeError> {
     let mut instance = ScriptInstance::new(arguments);
 
     for statement in doc.statements() {
         match statement {
-            Statement::Variable{name, value} => {
-                match value {
-                    Some(value) => {
-                        let value = eval_expression(&instance, value, ctx)?;
-                        instance.set(name.clone(), value);
-                    },
-                    None => {
-                        if instance.get(name).is_none() {
-                            return Err(RuntimeError::UnsetParameter(name.to_string()))
-                        }
+            Statement::Variable { name, value } => match value {
+                Some(value) => {
+                    let value = eval_expression(&instance, value, ctx)?;
+                    instance.set(name.clone(), value);
+                }
+                None => {
+                    if instance.get(name).is_none() {
+                        return Err(RuntimeError::UnsetParameter(name.to_string()));
                     }
                 }
             },
@@ -84,10 +91,14 @@ pub fn eval(doc: &Document, arguments: HashMap<String, Value>, ctx: &EvalContext
     Ok(instance)
 }
 
-fn eval_expression(instance: &dyn Instance, expression: &Expression, ctx: &EvalContext) -> Result<Value, RuntimeError> {
+fn eval_expression(
+    instance: &dyn Instance,
+    expression: &Expression,
+    ctx: &EvalContext,
+) -> Result<Value, RuntimeError> {
     match expression {
         Expression::Literal(v) => Ok(v.clone()),
-        Expression::Invocation{path, arguments} => {
+        Expression::Invocation { path, arguments } => {
             let mut argument_values = HashMap::new();
             for (name, argument) in arguments.clone().into_iter() {
                 let value = eval_expression(instance, argument.deref(), ctx)?;
@@ -96,30 +107,33 @@ fn eval_expression(instance: &dyn Instance, expression: &Expression, ctx: &EvalC
 
             let doc = ctx.documents.get(path);
             match doc {
-                None => {
-                    match ctx.library.find(path) {
-                        None => Err(RuntimeError::UnknownIdentifier(path.to_string())),
-                        Some(f) => Ok(f(&argument_values)?)
-                    }
+                None => match ctx.library.find(path) {
+                    None => Err(RuntimeError::UnknownIdentifier(path.to_string())),
+                    Some(f) => Ok(f(&argument_values)?),
                 },
                 Some(doc) => {
                     let v = eval(doc, argument_values, ctx)?;
-                    return Ok(Value::Script(Rc::new(RefCell::new(v))))
+                    return Ok(Value::Script(Rc::new(RefCell::new(v))));
                 }
             }
-        },
+        }
         Expression::Reference(n) => {
             if let Some(value) = instance.get(&n) {
                 Ok(*value.clone())
             } else {
                 Err(RuntimeError::UnknownIdentifier(n.to_string()))
             }
-        },
+        }
         Expression::Access(l, name) => access(instance, ctx, l, name),
     }
 }
 
-fn access(instance: &dyn Instance, ctx: &EvalContext, l: &Box<Expression>, name: &String) -> Result<Value, RuntimeError>  {
+fn access(
+    instance: &dyn Instance,
+    ctx: &EvalContext,
+    l: &Box<Expression>,
+    name: &String,
+) -> Result<Value, RuntimeError> {
     let l = eval_expression(instance, l.deref(), ctx)?;
 
     let lv = l.to_script();
@@ -127,7 +141,7 @@ fn access(instance: &dyn Instance, ctx: &EvalContext, l: &Box<Expression>, name:
     if lv.is_some() {
         match lv.unwrap().borrow().get(name) {
             None => Err(RuntimeError::MissingProperty(name.clone())),
-            Some(v) => Ok(*v.clone())
+            Some(v) => Ok(*v.clone()),
         }
     } else {
         Err(RuntimeError::UnexpectedType(l))
@@ -147,5 +161,5 @@ pub enum RuntimeError {
     #[error("Cant Write")]
     CantWrite(),
     #[error("Mismatched types between {0} and {1}")]
-    MismatchedTypes(Value, Value)
+    MismatchedTypes(Value, Value),
 }

@@ -1,11 +1,9 @@
-use std::fmt::{Debug, Formatter};
 use cxx::UniquePtr;
-use opencascade_sys::ffi::{
-    new_point, gp_Pnt
-};
+use opencascade_sys::ffi::{gp_Pnt, new_point};
+use std::fmt::{Debug, Formatter};
 
 pub struct Point {
-    pub(crate) point: UniquePtr<gp_Pnt>
+    pub(crate) point: UniquePtr<gp_Pnt>,
 }
 
 impl Point {
@@ -13,7 +11,7 @@ impl Point {
         // SAFETY: cross C++ boundary
         unsafe {
             Point {
-                point: new_point(x, y, z)
+                point: new_point(x, y, z),
             }
         }
     }
@@ -31,9 +29,9 @@ impl Debug for Point {
 
 impl PartialEq for Point {
     fn eq(&self, other: &Self) -> bool {
-        return self.point.X() == other.point.X() &&
-            self.point.Y() == other.point.Y() &&
-            self.point.Z() == other.point.Z();
+        return self.point.X() == other.point.X()
+            && self.point.Y() == other.point.Y()
+            && self.point.Z() == other.point.Z();
     }
 }
 

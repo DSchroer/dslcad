@@ -5,13 +5,16 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
+use crate::runtime::ScriptInstance;
 pub use instance::Instance;
 use opencascade::Shape;
-use crate::runtime::ScriptInstance;
 
 #[derive(Debug, Clone)]
 pub enum Statement {
-    Variable{ name: String, value: Option<Expression> },
+    Variable {
+        name: String,
+        value: Option<Expression>,
+    },
     Return(Expression),
 }
 
@@ -19,7 +22,10 @@ pub enum Statement {
 pub enum Expression {
     Literal(Value),
     Reference(String),
-    Invocation{ path: String, arguments: HashMap<String, Box<Expression>> },
+    Invocation {
+        path: String,
+        arguments: HashMap<String, Box<Expression>>,
+    },
     Access(Box<Expression>, String),
 }
 
@@ -32,7 +38,7 @@ pub enum Value {
     Script(Rc<RefCell<ScriptInstance>>),
     Shape(Rc<RefCell<Shape>>),
 
-    Empty
+    Empty,
 }
 
 impl Debug for Value {
@@ -43,7 +49,7 @@ impl Debug for Value {
             Value::Text(n) => Display::fmt(n, f),
             Value::Script(i) => Display::fmt("INSTANCE", f),
             Value::Shape(s) => Display::fmt("SHAPE", f),
-            Value::Empty => f.write_str("()")
+            Value::Empty => f.write_str("()"),
         }
     }
 }
@@ -56,7 +62,7 @@ impl Display for Value {
             Value::Text(n) => Display::fmt(n, f),
             Value::Script(i) => Display::fmt("INSTANCE", f),
             Value::Shape(s) => Display::fmt("SHAPE", f),
-            Value::Empty => f.write_str("()")
+            Value::Empty => f.write_str("()"),
         }
     }
 }
@@ -66,21 +72,21 @@ impl Value {
         match self {
             Value::Number(f) => Some(*f),
             Value::Script(i) => i.borrow().value().to_number(),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn to_script(&self) -> Option<&Rc<RefCell<ScriptInstance>>> {
         match self {
             Value::Script(i) => Some(i),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn to_shape(&self) -> Option<&Rc<RefCell<Shape>>> {
         match self {
             Value::Shape(s) => Some(s),
-            _ => None
+            _ => None,
         }
     }
 }

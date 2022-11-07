@@ -1,9 +1,17 @@
-use std::io::ErrorKind;
-use path_absolutize::*;
-use std::path::{PathBuf};
 use crate::Point;
-use cxx::{UniquePtr};
-use opencascade_sys::ffi::{gp_Trsf, new_transform, BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor, BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepFilletAPI_MakeChamfer, TopoDS_Shape, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder, BRepAlgoAPI_Fuse, BRepFilletAPI_MakeFillet, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox_ctor, StlAPI_Writer_ctor, write_stl, BRepPrimAPI_MakeCylinder_ctor, BRepAlgoAPI_Fuse_ctor, BRepFilletAPI_MakeFillet_ctor, gp_Ax2_ctor, gp_DZ, TopExp_Explorer_ctor, TopAbs_ShapeEnum, TopoDS_cast_to_edge, BRepFilletAPI_MakeChamfer_ctor, gp_OZ, gp_OY, gp_OX};
+use cxx::UniquePtr;
+use opencascade_sys::ffi::{
+    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, gp_Trsf, new_transform, write_stl, BRepAlgoAPI_Cut,
+    BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_Transform,
+    BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor,
+    BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepMesh_IncrementalMesh_ctor,
+    BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder,
+    BRepPrimAPI_MakeCylinder_ctor, StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor,
+    TopoDS_Shape, TopoDS_cast_to_edge,
+};
+use path_absolutize::*;
+use std::io::ErrorKind;
+use std::path::PathBuf;
 
 pub enum Shape {
     Box(Box<UniquePtr<BRepPrimAPI_MakeBox>>),
@@ -12,17 +20,26 @@ pub enum Shape {
     Cut(Box<UniquePtr<BRepAlgoAPI_Cut>>),
     Fillet(Box<UniquePtr<BRepFilletAPI_MakeFillet>>),
     Chamfer(Box<UniquePtr<BRepFilletAPI_MakeChamfer>>),
-    Transformed(Box<UniquePtr<BRepBuilderAPI_Transform>>)
+    Transformed(Box<UniquePtr<BRepBuilderAPI_Transform>>),
 }
 
-pub enum Axis { X, Y, Z }
+pub enum Axis {
+    X,
+    Y,
+    Z,
+}
 
 impl Shape {
     pub fn cube(dx: f64, dy: f64, dz: f64) -> Self {
         // SAFETY: cross C++ boundary
         unsafe {
             let origin = Point::new(0., 0., 0.);
-            Shape::Box(Box::new(BRepPrimAPI_MakeBox_ctor(&origin.point, dx, dy, dz)))
+            Shape::Box(Box::new(BRepPrimAPI_MakeBox_ctor(
+                &origin.point,
+                dx,
+                dy,
+                dz,
+            )))
         }
     }
 
@@ -31,31 +48,35 @@ impl Shape {
         unsafe {
             let origin = Point::new(0., 0., 0.);
             let axis = gp_Ax2_ctor(&origin.point, gp_DZ());
-            Shape::Cylinder(Box::new(BRepPrimAPI_MakeCylinder_ctor(&axis, radius, height)))
+            Shape::Cylinder(Box::new(BRepPrimAPI_MakeCylinder_ctor(
+                &axis, radius, height,
+            )))
         }
     }
 
     pub fn fuse(left: &mut Shape, right: &mut Shape) -> Shape {
         // SAFETY: cross C++ boundary
-        unsafe {
-            Shape::Fuse(Box::new(BRepAlgoAPI_Fuse_ctor(left.shape(), right.shape())))
-        }
+        unsafe { Shape::Fuse(Box::new(BRepAlgoAPI_Fuse_ctor(left.shape(), right.shape()))) }
     }
 
     pub fn cut(left: &mut Shape, right: &mut Shape) -> Shape {
         // SAFETY: cross C++ boundary
-        unsafe {
-            Shape::Cut(Box::new(BRepAlgoAPI_Cut_ctor(left.shape(), right.shape())))
-        }
+        unsafe { Shape::Cut(Box::new(BRepAlgoAPI_Cut_ctor(left.shape(), right.shape()))) }
     }
 
     pub fn translate(left: &mut Shape, point: &Point) -> Shape {
         // SAFETY: cross C++ boundary
         unsafe {
             let mut transform = new_transform();
-            transform.pin_mut().SetTranslation(&Point::new(0., 0., 0.,).point, &point.point);
+            transform
+                .pin_mut()
+                .SetTranslation(&Point::new(0., 0., 0.).point, &point.point);
 
-            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(left.shape(), &transform, true)))
+            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(
+                left.shape(),
+                &transform,
+                true,
+            )))
         }
     }
 
@@ -71,7 +92,11 @@ impl Shape {
             let radians = degrees * (std::f64::consts::PI / 180.);
             transform.pin_mut().SetRotation(gp_axis, radians);
 
-            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(left.shape(), &transform, true)))
+            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(
+                left.shape(),
+                &transform,
+                true,
+            )))
         }
     }
 
@@ -79,9 +104,15 @@ impl Shape {
         // SAFETY: cross C++ boundary
         unsafe {
             let mut transform = new_transform();
-            transform.pin_mut().SetScale(&Point::new(0., 0., 0.,).point, scale);
+            transform
+                .pin_mut()
+                .SetScale(&Point::new(0., 0., 0.).point, scale);
 
-            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(left.shape(), &transform, true)))
+            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(
+                left.shape(),
+                &transform,
+                true,
+            )))
         }
     }
 
@@ -96,7 +127,11 @@ impl Shape {
             };
             transform.pin_mut().set_mirror_axis(&gp_axis);
 
-            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(left.shape(), &transform, true)))
+            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(
+                left.shape(),
+                &transform,
+                true,
+            )))
         }
     }
 
@@ -105,7 +140,8 @@ impl Shape {
         unsafe {
             let mut fillet = BRepFilletAPI_MakeFillet_ctor(target.shape());
 
-            let mut edge_explorer = TopExp_Explorer_ctor(&target.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+            let mut edge_explorer =
+                TopExp_Explorer_ctor(&target.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
             while edge_explorer.More() {
                 let edge = TopoDS_cast_to_edge(edge_explorer.Current());
                 fillet.pin_mut().add_edge(thickness, edge);
@@ -121,7 +157,8 @@ impl Shape {
         unsafe {
             let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(target.shape());
 
-            let mut edge_explorer = TopExp_Explorer_ctor(&target.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+            let mut edge_explorer =
+                TopExp_Explorer_ctor(&target.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
             while edge_explorer.More() {
                 let edge = TopoDS_cast_to_edge(edge_explorer.Current());
                 chamfer.pin_mut().add_edge(thickness, edge);
@@ -140,7 +177,7 @@ impl Shape {
             Shape::Cut(f) => f.pin_mut().Shape(),
             Shape::Fillet(f) => f.pin_mut().Shape(),
             Shape::Chamfer(f) => f.pin_mut().Shape(),
-            Shape::Transformed(f) => f.pin_mut().Shape()
+            Shape::Transformed(f) => f.pin_mut().Shape(),
         }
     }
 
@@ -157,15 +194,15 @@ impl Shape {
         };
         match _res {
             true => Ok(()),
-            false => Err(std::io::Error::from(ErrorKind::Other))
+            false => Err(std::io::Error::from(ErrorKind::Other)),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
     use super::*;
+    use std::fs;
 
     #[test]
     fn it_can_write_box_stl() {
