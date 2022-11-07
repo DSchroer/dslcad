@@ -3,7 +3,7 @@ use path_absolutize::*;
 use std::path::{PathBuf};
 use crate::Point;
 use cxx::{UniquePtr};
-use opencascade_sys::ffi::{BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepFilletAPI_MakeChamfer, TopoDS_Shape, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder, BRepAlgoAPI_Fuse, BRepFilletAPI_MakeFillet, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox_ctor, StlAPI_Writer_ctor, write_stl, BRepPrimAPI_MakeCylinder_ctor, BRepAlgoAPI_Fuse_ctor, BRepFilletAPI_MakeFillet_ctor, gp_Ax2_ctor, gp_DZ, TopExp_Explorer_ctor, TopAbs_ShapeEnum, TopoDS_cast_to_edge, BRepFilletAPI_MakeChamfer_ctor};
+use opencascade_sys::ffi::{gp_Trsf, new_transform, BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor, BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepFilletAPI_MakeChamfer, TopoDS_Shape, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder, BRepAlgoAPI_Fuse, BRepFilletAPI_MakeFillet, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox_ctor, StlAPI_Writer_ctor, write_stl, BRepPrimAPI_MakeCylinder_ctor, BRepAlgoAPI_Fuse_ctor, BRepFilletAPI_MakeFillet_ctor, gp_Ax2_ctor, gp_DZ, TopExp_Explorer_ctor, TopAbs_ShapeEnum, TopoDS_cast_to_edge, BRepFilletAPI_MakeChamfer_ctor, gp_OZ, gp_OY, gp_OX};
 
 pub enum Shape {
     Box(Box<UniquePtr<BRepPrimAPI_MakeBox>>),
@@ -11,8 +11,11 @@ pub enum Shape {
     Fuse(Box<UniquePtr<BRepAlgoAPI_Fuse>>),
     Cut(Box<UniquePtr<BRepAlgoAPI_Cut>>),
     Fillet(Box<UniquePtr<BRepFilletAPI_MakeFillet>>),
-    Chamfer(Box<UniquePtr<BRepFilletAPI_MakeChamfer>>)
+    Chamfer(Box<UniquePtr<BRepFilletAPI_MakeChamfer>>),
+    Transformed(Box<UniquePtr<BRepBuilderAPI_Transform>>)
 }
+
+pub enum Axis { X, Y, Z }
 
 impl Shape {
     pub fn cube(dx: f64, dy: f64, dz: f64) -> Self {
@@ -43,6 +46,57 @@ impl Shape {
         // SAFETY: cross C++ boundary
         unsafe {
             Shape::Cut(Box::new(BRepAlgoAPI_Cut_ctor(left.shape(), right.shape())))
+        }
+    }
+
+    pub fn translate(left: &mut Shape, point: &Point) -> Shape {
+        // SAFETY: cross C++ boundary
+        unsafe {
+            let mut transform = new_transform();
+            transform.pin_mut().SetTranslation(&Point::new(0., 0., 0.,).point, &point.point);
+
+            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(left.shape(), &transform, true)))
+        }
+    }
+
+    pub fn rotate(left: &mut Shape, axis: Axis, degrees: f64) -> Shape {
+        // SAFETY: cross C++ boundary
+        unsafe {
+            let mut transform = new_transform();
+            let gp_axis = match axis {
+                Axis::X => gp_OX(),
+                Axis::Y => gp_OY(),
+                Axis::Z => gp_OZ(),
+            };
+            let radians = degrees * (std::f64::consts::PI / 180.);
+            transform.pin_mut().SetRotation(gp_axis, radians);
+
+            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(left.shape(), &transform, true)))
+        }
+    }
+
+    pub fn scale(left: &mut Shape, scale: f64) -> Shape {
+        // SAFETY: cross C++ boundary
+        unsafe {
+            let mut transform = new_transform();
+            transform.pin_mut().SetScale(&Point::new(0., 0., 0.,).point, scale);
+
+            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(left.shape(), &transform, true)))
+        }
+    }
+
+    pub fn mirror(left: &mut Shape, axis: Axis) -> Shape {
+        // SAFETY: cross C++ boundary
+        unsafe {
+            let mut transform = new_transform();
+            let gp_axis = match axis {
+                Axis::X => gp_OX(),
+                Axis::Y => gp_OY(),
+                Axis::Z => gp_OZ(),
+            };
+            transform.pin_mut().set_mirror_axis(&gp_axis);
+
+            Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(left.shape(), &transform, true)))
         }
     }
 
@@ -85,7 +139,8 @@ impl Shape {
             Shape::Fuse(f) => f.pin_mut().Shape(),
             Shape::Cut(f) => f.pin_mut().Shape(),
             Shape::Fillet(f) => f.pin_mut().Shape(),
-            Shape::Chamfer(f) => f.pin_mut().Shape()
+            Shape::Chamfer(f) => f.pin_mut().Shape(),
+            Shape::Transformed(f) => f.pin_mut().Shape()
         }
     }
 
@@ -135,6 +190,34 @@ mod tests {
     #[test]
     fn it_can_write_cylinder_stl() {
         let mut shape = Shape::cylinder(10., 100.);
+        shape.write_stl("./demo.stl").unwrap();
+    }
+
+    #[test]
+    fn it_can_write_translated_stl() {
+        let mut b = Shape::cube(10., 10., 10.);
+        let mut shape = Shape::translate(&mut b, &Point::new(10., 0., 0.));
+        shape.write_stl("./demo.stl").unwrap();
+    }
+
+    #[test]
+    fn it_can_write_rotated_stl() {
+        let mut b = Shape::cube(10., 10., 10.);
+        let mut shape = Shape::rotate(&mut b, Axis::X, 45.);
+        shape.write_stl("./demo.stl").unwrap();
+    }
+
+    #[test]
+    fn it_can_write_scaled_stl() {
+        let mut b = Shape::cube(1., 1., 1.);
+        let mut shape = Shape::scale(&mut b, 10.);
+        shape.write_stl("./demo.stl").unwrap();
+    }
+
+    #[test]
+    fn it_can_write_mirrored_stl() {
+        let mut b = Shape::cube(1., 1., 1.);
+        let mut shape = Shape::mirror(&mut b, Axis::X);
         shape.write_stl("./demo.stl").unwrap();
     }
 
