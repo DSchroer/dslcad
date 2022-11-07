@@ -4,14 +4,11 @@ type: docker
 name: build
 
 steps:
-  - name: build
+  - name: build and test
     image: rust
     commands:
+      - apt update; apt install -y cmake
       - cargo build
-
-  - name: test
-    image: rust
-    commands:
       - cargo test
 
   - template: github-mirror
