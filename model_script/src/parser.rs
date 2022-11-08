@@ -38,12 +38,6 @@ impl Ast {
     }
 }
 
-#[derive(Debug)]
-pub enum ParseResult {
-    Success(PathBuf, HashMap<String, Document>),
-    Failure(Vec<ParseError>),
-}
-
 macro_rules! take {
     ($self: ident, $lexer: ident, $token: pat = $name: literal) => {
         match $lexer.next() {

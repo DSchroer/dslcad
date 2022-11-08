@@ -1,5 +1,5 @@
 [workspace]
-
+resolver = "2"
 members = [
     "model_script",
     "model_script_cli",

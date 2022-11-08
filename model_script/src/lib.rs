@@ -6,7 +6,7 @@ mod syntax;
 use crate::library::Library;
 use crate::parser::{Ast, ParseError};
 use crate::runtime::{EvalContext, RuntimeError, ScriptInstance};
-use parser::{ParseResult, Reader};
+use parser::{Reader};
 use path_absolutize::Absolutize;
 use std::collections::HashMap;
 use std::fs;
