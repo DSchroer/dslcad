@@ -2853,6 +2853,7 @@ dependencies = [
 [[package]]
 name = "opencascade-sys"
 version = "0.1.0"
+source = "git+https://github.com/dschroer/opencascade-rs?branch=feat/revol#0633fc2bf1622bb90ef6dad956db35fd13a83709"
 dependencies = [
  "cmake",
  "cxx",
