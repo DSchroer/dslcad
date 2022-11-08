@@ -1,5 +1,4 @@
-use crate::parser::lexer::Token;
-use crate::parser::Reader;
+use super::Reader;
 use logos::{Source, Span};
 use std::path::PathBuf;
 use thiserror::Error;

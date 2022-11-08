@@ -5,13 +5,11 @@ mod reader;
 
 use crate::syntax::*;
 use lexer::{Lexer, Token};
-use logos::{Logos, Span};
+use logos::{Logos};
 use path_absolutize::*;
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use thiserror::Error;
 
 pub use document::Document;
 pub use parse_error::ParseError;

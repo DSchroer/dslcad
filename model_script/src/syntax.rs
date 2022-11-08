@@ -50,10 +50,10 @@ impl Debug for Value {
             Value::Number(n) => Display::fmt(n, f),
             Value::Bool(n) => Display::fmt(n, f),
             Value::Text(n) => Display::fmt(n, f),
-            Value::Script(i) => Display::fmt("INSTANCE", f),
-            Value::Shape(s) => Display::fmt("SHAPE", f),
-            Value::Point(p) => Display::fmt("POINT", f),
-            Value::Line(p) => Display::fmt("LINE", f),
+            Value::Script(_) => Display::fmt("INSTANCE", f),
+            Value::Shape(_) => Display::fmt("SHAPE", f),
+            Value::Point(_) => Display::fmt("POINT", f),
+            Value::Line(_) => Display::fmt("LINE", f),
             Value::Empty => f.write_str("()"),
         }
     }

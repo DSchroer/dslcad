@@ -5,7 +5,7 @@ use crate::syntax::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{Error, ErrorKind};
-use std::ops::{Add, Deref, Div, Mul, Sub};
+use std::ops::{Deref};
 use std::rc::Rc;
 use thiserror::Error;
 
@@ -49,7 +49,7 @@ impl Instance for ScriptInstance {
             .or_else(|| self.variables.get(identifier))
     }
 
-    fn value(&self) -> &Box<Value> {
+    fn value(&self) -> &Value {
         &self.value
     }
 
@@ -58,7 +58,7 @@ impl Instance for ScriptInstance {
             .value
             .to_shape()
             .ok_or(std::io::Error::from(ErrorKind::Other))?;
-        unsafe { instance.borrow_mut().write_to_file(path) }
+        instance.borrow_mut().write_to_file(path)
     }
 }
 

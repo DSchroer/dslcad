@@ -87,7 +87,7 @@ pub fn rotate(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 
     let mut shape = Shape::rotate(&mut shape, Axis::X, x);
     let mut shape = Shape::rotate(&mut shape, Axis::Y, y);
-    let mut shape = Shape::rotate(&mut shape, Axis::Z, z);
+    let shape = Shape::rotate(&mut shape, Axis::Z, z);
 
     Ok(Value::Shape(Rc::new(RefCell::new(shape))))
 }
@@ -102,11 +102,11 @@ pub fn scale(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 }
 
 impl Instance for Shape {
-    fn get(&self, identifier: &str) -> Option<&Box<Value>> {
+    fn get(&self, _: &str) -> Option<&Box<Value>> {
         None
     }
 
-    fn value(&self) -> &Box<Value> {
+    fn value(&self) -> &Value {
         todo!("Implement value")
     }
 
