@@ -5,12 +5,9 @@ name: build
 
 steps:
   - name: build and test
-    image: ubuntu:jammy
+    image: rust
     commands:
-      - apt update; \
-        apt install -y cmake rustup
-      - rustup toolchain install stable-x86_64-unknown-linux-gnu
-      - rustup toolchain install stable-x86_64-pc-windows-gnu
+      - apt update; apt install -y cmake
       - cargo build
       - cargo test
 

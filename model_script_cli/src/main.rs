@@ -60,7 +60,7 @@ fn setup(mut commands: Commands) {
     commands.spawn_bundle(Camera3dBundle::default())
         .insert_bundle(OrbitCameraBundle::new(
             OrbitCameraController::default(),
-            Vec3::new(-40.0, 40.0, 0.0),
+            Vec3::new(-100.0, 100.0, 0.0),
             Vec3::new(0., 0., 0.),
         ));
 
