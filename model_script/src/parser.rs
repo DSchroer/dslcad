@@ -312,19 +312,6 @@ pub mod tests {
     use super::*;
     use std::path::PathBuf;
 
-    impl ParseResult {
-        #[inline]
-        #[track_caller]
-        pub fn unwrap(self) -> HashMap<String, Document> {
-            match self {
-                ParseResult::Success(_, t) => t,
-                ParseResult::Failure(e) => {
-                    panic!("called `Result::unwrap()` on an `Err` value {:?}", e)
-                }
-            }
-        }
-    }
-
     #[test]
     fn it_can_parse_variable() {
         Parser::new("test", &TestReader("test();"))
