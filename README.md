@@ -49,8 +49,8 @@ model-script ./examples/table.ex -o table.stl
   - [X] Lines
   - [X] Arcs
   - [X] Extrude
-  - [ ] Rotational Extrude
+  - [X] Rotational Extrude
 - CLI interface:
   - [ ] Variable overriding
   - [ ] Unified output format
-  - [ ] 3D output display
+  - [X] 3D output display
