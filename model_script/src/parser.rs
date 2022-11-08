@@ -6,7 +6,6 @@ mod reader;
 use crate::syntax::*;
 use lexer::{Lexer, Token};
 use logos::{Logos, Span};
-use parse_error::ParseError;
 use path_absolutize::*;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -15,6 +14,7 @@ use std::str::FromStr;
 use thiserror::Error;
 
 pub use document::Document;
+pub use parse_error::ParseError;
 pub use reader::Reader;
 
 pub struct Parser<'a, T: Reader> {
@@ -23,9 +23,24 @@ pub struct Parser<'a, T: Reader> {
     documents: HashMap<String, Document>,
 }
 
+pub struct Ast {
+    root: PathBuf,
+    documents: HashMap<String, Document>,
+}
+
+impl Ast {
+    pub fn root_document(&self) -> &Document {
+        self.documents.get(self.root.to_str().unwrap()).unwrap()
+    }
+
+    pub fn documents(&self) -> &HashMap<String, Document> {
+        &self.documents
+    }
+}
+
 #[derive(Debug)]
 pub enum ParseResult {
-    Success(HashMap<String, Document>),
+    Success(PathBuf, HashMap<String, Document>),
     Failure(Vec<ParseError>),
 }
 
@@ -56,10 +71,10 @@ impl<'a, T: Reader> Parser<'a, T> {
         }
     }
 
-    pub fn parse(mut self) -> ParseResult {
+    pub fn parse(mut self) -> Result<Ast, ParseError> {
         let input = self.reader.read(self.path.as_path());
         if let Err(_) = input {
-            return ParseResult::Failure(vec![ParseError::NoSuchFile(self.path.clone())]);
+            return Err(ParseError::NoSuchFile(self.path.clone()));
         }
 
         let input = input.unwrap();
@@ -73,7 +88,7 @@ impl<'a, T: Reader> Parser<'a, T> {
             };
             match statement {
                 Ok(s) => statements.push(s),
-                Err(error) => return ParseResult::Failure(vec![error]),
+                Err(error) => return Err(error),
             }
         }
 
@@ -81,7 +96,10 @@ impl<'a, T: Reader> Parser<'a, T> {
             String::from(self.path.to_str().unwrap()),
             Document::new(statements),
         );
-        return ParseResult::Success(self.documents);
+        return Ok(Ast {
+            root: self.path,
+            documents: self.documents,
+        });
     }
 
     fn parse_statement(&mut self, lexer: &mut Lexer) -> Result<Statement, ParseError> {
@@ -131,12 +149,12 @@ impl<'a, T: Reader> Parser<'a, T> {
                 if !self.documents.contains_key(buf) && self.path.to_str().unwrap() != buf {
                     let r = Parser::new(buf, self.reader).parse();
                     match r {
-                        ParseResult::Success(docs) => {
-                            for (path, document) in docs {
+                        Ok(ast) => {
+                            for (path, document) in ast.documents {
                                 self.documents.insert(path, document);
                             }
                         },
-                        ParseResult::Failure(e) => return Err(ParseError::AggregateError(e))
+                        Err(e) => { return Err(e); }
                     }
                 }
 
@@ -305,7 +323,7 @@ pub mod tests {
         #[track_caller]
         pub fn unwrap(self) -> HashMap<String, Document> {
             match self {
-                ParseResult::Success(t) => t,
+                ParseResult::Success(_, t) => t,
                 ParseResult::Failure(e) => {
                     panic!("called `Result::unwrap()` on an `Err` value {:?}", e)
                 }
@@ -367,7 +385,7 @@ pub mod tests {
     macro_rules! parse_statement {
         ($code: literal) => {{
             let mut parsed = Parser::new("test", &TestReader($code)).parse().unwrap();
-            let mut doc = parsed.remove("test").unwrap();
+            let mut doc = parsed.root_document();
             let statement = doc.statements().next();
             statement.unwrap().clone()
         }};

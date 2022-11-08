@@ -9,9 +9,9 @@ use std::ops::{Add, Deref, Div, Mul, Sub};
 use std::rc::Rc;
 use thiserror::Error;
 
-pub struct EvalContext {
+pub struct EvalContext<'a> {
     pub library: Library,
-    pub documents: HashMap<String, Document>,
+    pub documents: &'a HashMap<String, Document>,
 }
 
 #[derive(Debug, Clone)]
