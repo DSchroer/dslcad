@@ -7,7 +7,7 @@ steps:
   - name: build and test
     image: rust
     commands:
-      - apt update; apt install -y cmake
+      - apt update; apt install -y cmake alsa
       - cargo build
       - cargo test
 
