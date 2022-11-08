@@ -1,5 +1,5 @@
 use crate::runtime::RuntimeError;
-use crate::syntax::{Instance, Value};
+use crate::syntax::{Accessible, Value};
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -99,7 +99,7 @@ pub fn scale(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     )))))
 }
 
-impl Instance for Shape {
+impl Accessible for Shape {
     fn get(&self, _: &str) -> Option<&Value> {
         None
     }

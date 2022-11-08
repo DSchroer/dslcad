@@ -1,6 +1,6 @@
 use crate::library::Library;
 use crate::parser::Document;
-use crate::syntax::Instance;
+use crate::syntax::Accessible;
 use crate::syntax::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -54,7 +54,7 @@ impl ScriptInstance {
     }
 }
 
-impl Instance for ScriptInstance {
+impl Accessible for ScriptInstance {
     fn get(&self, identifier: &str) -> Option<&Value> {
         let val = self
             .arguments
@@ -94,7 +94,7 @@ pub fn eval(
 }
 
 fn eval_expression(
-    instance: &dyn Instance,
+    instance: &dyn Accessible,
     expression: &Expression,
     ctx: &EvalContext,
 ) -> Result<Value, RuntimeError> {
@@ -131,7 +131,7 @@ fn eval_expression(
 }
 
 fn access(
-    instance: &dyn Instance,
+    instance: &dyn Accessible,
     ctx: &EvalContext,
     l: &Expression,
     name: &str,

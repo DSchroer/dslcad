@@ -1,4 +1,4 @@
-mod instance;
+mod accessible;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -6,7 +6,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
 use crate::runtime::ScriptInstance;
-pub use instance::Instance;
+pub use accessible::Accessible;
 use opencascade::{Edge, Point, Shape};
 
 #[derive(Debug, Clone)]
