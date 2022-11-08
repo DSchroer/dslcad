@@ -5,7 +5,7 @@ use crate::syntax::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{Error, ErrorKind};
-use std::ops::{Deref};
+use std::ops::Deref;
 use std::rc::Rc;
 use thiserror::Error;
 
@@ -49,16 +49,18 @@ impl ScriptInstance {
         let instance = self
             .value
             .to_shape()
-            .ok_or(std::io::Error::from(ErrorKind::Other))?;
+            .ok_or_else(|| std::io::Error::from(ErrorKind::Other))?;
         instance.borrow_mut().write_stl(path)
     }
 }
 
 impl Instance for ScriptInstance {
-    fn get(&self, identifier: &str) -> Option<&Box<Value>> {
-        self.arguments
+    fn get(&self, identifier: &str) -> Option<&Value> {
+        let val = self
+            .arguments
             .get(identifier)
-            .or_else(|| self.variables.get(identifier))
+            .or_else(|| self.variables.get(identifier))?;
+        Some(val)
     }
 }
 
@@ -119,7 +121,7 @@ fn eval_expression(
         }
         Expression::Reference(n) => {
             if let Some(value) = instance.get(n) {
-                Ok(*value.clone())
+                Ok(value.clone())
             } else {
                 Err(RuntimeError::UnknownIdentifier(n.to_string()))
             }
@@ -131,17 +133,17 @@ fn eval_expression(
 fn access(
     instance: &dyn Instance,
     ctx: &EvalContext,
-    l: &Box<Expression>,
-    name: &String,
+    l: &Expression,
+    name: &str,
 ) -> Result<Value, RuntimeError> {
     let l = eval_expression(instance, l.deref(), ctx)?;
 
     let lv = l.to_script();
 
-    if lv.is_some() {
-        match lv.unwrap().borrow().get(name) {
-            None => Err(RuntimeError::MissingProperty(name.clone())),
-            Some(v) => Ok(*v.clone()),
+    if let Some(instance) = lv {
+        match instance.borrow().get(name) {
+            None => Err(RuntimeError::MissingProperty(name.to_owned())),
+            Some(v) => Ok(v.clone()),
         }
     } else {
         Err(RuntimeError::UnexpectedType(l))

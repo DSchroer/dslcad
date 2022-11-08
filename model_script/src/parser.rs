@@ -5,7 +5,7 @@ mod reader;
 
 use crate::syntax::*;
 use lexer::{Lexer, Token};
-use logos::{Logos};
+use logos::Logos;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -65,7 +65,7 @@ impl<'a, T: Reader> Parser<'a, T> {
 
     pub fn parse(mut self) -> Result<Ast, ParseError> {
         let input = self.reader.read(self.path.as_path());
-        if let Err(_) = input {
+        if input.is_err() {
             return Err(ParseError::NoSuchFile(self.path.clone()));
         }
 
@@ -73,11 +73,8 @@ impl<'a, T: Reader> Parser<'a, T> {
         let mut lex = Token::lexer(&input);
 
         let mut statements = Vec::new();
-        loop {
-            let statement = match lex.clone().next() {
-                Some(_) => self.parse_statement(&mut lex),
-                None => break,
-            };
+        while let Some(_) = lex.clone().next() {
+            let statement = self.parse_statement(&mut lex);
             match statement {
                 Ok(s) => statements.push(s),
                 Err(error) => return Err(error),
@@ -201,14 +198,17 @@ impl<'a, T: Reader> Parser<'a, T> {
         let unary = match peek.next() {
             Some(Token::Minus) => {
                 lexer.next();
-                Some(|e|Expression::Invocation {
+                Some(|e| Expression::Invocation {
                     path: String::from("subtract"),
                     arguments: HashMap::from([
-                        ("left".to_string(), Box::new(Expression::Literal(Value::Number(0.0)))),
-                        ("right".to_string(), Box::new(e))
-                    ])
+                        (
+                            "left".to_string(),
+                            Box::new(Expression::Literal(Value::Number(0.0))),
+                        ),
+                        ("right".to_string(), Box::new(e)),
+                    ]),
                 })
-            },
+            }
             Some(_) => None,
             None => return Err(ParseError::UnexpectedEndOfFile(self.path.clone())),
         };

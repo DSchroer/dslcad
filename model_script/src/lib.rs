@@ -6,7 +6,7 @@ mod syntax;
 use crate::library::Library;
 use crate::parser::{Ast, ParseError};
 use crate::runtime::{EvalContext, RuntimeError, ScriptInstance};
-use parser::{Reader};
+use parser::Reader;
 use path_absolutize::Absolutize;
 use std::collections::HashMap;
 use std::fs;
@@ -41,7 +41,7 @@ impl Reader for FileReader {
 #[cfg(test)]
 mod tests {
     use crate::parser::tests::TestReader;
-    
+
     use std::collections::HashMap;
 
     use super::*;

@@ -1,15 +1,15 @@
-use std::env;
-use std::path::{Path, PathBuf};
-use clap::Parser;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use clap::Parser;
+use model_script::{eval, parse, FileReader};
+use path_absolutize::Absolutize;
 use rfd::FileDialog;
 use smooth_bevy_cameras::{
     controllers::orbit::{OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin},
     LookTransformPlugin,
 };
-use path_absolutize::Absolutize;
-use model_script::{eval, parse, FileReader};
+use std::env;
+use std::path::{Path, PathBuf};
 
 /// model_script cad compiler
 #[derive(Parser, Debug)]
@@ -44,20 +44,21 @@ fn main() {
 
 struct State {
     file: Option<PathBuf>,
-    model: Option<Entity>
+    model: Option<Entity>,
 }
 
 impl State {
-    pub fn new() -> Self{
-        State{
+    pub fn new() -> Self {
+        State {
             file: None,
-            model: None
+            model: None,
         }
     }
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn_bundle(Camera3dBundle::default())
+    commands
+        .spawn_bundle(Camera3dBundle::default())
         .insert_bundle(OrbitCameraBundle::new(
             OrbitCameraController::default(),
             Vec3::new(-100.0, 100.0, 0.0),
@@ -70,7 +71,13 @@ fn setup(mut commands: Commands) {
     });
 }
 
-fn ui_example(mut commands: Commands, asset_server: Res<AssetServer>, mut state: ResMut<State>, materials: ResMut<Assets<StandardMaterial>>, mut egui_context: ResMut<EguiContext>) {
+fn ui_example(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut state: ResMut<State>,
+    materials: ResMut<Assets<StandardMaterial>>,
+    mut egui_context: ResMut<EguiContext>,
+) {
     egui::TopBottomPanel::top("Tools").show(egui_context.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
             if ui.button("Open File").clicked() {
@@ -97,7 +104,12 @@ fn try_clear(commands: &mut Commands, state: &mut ResMut<State>) {
     }
 }
 
-fn display_file(mut commands: Commands, asset_server: Res<AssetServer>, mut state: ResMut<State>, mut materials: ResMut<Assets<StandardMaterial>>){
+fn display_file(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut state: ResMut<State>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
     let edit_file = Path::new("./a.stl");
     let edit_file = edit_file.absolutize().unwrap();
     let edit_file = edit_file.to_str().unwrap();
@@ -114,9 +126,12 @@ fn display_file(mut commands: Commands, asset_server: Res<AssetServer>, mut stat
                         .spawn_bundle(PbrBundle {
                             mesh: asset_server.load(edit_file),
                             material: materials.add(Color::WHITE.into()),
-                            transform: Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::PI / 2.)),
+                            transform: Transform::from_rotation(Quat::from_rotation_x(
+                                -std::f32::consts::PI / 2.,
+                            )),
                             ..Default::default()
-                        }).id();
+                        })
+                        .id();
                     state.model = Some(model);
                 }
                 Err(e) => {

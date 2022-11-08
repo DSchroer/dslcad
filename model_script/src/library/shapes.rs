@@ -100,7 +100,7 @@ pub fn scale(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 }
 
 impl Instance for Shape {
-    fn get(&self, _: &str) -> Option<&Box<Value>> {
+    fn get(&self, _: &str) -> Option<&Value> {
         None
     }
 }

@@ -4,7 +4,6 @@ use crate::syntax::Value;
 
 use std::collections::HashMap;
 
-
 pub fn numeric(
     args: &HashMap<String, Value>,
     op: impl FnOnce(f64, f64) -> f64,
