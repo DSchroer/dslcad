@@ -12,8 +12,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub use syntax::Instance;
-
 pub fn parse(path: &str) -> Result<Ast, ParseError> {
     let parser = parser::Parser::new(path, &FileReader);
     parser.parse()

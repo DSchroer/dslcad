@@ -9,7 +9,7 @@ use smooth_bevy_cameras::{
     LookTransformPlugin,
 };
 use path_absolutize::Absolutize;
-use model_script::{eval, parse, FileReader, Instance};
+use model_script::{eval, parse, FileReader};
 
 /// model_script cad compiler
 #[derive(Parser, Debug)]

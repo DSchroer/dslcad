@@ -4,8 +4,6 @@ use crate::syntax::{Instance, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use std::io::Error;
-
 use std::rc::Rc;
 
 use opencascade::{Axis, Point, Shape};
@@ -104,13 +102,5 @@ pub fn scale(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 impl Instance for Shape {
     fn get(&self, _: &str) -> Option<&Box<Value>> {
         None
-    }
-
-    fn value(&self) -> &Value {
-        todo!("Implement value")
-    }
-
-    fn write_to_file(&mut self, path: &str) -> Result<(), Error> {
-        self.write_stl(path)
     }
 }

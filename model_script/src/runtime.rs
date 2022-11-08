@@ -40,6 +40,18 @@ impl ScriptInstance {
     pub fn set_value(&mut self, value: Value) {
         self.value = Box::new(value);
     }
+
+    pub fn value(&self) -> &Value {
+        &self.value
+    }
+
+    pub fn write_to_file(&mut self, path: &str) -> Result<(), Error> {
+        let instance = self
+            .value
+            .to_shape()
+            .ok_or(std::io::Error::from(ErrorKind::Other))?;
+        instance.borrow_mut().write_stl(path)
+    }
 }
 
 impl Instance for ScriptInstance {
@@ -47,18 +59,6 @@ impl Instance for ScriptInstance {
         self.arguments
             .get(identifier)
             .or_else(|| self.variables.get(identifier))
-    }
-
-    fn value(&self) -> &Value {
-        &self.value
-    }
-
-    fn write_to_file(&mut self, path: &str) -> Result<(), Error> {
-        let instance = self
-            .value
-            .to_shape()
-            .ok_or(std::io::Error::from(ErrorKind::Other))?;
-        instance.borrow_mut().write_to_file(path)
     }
 }
 
