@@ -338,7 +338,9 @@ pub mod tests {
 
     #[test]
     fn it_can_parse() {
-        Parser::new("test", &TestReader("test(x=10,y=10);")).parse().unwrap();
+        Parser::new("test", &TestReader("test(x=10,y=10);"))
+            .parse()
+            .unwrap();
     }
 
     #[test]

@@ -1,8 +1,14 @@
 use crate::Point;
 use cxx::{r, UniquePtr};
-use opencascade_sys::ffi::{GC_MakeArcOfCircle, GC_MakeArcOfCircle_point_point_point, GC_MakeSegment, GC_MakeSegment_point_point, BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeEdge, BRepBuilderAPI_MakeWire_ctor, BRepBuilderAPI_MakeEdge_HandleGeomCurve, new_HandleGeomCurve_from_HandleGeom_TrimmedCurve, GC_MakeSegment_Value, GC_MakeArcOfCircle_Value};
+use opencascade_sys::ffi::{
+    new_HandleGeomCurve_from_HandleGeom_TrimmedCurve, new_vec, BRepBuilderAPI_MakeEdge,
+    BRepBuilderAPI_MakeEdge_HandleGeomCurve, BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_MakeWire,
+    BRepBuilderAPI_MakeWire_ctor, BRepPrimAPI_MakePrism_ctor, GC_MakeArcOfCircle,
+    GC_MakeArcOfCircle_Value, GC_MakeArcOfCircle_point_point_point, GC_MakeSegment,
+    GC_MakeSegment_Value, GC_MakeSegment_point_point,
+};
 
-pub struct Edge(Box<UniquePtr<BRepBuilderAPI_MakeWire>>);
+pub struct Edge(pub(crate) Box<UniquePtr<BRepBuilderAPI_MakeWire>>);
 
 impl Edge {
     pub fn new() -> Self {
@@ -26,7 +32,9 @@ impl Edge {
         unsafe {
             let segment = GC_MakeArcOfCircle_point_point_point(&a.point, &b.point, &c.point);
             let mut edge_1 = BRepBuilderAPI_MakeEdge_HandleGeomCurve(
-                &new_HandleGeomCurve_from_HandleGeom_TrimmedCurve(&GC_MakeArcOfCircle_Value(&segment)),
+                &new_HandleGeomCurve_from_HandleGeom_TrimmedCurve(&GC_MakeArcOfCircle_Value(
+                    &segment,
+                )),
             );
             self.0.pin_mut().add_edge(edge_1.pin_mut().Edge());
         }

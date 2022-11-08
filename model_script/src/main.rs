@@ -81,11 +81,11 @@ impl Reader for FileReader {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::Document;
     use crate::parser::tests::TestReader;
+    use crate::parser::Document;
 
-    use crate::runtime::ScriptInstance;
     use super::*;
+    use crate::runtime::ScriptInstance;
 
     fn run(code: &str) -> ScriptInstance {
         let reader = TestReader(code);

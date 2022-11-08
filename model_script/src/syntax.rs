@@ -41,7 +41,6 @@ pub enum Value {
     Line(Rc<RefCell<Edge>>),
     Shape(Rc<RefCell<Shape>>),
 
-
     Empty,
 }
 
@@ -85,6 +84,13 @@ impl Value {
     pub fn to_point(&self) -> Option<&Rc<RefCell<Point>>> {
         match self {
             Value::Point(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    pub fn to_line(&self) -> Option<&Rc<RefCell<Edge>>> {
+        match self {
+            Value::Line(s) => Some(s),
             _ => None,
         }
     }

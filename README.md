@@ -45,7 +45,12 @@ model-script ./examples/table.ex -o table.stl
   - [X] Cross Document Calls
   - [X] Pipe Operator
 - 2D Design:
-  - [ ] Anything
+  - [X] Points
+  - [X] Lines
+  - [X] Arcs
+  - [X] Extrude
+  - [ ] Rotational Extrude
 - CLI interface:
   - [ ] Variable overriding
   - [ ] Unified output format
+  - [ ] 3D output display

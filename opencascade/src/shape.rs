@@ -1,13 +1,14 @@
-use crate::Point;
-use cxx::UniquePtr;
+use crate::{Edge, Point};
+use cxx::{b, UniquePtr};
 use opencascade_sys::ffi::{
-    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, gp_Trsf, new_transform, write_stl, BRepAlgoAPI_Cut,
-    BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_Transform,
-    BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor,
-    BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepMesh_IncrementalMesh_ctor,
-    BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder,
-    BRepPrimAPI_MakeCylinder_ctor, StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor,
-    TopoDS_Shape, TopoDS_cast_to_edge,
+    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, gp_Trsf, new_transform, new_vec, write_stl,
+    BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor,
+    BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor,
+    BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet,
+    BRepFilletAPI_MakeFillet_ctor, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox,
+    BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor,
+    BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, StlAPI_Writer_ctor, TopAbs_ShapeEnum,
+    TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge,
 };
 use path_absolutize::*;
 use std::io::ErrorKind;
@@ -21,6 +22,7 @@ pub enum Shape {
     Fillet(Box<UniquePtr<BRepFilletAPI_MakeFillet>>),
     Chamfer(Box<UniquePtr<BRepFilletAPI_MakeChamfer>>),
     Transformed(Box<UniquePtr<BRepBuilderAPI_Transform>>),
+    Prism(Box<UniquePtr<BRepPrimAPI_MakePrism>>),
 }
 
 pub enum Axis {
@@ -62,6 +64,15 @@ impl Shape {
     pub fn cut(left: &mut Shape, right: &mut Shape) -> Shape {
         // SAFETY: cross C++ boundary
         unsafe { Shape::Cut(Box::new(BRepAlgoAPI_Cut_ctor(left.shape(), right.shape()))) }
+    }
+
+    pub fn extrude(wire: &mut Edge, height: f64) -> Shape {
+        let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.0.pin_mut().Wire(), false);
+        let prism_vec = new_vec(0.0, 0.0, height);
+        // We're calling Shape here instead of Face(), hope that's also okay.
+        let mut body =
+            BRepPrimAPI_MakePrism_ctor(face_profile.pin_mut().Shape(), &prism_vec, true, true);
+        Shape::Prism(Box::new(body))
     }
 
     pub fn translate(left: &mut Shape, point: &Point) -> Shape {
@@ -178,6 +189,7 @@ impl Shape {
             Shape::Fillet(f) => f.pin_mut().Shape(),
             Shape::Chamfer(f) => f.pin_mut().Shape(),
             Shape::Transformed(f) => f.pin_mut().Shape(),
+            Shape::Prism(p) => p.pin_mut().Shape(),
         }
     }
 

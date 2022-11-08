@@ -1,6 +1,6 @@
+mod faces;
 mod math;
 mod shapes;
-mod faces;
 
 use crate::runtime::RuntimeError;
 use crate::syntax::Value;
@@ -21,6 +21,8 @@ impl Library {
             "point" => Some(&faces::point),
             "line" => Some(&faces::line),
             "arc" => Some(&faces::arc),
+            "join" => Some(&faces::join),
+            "extrude" => Some(&faces::extrude),
 
             "cube" => Some(&shapes::cube),
             "cylinder" => Some(&shapes::cylinder),
@@ -65,6 +67,16 @@ macro_rules! point {
             .ok_or(RuntimeError::UnexpectedType(value.clone()))?
     }};
 }
+macro_rules! edge {
+    ($args: ident, $name: literal) => {{
+        let value = $args
+            .get($name)
+            .ok_or(RuntimeError::UnsetParameter(String::from($name)))?;
+        value
+            .to_line()
+            .ok_or(RuntimeError::UnexpectedType(value.clone()))?
+    }};
+}
 macro_rules! shape {
     ($args: ident, $name: literal) => {{
         let value = $args
@@ -75,6 +87,7 @@ macro_rules! shape {
             .ok_or(RuntimeError::UnexpectedType(value.clone()))?
     }};
 }
+pub(crate) use edge;
 pub(crate) use number;
 pub(crate) use point;
 pub(crate) use shape;
