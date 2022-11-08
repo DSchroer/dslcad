@@ -1,9 +1,9 @@
 var thickness = 5;
 
 var baseHeight = 55;
-var baseRadius = 73/2;
+var baseRadius = 72/2;
 var topHeight = 50;
-var topRadius = (90/2) + thickness;
+var topRadius = (89/2) + thickness;
 
 var base = cylinder(radius=baseRadius, height=baseHeight);
 var top = cylinder(radius=topRadius, height=topHeight)
