@@ -23,6 +23,7 @@ impl Library {
             "arc" => Some(&faces::arc),
             "join" => Some(&faces::join),
             "extrude" => Some(&faces::extrude),
+            "revolve" => Some(&faces::revolve),
 
             "cube" => Some(&shapes::cube),
             "cylinder" => Some(&shapes::cylinder),

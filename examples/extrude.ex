@@ -6,4 +6,4 @@ var face = line(start=start, end=end)
     ->left join(right=line(start=start, end=arc))
     ->left join(right=line(start=arc, end=end));
 
-face ->shape extrude(height=2) ->shape fillet(radius=0.2);
+face ->shape revolve(y=360) ->shape fillet(radius=2);

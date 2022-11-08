@@ -3,7 +3,7 @@ use crate::library::number;
 use crate::library::point;
 use crate::runtime::RuntimeError;
 use crate::syntax::Value;
-use opencascade::{Edge, Point, Shape};
+use opencascade::{Axis, Edge, Point, Shape};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -53,12 +53,21 @@ pub fn extrude(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     )))))
 }
 
-// pub fn arc(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-//     let start = point!(args, "start").borrow();
-//     let center = point!(args, "center").borrow();
-//     let end = point!(args, "end").borrow();
-//
-//     let mut edge = Edge::new();
-//     edge.add_arc(&start, &center, &end);
-//     Ok(Value::Line(Rc::new(RefCell::new(edge))))
-// }
+pub fn revolve(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
+    let mut shape = edge!(args, "shape").borrow_mut();
+    let x = number!(args, "x", 0.);
+    let y = number!(args, "y", 0.);
+    let z = number!(args, "z", 0.);
+
+    let (axis, angle) = if x != 0.0 {
+        (Axis::X, x)
+    } else if y != 0.0 {
+        (Axis::Y, y)
+    } else {
+        (Axis::Z, z)
+    };
+
+    Ok(Value::Shape(Rc::new(RefCell::new(Shape::extrude_rotate(
+        &mut shape, axis, angle,
+    )))))
+}

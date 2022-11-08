@@ -8,7 +8,7 @@ use opencascade_sys::ffi::{
     BRepFilletAPI_MakeFillet_ctor, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox,
     BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor,
     BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, StlAPI_Writer_ctor, TopAbs_ShapeEnum,
-    TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge,
+    TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeRevol
 };
 use path_absolutize::*;
 use std::io::ErrorKind;
@@ -23,6 +23,7 @@ pub enum Shape {
     Chamfer(Box<UniquePtr<BRepFilletAPI_MakeChamfer>>),
     Transformed(Box<UniquePtr<BRepBuilderAPI_Transform>>),
     Prism(Box<UniquePtr<BRepPrimAPI_MakePrism>>),
+    Revol(Box<UniquePtr<BRepPrimAPI_MakeRevol>>)
 }
 
 pub enum Axis {
@@ -73,6 +74,21 @@ impl Shape {
         let mut body =
             BRepPrimAPI_MakePrism_ctor(face_profile.pin_mut().Shape(), &prism_vec, true, true);
         Shape::Prism(Box::new(body))
+    }
+
+    pub fn extrude_rotate(wire: &mut Edge, axis: Axis, degrees: f64) -> Shape {
+        let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.0.pin_mut().Wire(), false);
+
+        let radians = degrees * (std::f64::consts::PI / 180.);
+        let gp_axis = match axis {
+            Axis::X => gp_OX(),
+            Axis::Y => gp_OY(),
+            Axis::Z => gp_OZ(),
+        };
+
+        let mut body =
+            BRepPrimAPI_MakeRevol_ctor(face_profile.pin_mut().Shape(), gp_axis, radians, true);
+        Shape::Revol(Box::new(body))
     }
 
     pub fn translate(left: &mut Shape, point: &Point) -> Shape {
@@ -190,6 +206,7 @@ impl Shape {
             Shape::Chamfer(f) => f.pin_mut().Shape(),
             Shape::Transformed(f) => f.pin_mut().Shape(),
             Shape::Prism(p) => p.pin_mut().Shape(),
+            Shape::Revol(p) => p.pin_mut().Shape(),
         }
     }
 

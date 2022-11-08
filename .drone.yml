@@ -7,7 +7,7 @@ steps:
   - name: build and test
     image: rust
     commands:
-      - apt update; apt install -y cmake libasound2
+      - apt update; apt install -y cmake libasound2-dev
       - cargo build
       - cargo test
 
