@@ -30,10 +30,10 @@ var core = base
     ->left difference(right=cylinder(radius=baseRadius - thickness, height=topHeight + baseHeight))
     ->left difference(right=cylinder(radius=topRadius - thickness, height=topHeight - thickness)
         ->shape translate(z=baseHeight + thickness))
-    //->left difference(right=cutout)
-    //->left difference(right=cutout ->shape rotate(z=90))
-    //->left difference(right=cutout ->shape rotate(z=180))
-    //->left difference(right=cutout ->shape rotate(z=270))
+    ->left difference(right=cutout)
+    ->left difference(right=cutout ->shape rotate(z=90))
+    ->left difference(right=cutout ->shape rotate(z=180))
+    ->left difference(right=cutout ->shape rotate(z=270))
 ;
 
 core ->left union(right=face);
