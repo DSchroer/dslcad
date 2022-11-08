@@ -99,7 +99,7 @@ impl<'a, T: Reader> Parser<'a, T> {
         match peek.next() {
             Some(Token::Var) => self.parse_variable_statement(lexer),
             Some(_) => self.parse_return_statement(lexer),
-            None => return Err(ParseError::UnexpectedEndOfFile(self.path.clone())),
+            None => Err(ParseError::UnexpectedEndOfFile(self.path.clone())),
         }
     }
 
