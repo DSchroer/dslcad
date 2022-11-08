@@ -43,7 +43,7 @@ impl Reader for FileReader {
 #[cfg(test)]
 mod tests {
     use crate::parser::tests::TestReader;
-    use crate::parser::Document;
+    
     use std::collections::HashMap;
 
     use super::*;
@@ -51,7 +51,7 @@ mod tests {
 
     fn run(code: &str) -> ScriptInstance {
         let reader = TestReader(code);
-        let mut parser = parser::Parser::new("test", &reader);
+        let parser = parser::Parser::new("test", &reader);
         let documents = parser.parse().unwrap();
         let ctx = EvalContext {
             documents: documents.documents(),

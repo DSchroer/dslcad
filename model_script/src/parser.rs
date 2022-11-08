@@ -6,7 +6,7 @@ mod reader;
 use crate::syntax::*;
 use lexer::{Lexer, Token};
 use logos::{Logos};
-use path_absolutize::*;
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -88,10 +88,10 @@ impl<'a, T: Reader> Parser<'a, T> {
             String::from(self.path.to_str().unwrap()),
             Document::new(statements),
         );
-        return Ok(Ast {
+        Ok(Ast {
             root: self.path,
             documents: self.documents,
-        });
+        })
     }
 
     fn parse_statement(&mut self, lexer: &mut Lexer) -> Result<Statement, ParseError> {
@@ -363,8 +363,8 @@ pub mod tests {
 
     macro_rules! parse_statement {
         ($code: literal) => {{
-            let mut parsed = Parser::new("test", &TestReader($code)).parse().unwrap();
-            let mut doc = parsed.root_document();
+            let parsed = Parser::new("test", &TestReader($code)).parse().unwrap();
+            let doc = parsed.root_document();
             let statement = doc.statements().next();
             statement.unwrap().clone()
         }};
@@ -376,7 +376,7 @@ pub mod tests {
             .parse()
             .unwrap();
 
-        let mut p = parse_statement!("5 ->value cube() ->test cube();");
+        let p = parse_statement!("5 ->value cube() ->test cube();");
         assert!(matches!(p, Statement::Return(
             Expression::Invocation { arguments: x, .. }
         ) if !x.contains_key("value")))

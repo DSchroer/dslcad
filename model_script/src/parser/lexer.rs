@@ -2,7 +2,7 @@ use logos::Logos;
 
 pub type Lexer<'a> = logos::Lexer<'a, Token>;
 
-#[derive(Logos, Debug, PartialEq, Clone)]
+#[derive(Logos, Debug, PartialEq, Eq, Clone)]
 pub enum Token {
     #[token("=")]
     Equal,

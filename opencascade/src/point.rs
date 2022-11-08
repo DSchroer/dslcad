@@ -29,9 +29,9 @@ impl Debug for Point {
 
 impl PartialEq for Point {
     fn eq(&self, other: &Self) -> bool {
-        return self.point.X() == other.point.X()
+        self.point.X() == other.point.X()
             && self.point.Y() == other.point.Y()
-            && self.point.Z() == other.point.Z();
+            && self.point.Z() == other.point.Z()
     }
 }
 

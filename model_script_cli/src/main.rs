@@ -103,7 +103,7 @@ fn display_file(mut commands: Commands, asset_server: Res<AssetServer>, mut stat
     let edit_file = edit_file.to_str().unwrap();
 
     if let Some(file) = &state.file {
-        match parse(&file.to_str().unwrap()) {
+        match parse(file.to_str().unwrap()) {
             Err(e) => e.print(&FileReader),
             Ok(ast) => match eval(ast) {
                 Ok(mut model) => {

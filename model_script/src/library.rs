@@ -5,7 +5,7 @@ mod shapes;
 use crate::runtime::RuntimeError;
 use crate::syntax::Value;
 use std::collections::HashMap;
-use std::ops::{Add, Deref, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Sub};
 
 type Function = dyn Fn(&HashMap<String, Value>) -> Result<Value, RuntimeError>;
 

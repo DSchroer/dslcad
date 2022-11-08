@@ -1,10 +1,10 @@
 use crate::Point;
-use cxx::{r, UniquePtr};
+use cxx::{UniquePtr};
 use opencascade_sys::ffi::{
-    new_HandleGeomCurve_from_HandleGeom_TrimmedCurve, new_vec, BRepBuilderAPI_MakeEdge,
-    BRepBuilderAPI_MakeEdge_HandleGeomCurve, BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_MakeWire,
-    BRepBuilderAPI_MakeWire_ctor, BRepPrimAPI_MakePrism_ctor, GC_MakeArcOfCircle,
-    GC_MakeArcOfCircle_Value, GC_MakeArcOfCircle_point_point_point, GC_MakeSegment,
+    new_HandleGeomCurve_from_HandleGeom_TrimmedCurve,
+    BRepBuilderAPI_MakeEdge_HandleGeomCurve, BRepBuilderAPI_MakeWire,
+    BRepBuilderAPI_MakeWire_ctor,
+    GC_MakeArcOfCircle_Value, GC_MakeArcOfCircle_point_point_point,
     GC_MakeSegment_Value, GC_MakeSegment_point_point,
 };
 
@@ -12,7 +12,7 @@ pub struct Edge(pub(crate) Box<UniquePtr<BRepBuilderAPI_MakeWire>>);
 
 impl Edge {
     pub fn new() -> Self {
-        let mut make_wire = BRepBuilderAPI_MakeWire_ctor();
+        let make_wire = BRepBuilderAPI_MakeWire_ctor();
         Edge(Box::new(make_wire))
     }
 

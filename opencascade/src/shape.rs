@@ -1,7 +1,7 @@
 use crate::{Edge, Point};
-use cxx::{b, UniquePtr};
+use cxx::{UniquePtr};
 use opencascade_sys::ffi::{
-    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, gp_Trsf, new_transform, new_vec, write_stl,
+    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, write_stl,
     BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor,
     BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor,
     BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet,
@@ -71,7 +71,7 @@ impl Shape {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.0.pin_mut().Wire(), false);
         let prism_vec = new_vec(0.0, 0.0, height);
         // We're calling Shape here instead of Face(), hope that's also okay.
-        let mut body =
+        let body =
             BRepPrimAPI_MakePrism_ctor(face_profile.pin_mut().Shape(), &prism_vec, true, true);
         Shape::Prism(Box::new(body))
     }
@@ -86,7 +86,7 @@ impl Shape {
             Axis::Z => gp_OZ(),
         };
 
-        let mut body =
+        let body =
             BRepPrimAPI_MakeRevol_ctor(face_profile.pin_mut().Shape(), gp_axis, radians, true);
         Shape::Revol(Box::new(body))
     }
@@ -152,7 +152,7 @@ impl Shape {
                 Axis::Y => gp_OY(),
                 Axis::Z => gp_OZ(),
             };
-            transform.pin_mut().set_mirror_axis(&gp_axis);
+            transform.pin_mut().set_mirror_axis(gp_axis);
 
             Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(
                 left.shape(),
@@ -168,7 +168,7 @@ impl Shape {
             let mut fillet = BRepFilletAPI_MakeFillet_ctor(target.shape());
 
             let mut edge_explorer =
-                TopExp_Explorer_ctor(&target.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+                TopExp_Explorer_ctor(target.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
             while edge_explorer.More() {
                 let edge = TopoDS_cast_to_edge(edge_explorer.Current());
                 fillet.pin_mut().add_edge(thickness, edge);
@@ -185,7 +185,7 @@ impl Shape {
             let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(target.shape());
 
             let mut edge_explorer =
-                TopExp_Explorer_ctor(&target.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+                TopExp_Explorer_ctor(target.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
             while edge_explorer.More() {
                 let edge = TopoDS_cast_to_edge(edge_explorer.Current());
                 chamfer.pin_mut().add_edge(thickness, edge);
@@ -231,7 +231,7 @@ impl Shape {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
+    
 
     #[test]
     fn it_can_write_box_stl() {

@@ -1,11 +1,11 @@
 use crate::runtime::RuntimeError;
 use crate::syntax::{Instance, Value};
-use std::borrow::Borrow;
+
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fmt::Debug;
+
 use std::io::Error;
-use std::ops::Deref;
+
 use std::rc::Rc;
 
 use opencascade::{Axis, Point, Shape};

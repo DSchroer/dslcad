@@ -113,12 +113,12 @@ fn eval_expression(
                 },
                 Some(doc) => {
                     let v = eval(doc, argument_values, ctx)?;
-                    return Ok(Value::Script(Rc::new(RefCell::new(v))));
+                    Ok(Value::Script(Rc::new(RefCell::new(v))))
                 }
             }
         }
         Expression::Reference(n) => {
-            if let Some(value) = instance.get(&n) {
+            if let Some(value) = instance.get(n) {
                 Ok(*value.clone())
             } else {
                 Err(RuntimeError::UnknownIdentifier(n.to_string()))
