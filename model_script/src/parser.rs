@@ -40,15 +40,15 @@ macro_rules! take {
     ($self: ident, $lexer: ident, $token: pat = $name: literal) => {
         match $lexer.next() {
             Some($token) => {},
-            None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone())),
             Some(_) => return Err(ParseError::Expected($name, $self.path.clone(), $lexer.span())),
+            None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone())),
         };
     };
     ($self: ident, $lexer: ident, $($token: pat = $name: literal => $case: expr), *) => {
         match $lexer.next() {
             $(Some($token) => $case,)*
-            None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone())),
             Some(_) => return Err(ParseError::ExpectedOneOf(vec![$($name,)*], $self.path.clone(), $lexer.span())),
+            None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone())),
         }
     };
 }
@@ -96,10 +96,11 @@ impl<'a, T: Reader> Parser<'a, T> {
 
     fn parse_statement(&mut self, lexer: &mut Lexer) -> Result<Statement, ParseError> {
         let mut peek = lexer.clone();
-        take!(self, peek,
-            Token::Var = "var" => self.parse_variable_statement(lexer),
-            _ = "return" => self.parse_return_statement(lexer)
-        )
+        match peek.next() {
+            Some(Token::Var) => self.parse_variable_statement(lexer),
+            Some(_) => self.parse_return_statement(lexer),
+            None => return Err(ParseError::UnexpectedEndOfFile(self.path.clone())),
+        }
     }
 
     fn parse_return_statement(&mut self, lexer: &mut Lexer) -> Result<Statement, ParseError> {
@@ -197,8 +198,8 @@ impl<'a, T: Reader> Parser<'a, T> {
 
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
         let mut peek = lexer.clone();
-        let unary = take!(self, peek,
-            Token::Minus = "-" => {
+        let unary = match peek.next() {
+            Some(Token::Minus) => {
                 lexer.next();
                 Some(|e|Expression::Invocation {
                     path: String::from("subtract"),
@@ -208,8 +209,9 @@ impl<'a, T: Reader> Parser<'a, T> {
                     ])
                 })
             },
-            _ = "" => None
-        );
+            Some(_) => None,
+            None => return Err(ParseError::UnexpectedEndOfFile(self.path.clone())),
+        };
 
         let mut peek = lexer.clone();
         let first = take!(self, peek,

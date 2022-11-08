@@ -17,27 +17,21 @@ impl Edge {
     }
 
     pub fn add_line(&mut self, a: &Point, b: &Point) {
-        // SAFETY: cross C++ boundary
-        unsafe {
-            let segment = GC_MakeSegment_point_point(&a.point, &b.point);
-            let mut edge_1 = BRepBuilderAPI_MakeEdge_HandleGeomCurve(
-                &new_HandleGeomCurve_from_HandleGeom_TrimmedCurve(&GC_MakeSegment_Value(&segment)),
-            );
-            self.0.pin_mut().add_edge(edge_1.pin_mut().Edge());
-        }
+        let segment = GC_MakeSegment_point_point(&a.point, &b.point);
+        let mut edge_1 = BRepBuilderAPI_MakeEdge_HandleGeomCurve(
+            &new_HandleGeomCurve_from_HandleGeom_TrimmedCurve(&GC_MakeSegment_Value(&segment)),
+        );
+        self.0.pin_mut().add_edge(edge_1.pin_mut().Edge());
     }
 
     pub fn add_arc(&mut self, a: &Point, b: &Point, c: &Point) {
-        // SAFETY: cross C++ boundary
-        unsafe {
-            let segment = GC_MakeArcOfCircle_point_point_point(&a.point, &b.point, &c.point);
-            let mut edge_1 = BRepBuilderAPI_MakeEdge_HandleGeomCurve(
-                &new_HandleGeomCurve_from_HandleGeom_TrimmedCurve(&GC_MakeArcOfCircle_Value(
-                    &segment,
-                )),
-            );
-            self.0.pin_mut().add_edge(edge_1.pin_mut().Edge());
-        }
+        let segment = GC_MakeArcOfCircle_point_point_point(&a.point, &b.point, &c.point);
+        let mut edge_1 = BRepBuilderAPI_MakeEdge_HandleGeomCurve(
+            &new_HandleGeomCurve_from_HandleGeom_TrimmedCurve(&GC_MakeArcOfCircle_Value(
+                &segment,
+            )),
+        );
+        self.0.pin_mut().add_edge(edge_1.pin_mut().Edge());
     }
 
     pub fn join(&mut self, left: &mut Edge, right: &mut Edge) {

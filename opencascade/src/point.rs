@@ -8,11 +8,8 @@ pub struct Point {
 
 impl Point {
     pub fn new(x: f64, y: f64, z: f64) -> Self {
-        // SAFETY: cross C++ boundary
-        unsafe {
-            Point {
-                point: new_point(x, y, z),
-            }
+        Point {
+            point: new_point(x, y, z),
         }
     }
 }
