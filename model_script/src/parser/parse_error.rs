@@ -1,67 +1,78 @@
-use super::Reader;
 use logos::{Source, Span};
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter, Write};
 use std::path::PathBuf;
-use thiserror::Error;
 
-#[derive(Error, Debug)]
 pub enum ParseError {
-    #[error("NoSuchFile {0}")]
     NoSuchFile(PathBuf),
-    #[error("Aggregate Error {0:?}")]
     AggregateError(Vec<ParseError>),
-    #[error("UnexpectedEndOfFile")]
-    UnexpectedEndOfFile(PathBuf),
-    #[error("Expected {0:?} but found {1:?}")]
-    Expected(&'static str, PathBuf, Span),
-    #[error("Expected {0:?} but found {1:?}")]
-    ExpectedOneOf(Vec<&'static str>, PathBuf, Span),
+    UnexpectedEndOfFile(PathBuf, String),
+    Expected(&'static str, PathBuf, Span, String),
+    ExpectedOneOf(Vec<&'static str>, PathBuf, Span, String),
 }
 
-impl ParseError {
-    pub fn print(&self, reader: &impl Reader) {
+impl Error for ParseError {}
+
+impl Debug for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self, f)
+    }
+}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ParseError::NoSuchFile(file) => {
-                println!("error: {}", file.display());
-                println!("unable to read file");
+                f.write_fmt(format_args!("error: {}\n", file.display()))?;
+                f.write_str("unable to read file")?;
             }
             ParseError::AggregateError(errors) => {
                 for error in errors {
-                    error.print(reader)
+                    Display::fmt(error, f)?;
                 }
             }
-            ParseError::UnexpectedEndOfFile(file) => {
-                let text = reader.read(file).unwrap();
+            ParseError::UnexpectedEndOfFile(file, text) => {
                 let last = text.split('\n').enumerate().last();
 
-                println!("error: {}", file.display());
+                f.write_fmt(format_args!("error: {}\n", file.display()))?;
                 match last {
-                    None => println!("unexpected end of line [0]:"),
-                    Some((line, text)) => println!("unexpected end of line [{}]: {}", line, text),
+                    None => f.write_str("unexpected end of line [0]:")?,
+                    Some((line, text)) => {
+                        f.write_fmt(format_args!("unexpected end of line [{}]: {}", line, text))?
+                    }
                 }
             }
-            ParseError::Expected(expected, file, span) => {
-                let text = reader.read(file).unwrap();
-
+            ParseError::Expected(expected, file, span, text) => {
                 let (line, col) = line_col(&text, span);
-                println!("error: {}[{}:{}]", file.display(), line, col.start);
-                println!(
+                f.write_fmt(format_args!(
+                    "error: {}[{}:{}]\n",
+                    file.display(),
+                    line,
+                    col.start
+                ))?;
+                f.write_fmt(format_args!(
                     "expected {} but found {}",
                     expected,
                     text.slice(span.clone()).unwrap()
-                )
+                ))?;
             }
-            ParseError::ExpectedOneOf(expected, file, span) => {
-                let text = reader.read(file).unwrap();
-
+            ParseError::ExpectedOneOf(expected, file, span, text) => {
                 let (line, col) = line_col(&text, span);
-                println!("error: {}[{}:{}]", file.display(), line, col.start);
-                println!(
+                f.write_fmt(format_args!(
+                    "error: {}[{}:{}]\n",
+                    file.display(),
+                    line,
+                    col.start
+                ))?;
+                f.write_fmt(format_args!(
                     "expected one of {} but found {}",
                     expected.join(" or "),
                     text.slice(span.clone()).unwrap()
-                )
+                ))?
             }
         }
+        f.write_char('\n')?;
+        Ok(())
     }
 }
 
@@ -70,11 +81,34 @@ fn line_col(text: &str, span: &Span) -> (usize, Span) {
     for (i, line) in text.split('\n').enumerate() {
         let len = line.len();
         if target.start > len {
-            target.start -= len;
-            target.end -= len;
+            target.start -= len + 1;
+            target.end -= len + 1;
         } else {
-            return (i, target);
+            return (i + 1, target);
         }
     }
-    (0, target)
+    (1, target)
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn it_can_print_lines() {
+        let source = "abc\nabc\nabv";
+        let range = 10..11;
+        let error = ParseError::Expected(
+            "foo",
+            PathBuf::from("test.txt"),
+            range.clone(),
+            source.to_string(),
+        );
+
+        assert_eq!("v", source[range.clone()].to_string());
+        assert_eq!(
+            "error: test.txt[3:2]\nexpected foo but found v\n",
+            format!("{}", error)
+        )
+    }
 }

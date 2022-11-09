@@ -15,9 +15,9 @@ pub use document::Document;
 pub use parse_error::ParseError;
 pub use reader::Reader;
 
-pub struct Parser<'a, T: Reader> {
-    path: PathBuf,
+pub struct Parser<'a, T> {
     reader: &'a T,
+    path: PathBuf,
     documents: HashMap<String, Document>,
 }
 
@@ -40,37 +40,41 @@ macro_rules! take {
     ($self: ident, $lexer: ident, $token: pat = $name: literal) => {
         match $lexer.next() {
             Some($token) => {},
-            Some(_) => return Err(ParseError::Expected($name, $self.path.clone(), $lexer.span())),
-            None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone())),
+            Some(_) => return Err(ParseError::Expected($name, $self.path.clone(), $lexer.span(), $self.source()?)),
+            None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone(), $self.source()?)),
         };
     };
     ($self: ident, $lexer: ident, $($token: pat = $name: literal => $case: expr), *) => {
         match $lexer.next() {
             $(Some($token) => $case,)*
-            Some(_) => return Err(ParseError::ExpectedOneOf(vec![$($name,)*], $self.path.clone(), $lexer.span())),
-            None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone())),
+            Some(_) => return Err(ParseError::ExpectedOneOf(vec![$($name,)*], $self.path.clone(), $lexer.span(), $self.source()?)),
+            None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone(), $self.source()?)),
         }
     };
 }
 
 impl<'a, T: Reader> Parser<'a, T> {
-    pub fn new(path: &'a str, reader: &'a T) -> Self {
+    pub fn new(path: &str, reader: &'a T) -> Self {
         let path = reader.normalize(Path::new(path));
+
         Parser {
-            path,
             reader,
+            path,
             documents: HashMap::new(),
         }
     }
 
-    pub fn parse(mut self) -> Result<Ast, ParseError> {
+    fn source(&self) -> Result<String, ParseError> {
         let input = self.reader.read(self.path.as_path());
         if input.is_err() {
             return Err(ParseError::NoSuchFile(self.path.clone()));
         }
+        Ok(input.unwrap())
+    }
 
-        let input = input.unwrap();
-        let mut lex = Token::lexer(&input);
+    pub fn parse(mut self) -> Result<Ast, ParseError> {
+        let source = self.source()?;
+        let mut lex = Token::lexer(&source);
 
         let mut statements = Vec::new();
         while let Some(_) = lex.clone().next() {
@@ -96,7 +100,10 @@ impl<'a, T: Reader> Parser<'a, T> {
         match peek.next() {
             Some(Token::Var) => self.parse_variable_statement(lexer),
             Some(_) => self.parse_return_statement(lexer),
-            None => Err(ParseError::UnexpectedEndOfFile(self.path.clone())),
+            None => Err(ParseError::UnexpectedEndOfFile(
+                self.path.clone(),
+                self.source()?,
+            )),
         }
     }
 
@@ -137,14 +144,9 @@ impl<'a, T: Reader> Parser<'a, T> {
                 };
 
                 if !self.documents.contains_key(buf) && self.path.to_str().unwrap() != buf {
-                    let r = Parser::new(buf, self.reader).parse();
-                    match r {
-                        Ok(ast) => {
-                            for (path, document) in ast.documents {
-                                self.documents.insert(path, document);
-                            }
-                        },
-                        Err(e) => { return Err(e); }
+                    let ast = Parser::new(buf, self.reader).parse()?;
+                    for (path, document) in ast.documents {
+                        self.documents.insert(path, document);
                     }
                 }
 
@@ -210,7 +212,12 @@ impl<'a, T: Reader> Parser<'a, T> {
                 })
             }
             Some(_) => None,
-            None => return Err(ParseError::UnexpectedEndOfFile(self.path.clone())),
+            None => {
+                return Err(ParseError::UnexpectedEndOfFile(
+                    self.path.clone(),
+                    self.source()?,
+                ))
+            }
         };
 
         let mut peek = lexer.clone();
