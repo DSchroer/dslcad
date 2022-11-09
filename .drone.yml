@@ -8,6 +8,7 @@ steps:
     image: rust
     commands:
       - apt update; apt install -y cmake libasound2-dev libudev-dev libatk1.0-dev libgtk-3-dev
+      - rustup component add clippy
       - cargo clippy -- -Dwarnings
       - cargo build
       - cargo test
