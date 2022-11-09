@@ -4,11 +4,16 @@ type: docker
 name: build
 
 steps:
+  - name: docker
+    image: plugins/docker
+    settings:
+      repo: modelscriptci
+      tags: latest
+      cache_from: modelscriptci:latest
+
   - name: build and test
-    image: rust
+    image: modelscriptci
     commands:
-      - apt update; apt install -y cmake libasound2-dev libudev-dev libatk1.0-dev libgtk-3-dev
-      - rustup component add clippy
       - cargo clippy -- -Dwarnings
       - cargo build
       - cargo test
