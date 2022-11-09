@@ -11,9 +11,8 @@ use std::rc::Rc;
 pub fn point(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let x = number!(args, "x", 0.);
     let y = number!(args, "y", 0.);
-    let z = number!(args, "z", 0.);
 
-    Ok(Value::Point(Rc::new(RefCell::new(Point::new(x, y, z)))))
+    Ok(Value::Point(Rc::new(RefCell::new(Point::new(x, y, 0.0)))))
 }
 
 pub fn line(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
@@ -48,15 +47,8 @@ pub fn revolve(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let mut shape = edge!(args, "shape")?.borrow_mut();
     let x = number!(args, "x", 0.);
     let y = number!(args, "y", 0.);
-    let z = number!(args, "z", 0.);
 
-    let (axis, angle) = if x != 0.0 {
-        (Axis::X, x)
-    } else if y != 0.0 {
-        (Axis::Y, y)
-    } else {
-        (Axis::Z, z)
-    };
+    let (axis, angle) = if x != 0.0 { (Axis::X, x) } else { (Axis::Y, y) };
 
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::extrude_rotate(
         &mut shape, axis, angle,
