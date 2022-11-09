@@ -1,3 +1,6 @@
+mod input_map;
+
+use crate::editor::input_map::input_map;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use model_script::{eval, parse};
@@ -18,11 +21,13 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .insert_resource(State::new())
         .add_plugins(DefaultPlugins)
         .add_plugin(LookTransformPlugin)
-        .add_plugin(OrbitCameraPlugin::default())
+        .add_plugin(OrbitCameraPlugin::new(true))
+        .add_system(input_map)
         .add_plugin(bevy_stl::StlPlugin)
         .add_plugin(EguiPlugin)
         .add_startup_system(setup)
         .add_system(ui_example)
+        .add_system(console_panel)
         .run();
     Ok(())
 }
@@ -30,6 +35,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 struct State {
     file: Option<PathBuf>,
     model: Option<Entity>,
+    output: String,
 }
 
 impl State {
@@ -37,6 +43,7 @@ impl State {
         State {
             file: None,
             model: None,
+            output: String::new(),
         }
     }
 }
@@ -45,14 +52,27 @@ fn setup(mut commands: Commands) {
     commands
         .spawn_bundle(Camera3dBundle::default())
         .insert_bundle(OrbitCameraBundle::new(
-            OrbitCameraController::default(),
-            Vec3::new(-100.0, 100.0, 0.0),
+            OrbitCameraController {
+                mouse_translate_sensitivity: Vec2::splat(0.08),
+                ..Default::default()
+            },
+            Vec3::new(100.0, 100.0, 0.0),
             Vec3::new(0., 0., 0.),
         ));
 
+    commands.spawn_bundle(DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            illuminance: 10000.0,
+            ..default()
+        },
+        transform: Transform::from_translation(Vec3::new(100.0, 100.0, 0.0))
+            .looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
+        ..default()
+    });
+
     commands.insert_resource(AmbientLight {
         color: Color::hex("CED8F7").unwrap(),
-        brightness: 0.4,
+        brightness: 0.5,
     });
 }
 
@@ -82,6 +102,16 @@ fn ui_example(
     });
 }
 
+fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {
+    egui::TopBottomPanel::bottom("Console").show(egui_context.ctx_mut(), |ui| {
+        egui::ScrollArea::vertical()
+            .max_height(256.)
+            .show(ui, |ui| {
+                ui.label(&state.output);
+            });
+    });
+}
+
 fn try_clear(commands: &mut Commands, state: &mut ResMut<State>) {
     if let Some(id) = state.model {
         commands.entity(id).despawn();
@@ -101,7 +131,7 @@ fn display_file(
 
     if let Some(file) = &state.file {
         match parse(file.to_str().unwrap()) {
-            Err(e) => eprintln!("{}", e),
+            Err(e) => state.output = format!("{}", e),
             Ok(ast) => match eval(ast) {
                 Ok(mut model) => {
                     model.write_to_file(edit_file).unwrap();
@@ -118,8 +148,9 @@ fn display_file(
                         })
                         .id();
                     state.model = Some(model);
+                    state.output.clear();
                 }
-                Err(e) => eprintln!("{:?}", e),
+                Err(e) => state.output = format!("{:?}", e),
             },
         }
     }
