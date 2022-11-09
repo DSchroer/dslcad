@@ -8,8 +8,8 @@ steps:
     image: plugins/docker
     settings:
       repo: modelscriptci
-      registry: localhost
       tags: latest
+      dry_run: true
       cache_from: modelscriptci:latest
 
   - name: build and test
