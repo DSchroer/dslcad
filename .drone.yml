@@ -8,6 +8,7 @@ steps:
     image: plugins/docker
     settings:
       repo: modelscriptci
+      registry: localhost
       tags: latest
       cache_from: modelscriptci:latest
 
