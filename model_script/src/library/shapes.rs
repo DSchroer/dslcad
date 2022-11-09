@@ -39,8 +39,8 @@ pub fn union(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
         )))));
     }
 
-    let mut left = edge!(args, "left").borrow_mut();
-    let mut right = edge!(args, "right").borrow_mut();
+    let mut left = edge!(args, "left")?.borrow_mut();
+    let mut right = edge!(args, "right")?.borrow_mut();
 
     let mut edge = Edge::new();
     edge.join(&mut left, &mut right);

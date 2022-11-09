@@ -64,7 +64,7 @@ macro_rules! point {
             .ok_or(RuntimeError::UnsetParameter(String::from($name)))?;
         value
             .to_point()
-            .ok_or(RuntimeError::UnexpectedType(value.clone()))?
+            .ok_or(RuntimeError::UnexpectedType(value.clone()))
     }};
 }
 macro_rules! edge {
@@ -74,7 +74,7 @@ macro_rules! edge {
             .ok_or(RuntimeError::UnsetParameter(String::from($name)))?;
         value
             .to_line()
-            .ok_or(RuntimeError::UnexpectedType(value.clone()))?
+            .ok_or(RuntimeError::UnexpectedType(value.clone()))
     }};
 }
 macro_rules! shape {

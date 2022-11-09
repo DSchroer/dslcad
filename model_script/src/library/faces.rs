@@ -17,8 +17,8 @@ pub fn point(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 }
 
 pub fn line(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let start = point!(args, "start").borrow();
-    let end = point!(args, "end").borrow();
+    let start = point!(args, "start")?.borrow();
+    let end = point!(args, "end")?.borrow();
 
     let mut edge = Edge::new();
     edge.add_line(&start, &end);
@@ -26,9 +26,9 @@ pub fn line(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 }
 
 pub fn arc(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let start = point!(args, "start").borrow();
-    let center = point!(args, "center").borrow();
-    let end = point!(args, "end").borrow();
+    let start = point!(args, "start")?.borrow();
+    let center = point!(args, "center")?.borrow();
+    let end = point!(args, "end")?.borrow();
 
     let mut edge = Edge::new();
     edge.add_arc(&start, &center, &end);
@@ -36,7 +36,7 @@ pub fn arc(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 }
 
 pub fn extrude(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let mut shape = edge!(args, "shape").borrow_mut();
+    let mut shape = edge!(args, "shape")?.borrow_mut();
     let height = number!(args, "height");
 
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::extrude(
@@ -45,7 +45,7 @@ pub fn extrude(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 }
 
 pub fn revolve(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let mut shape = edge!(args, "shape").borrow_mut();
+    let mut shape = edge!(args, "shape")?.borrow_mut();
     let x = number!(args, "x", 0.);
     let y = number!(args, "y", 0.);
     let z = number!(args, "z", 0.);
