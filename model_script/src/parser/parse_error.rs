@@ -43,7 +43,7 @@ impl Display for ParseError {
                 }
             }
             ParseError::Expected(expected, file, span, text) => {
-                let (line, col) = line_col(&text, span);
+                let (line, col) = line_col(text, span);
                 f.write_fmt(format_args!(
                     "error: {}[{}:{}]\n",
                     file.display(),
@@ -57,7 +57,7 @@ impl Display for ParseError {
                 ))?;
             }
             ParseError::ExpectedOneOf(expected, file, span, text) => {
-                let (line, col) = line_col(&text, span);
+                let (line, col) = line_col(text, span);
                 f.write_fmt(format_args!(
                     "error: {}[{}:{}]\n",
                     file.display(),
