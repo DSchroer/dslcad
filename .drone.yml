@@ -11,6 +11,7 @@ steps:
       - name: cache
         path: /drone/src/target
     commands:
+      - cargo +nightly fmt --check
       - cargo clippy -- -Dwarnings
       - cargo build
       - cargo test
