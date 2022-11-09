@@ -13,6 +13,9 @@ steps:
 
   - name: build and test
     image: modelscriptci
+    volumes:
+      - name: cache
+        path: /drone/src/target
     commands:
       - cargo clippy -- -Dwarnings
       - cargo build
@@ -20,3 +23,8 @@ steps:
 
   - template: github-mirror
     repo: git@github.com:DSchroer/model-script.git
+
+volumes:
+  - name: cache
+    host:
+      path: /tmp/drone/cache/target
