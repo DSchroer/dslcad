@@ -5,7 +5,8 @@ name: build
 
 steps:
   - name: build and test
-    image: modelscriptci:latest
+    image: modelscriptci
+    pull: never
     volumes:
       - name: cache
         path: /drone/src/target
