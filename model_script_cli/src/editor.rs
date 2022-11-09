@@ -28,6 +28,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .add_startup_system(setup)
         .add_system(ui_example)
         .add_system(console_panel)
+        .add_system(camera_light)
         .run();
     Ok(())
 }
@@ -45,6 +46,16 @@ impl State {
             model: None,
             output: String::new(),
         }
+    }
+}
+
+fn camera_light(
+    query: Query<&Transform, With<OrbitCameraController>>,
+    mut light: Query<&mut Transform, (With<DirectionalLight>, Without<OrbitCameraController>)>,
+) {
+    let gxf = query.single();
+    for mut transform in light.iter_mut() {
+        transform.clone_from(gxf);
     }
 }
 
