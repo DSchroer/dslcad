@@ -5,12 +5,12 @@ name: build
 
 steps:
   - name: docker
-    image: plugins/docker
-    settings:
-      repo: modelscriptci
-      tags: latest
-      dry_run: true
-      cache_from: modelscriptci:latest
+    image: docker
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+    commands:
+      - docker build . -t latest
 
   - name: build and test
     image: modelscriptci
@@ -29,3 +29,6 @@ volumes:
   - name: cache
     host:
       path: /tmp/drone/cache/target
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
