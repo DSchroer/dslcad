@@ -4,6 +4,14 @@ type: docker
 name: build
 
 steps:
+  - name: build image
+    image: docker
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+    commands:
+      - docker build . -t modelscriptci
+
   - name: build and test
     image: modelscriptci
     pull: never
@@ -23,3 +31,6 @@ volumes:
   - name: cache
     host:
       path: /tmp/drone/cache/target
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
