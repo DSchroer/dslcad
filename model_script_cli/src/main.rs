@@ -136,7 +136,7 @@ fn display_file(
                         .id();
                     state.model = Some(model);
                 }
-                Err(e) => eprintln!("{:?}", e)
+                Err(e) => eprintln!("{:?}", e),
             },
         }
     }
