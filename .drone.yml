@@ -4,20 +4,14 @@ type: docker
 name: build
 
 steps:
-  - name: docker
-    image: docker
-    volumes:
-      - name: dockersock
-        path: /var/run/docker.sock
-    commands:
-      - docker build . -t latest
-
   - name: build and test
     image: modelscriptci
     volumes:
       - name: cache
         path: /drone/src/target
     commands:
+      - apt update; apt install -y cmake libasound2-dev libudev-dev libatk1.0-dev libgtk-3-dev
+      - rustup component add clippy
       - cargo clippy -- -Dwarnings
       - cargo build
       - cargo test
@@ -29,6 +23,3 @@ volumes:
   - name: cache
     host:
       path: /tmp/drone/cache/target
-  - name: dockersock
-    host:
-      path: /var/run/docker.sock
