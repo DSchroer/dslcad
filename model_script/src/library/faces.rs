@@ -35,15 +35,6 @@ pub fn arc(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
-pub fn join(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let mut left = edge!(args, "left").borrow_mut();
-    let mut right = edge!(args, "right").borrow_mut();
-
-    let mut edge = Edge::new();
-    edge.join(&mut left, &mut right);
-    Ok(Value::Line(Rc::new(RefCell::new(edge))))
-}
-
 pub fn extrude(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let mut shape = edge!(args, "shape").borrow_mut();
     let height = number!(args, "height");

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use std::rc::Rc;
 
-use opencascade::{Axis, Point, Shape};
+use opencascade::{Axis, Edge, Point, Shape};
 
 use super::*;
 
@@ -30,17 +30,26 @@ pub fn cylinder(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 }
 
 pub fn union(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let mut left = shape!(args, "left").borrow_mut();
-    let mut right = shape!(args, "right").borrow_mut();
+    if let Ok(left) = shape!(args, "left") {
+        let mut left = left.borrow_mut();
+        let mut right = shape!(args, "right")?.borrow_mut();
 
-    Ok(Value::Shape(Rc::new(RefCell::new(Shape::fuse(
-        &mut left, &mut right,
-    )))))
+        return Ok(Value::Shape(Rc::new(RefCell::new(Shape::fuse(
+            &mut left, &mut right,
+        )))));
+    }
+
+    let mut left = edge!(args, "left").borrow_mut();
+    let mut right = edge!(args, "right").borrow_mut();
+
+    let mut edge = Edge::new();
+    edge.join(&mut left, &mut right);
+    Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
 pub fn difference(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let mut left = shape!(args, "left").borrow_mut();
-    let mut right = shape!(args, "right").borrow_mut();
+    let mut left = shape!(args, "left")?.borrow_mut();
+    let mut right = shape!(args, "right")?.borrow_mut();
 
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::cut(
         &mut left, &mut right,
@@ -48,7 +57,7 @@ pub fn difference(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> 
 }
 
 pub fn chamfer(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let mut shape = shape!(args, "shape").borrow_mut();
+    let mut shape = shape!(args, "shape")?.borrow_mut();
     let radius = number!(args, "radius");
 
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::chamfer(
@@ -57,7 +66,7 @@ pub fn chamfer(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 }
 
 pub fn fillet(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let mut shape = shape!(args, "shape").borrow_mut();
+    let mut shape = shape!(args, "shape")?.borrow_mut();
     let radius = number!(args, "radius");
 
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::fillet(
@@ -66,7 +75,7 @@ pub fn fillet(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 }
 
 pub fn translate(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let mut shape = shape!(args, "shape").borrow_mut();
+    let mut shape = shape!(args, "shape")?.borrow_mut();
     let x = number!(args, "x", 0.);
     let y = number!(args, "y", 0.);
     let z = number!(args, "z", 0.);
@@ -78,7 +87,7 @@ pub fn translate(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 }
 
 pub fn rotate(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let mut shape = shape!(args, "shape").borrow_mut();
+    let mut shape = shape!(args, "shape")?.borrow_mut();
     let x = number!(args, "x", 0.);
     let y = number!(args, "y", 0.);
     let z = number!(args, "z", 0.);
@@ -91,7 +100,7 @@ pub fn rotate(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
 }
 
 pub fn scale(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let mut shape = shape!(args, "shape").borrow_mut();
+    let mut shape = shape!(args, "shape")?.borrow_mut();
     let size = number!(args, "size", 0.);
 
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::scale(

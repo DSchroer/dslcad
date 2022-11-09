@@ -21,7 +21,6 @@ impl Library {
             "point" => Some(&faces::point),
             "line" => Some(&faces::line),
             "arc" => Some(&faces::arc),
-            "join" => Some(&faces::join),
             "extrude" => Some(&faces::extrude),
             "revolve" => Some(&faces::revolve),
 
@@ -85,7 +84,7 @@ macro_rules! shape {
             .ok_or(RuntimeError::UnsetParameter(String::from($name)))?;
         value
             .to_shape()
-            .ok_or(RuntimeError::UnexpectedType(value.clone()))?
+            .ok_or(RuntimeError::UnexpectedType(value.clone()))
     }};
 }
 pub(crate) use edge;

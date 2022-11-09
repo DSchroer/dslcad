@@ -69,4 +69,12 @@ mod tests {
         run("line(start=point(x=0,y=0), end=point(x=1,y=1));");
         run("arc(start=point(x=0,y=0),center=point(x=1,y=0), end=point(x=0,y=1));");
     }
+
+    #[test]
+    fn it_can_join_lines() {
+        run(r"
+line(start=point(x=0,y=0), end=point(x=1,y=1))
+    ->left union(right=line(start=point(x=0,y=0), end=point(x=1,y=1)));
+        ");
+    }
 }

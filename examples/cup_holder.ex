@@ -19,8 +19,8 @@ var a = point(x=baseRadius, y=baseRadius);
 var b = point(x=baseRadius, y=topRadius);
 var c = point(x=topRadius, y=baseRadius);
 var face = line(start=a, end=b)
-    ->left join(right=line(start=b, end=c))
-    ->left join(right=line(start=a, end=c))
+    ->left union(right=line(start=b, end=c))
+    ->left union(right=line(start=a, end=c))
     ->shape revolve(y=360)
     ->shape rotate(x=270)
     ->shape translate(z=(baseHeight*2)-(topRadius-baseRadius-thickness));
