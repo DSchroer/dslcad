@@ -27,7 +27,7 @@ pub fn eval(ast: Ast) -> Result<ScriptInstance, RuntimeError> {
     runtime::eval(main, HashMap::new(), &ctx)
 }
 
-pub struct FileReader;
+struct FileReader;
 impl Reader for FileReader {
     fn read(&self, name: &Path) -> Result<String, std::io::Error> {
         fs::read_to_string(name)

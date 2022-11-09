@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use clap::Parser;
-use model_script::{eval, parse, FileReader};
+use model_script::{eval, parse};
 use path_absolutize::Absolutize;
 use rfd::FileDialog;
 use smooth_bevy_cameras::{
@@ -9,6 +9,7 @@ use smooth_bevy_cameras::{
     LookTransformPlugin,
 };
 use std::env;
+use std::error::Error;
 use std::path::{Path, PathBuf};
 
 /// model_script cad compiler
@@ -23,9 +24,9 @@ struct Args {
     out: String,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     if env::args().len() > 1 {
-        run_cli(Args::parse());
+        run_cli(Args::parse())?;
     } else {
         App::new()
             .insert_resource(Msaa { samples: 4 })
@@ -40,6 +41,7 @@ fn main() {
             .add_system(ui_example)
             .run();
     }
+    Ok(())
 }
 
 struct State {
@@ -116,7 +118,7 @@ fn display_file(
 
     if let Some(file) = &state.file {
         match parse(file.to_str().unwrap()) {
-            Err(e) => e.print(&FileReader),
+            Err(e) => eprintln!("{}", e),
             Ok(ast) => match eval(ast) {
                 Ok(mut model) => {
                     model.write_to_file(edit_file).unwrap();
@@ -134,24 +136,15 @@ fn display_file(
                         .id();
                     state.model = Some(model);
                 }
-                Err(e) => {
-                    eprintln!("{:?}", e)
-                }
+                Err(e) => eprintln!("{:?}", e)
             },
         }
     }
 }
 
-fn run_cli(args: Args) {
-    match parse(&args.source) {
-        Err(e) => e.print(&FileReader),
-        Ok(ast) => match eval(ast) {
-            Ok(mut model) => {
-                model.write_to_file(&args.out).unwrap();
-            }
-            Err(e) => {
-                eprintln!("{:?}", e)
-            }
-        },
-    }
+fn run_cli(args: Args) -> Result<(), Box<dyn Error>> {
+    let ast = parse(&args.source)?;
+    let mut model = eval(ast)?;
+    model.write_to_file(&args.out)?;
+    Ok(())
 }
