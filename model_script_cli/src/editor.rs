@@ -149,7 +149,7 @@ fn controller(
     mut state: ResMut<State>,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-){
+) {
     for event in events.iter() {
         match event {
             UiEvent::OpenFile(file) => {
@@ -165,10 +165,7 @@ fn controller(
     }
 }
 
-fn ui_example(
-    mut egui_context: ResMut<EguiContext>,
-    mut events: EventWriter<UiEvent>,
-) {
+fn ui_example(mut egui_context: ResMut<EguiContext>, mut events: EventWriter<UiEvent>) {
     egui::TopBottomPanel::top("Tools").show(egui_context.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
             if ui.button("Open File").clicked() {
