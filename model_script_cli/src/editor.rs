@@ -2,7 +2,7 @@ mod input_map;
 
 use crate::editor::input_map::input_map;
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_prototype_debug_lines::*;
 use model_script::{eval, parse};
 use path_absolutize::Absolutize;
@@ -35,6 +35,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(ClearColor(Blueprint::blue()))
         .insert_resource(State::new())
+        .add_event::<UiEvent>()
         .add_plugins(DefaultPlugins)
         .add_plugin(LookTransformPlugin)
         .add_plugin(OrbitCameraPlugin::new(true))
@@ -47,8 +48,16 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .add_system(console_panel)
         .add_system(camera_light)
         .add_system(xyz_lines)
+        .add_system(controller)
+        .add_system(update_ui_scale_factor)
         .run();
     Ok(())
+}
+
+fn update_ui_scale_factor(mut egui_settings: ResMut<EguiSettings>, windows: Res<Windows>) {
+    if let Some(window) = windows.get_primary() {
+        egui_settings.scale_factor = 1.0 / window.scale_factor();
+    }
 }
 
 struct State {
@@ -129,12 +138,36 @@ fn setup(mut commands: Commands) {
     });
 }
 
-fn ui_example(
+pub enum UiEvent {
+    OpenFile(PathBuf),
+    Render(),
+}
+
+fn controller(
+    mut events: EventReader<UiEvent>,
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut state: ResMut<State>,
-    materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+){
+    for event in events.iter() {
+        match event {
+            UiEvent::OpenFile(file) => {
+                state.file = Some(file.clone());
+                clear_model(&mut commands, &mut state);
+                display_file(&mut commands, &asset_server, &mut state, &mut materials);
+            }
+            UiEvent::Render() => {
+                clear_model(&mut commands, &mut state);
+                display_file(&mut commands, &asset_server, &mut state, &mut materials);
+            }
+        }
+    }
+}
+
+fn ui_example(
     mut egui_context: ResMut<EguiContext>,
+    mut events: EventWriter<UiEvent>,
 ) {
     egui::TopBottomPanel::top("Tools").show(egui_context.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
@@ -144,12 +177,13 @@ fn ui_example(
                     .set_directory(env::current_dir().unwrap())
                     .pick_file();
 
-                state.file = file;
-                clear_model(&mut commands, &mut state);
-                display_file(commands, asset_server, state, materials);
-            } else if ui.button("Render").clicked() {
-                clear_model(&mut commands, &mut state);
-                display_file(commands, asset_server, state, materials);
+                if let Some(file) = file {
+                    events.send(UiEvent::OpenFile(file));
+                }
+            }
+
+            if ui.button("Render").clicked() {
+                events.send(UiEvent::Render());
             }
         });
     });
@@ -158,10 +192,11 @@ fn ui_example(
 fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {
     egui::TopBottomPanel::bottom("Console").show(egui_context.ctx_mut(), |ui| {
         ui.label("Console:");
+        ui.separator();
         egui::ScrollArea::vertical()
             .max_height(256.)
             .show(ui, |ui| {
-                ui.label(&state.output);
+                ui.monospace(&state.output);
             });
     });
 }
@@ -174,10 +209,10 @@ fn clear_model(commands: &mut Commands, state: &mut ResMut<State>) {
 }
 
 fn display_file(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut state: ResMut<State>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    state: &mut ResMut<State>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
 ) {
     let edit_file = Path::new("./a.stl");
     let edit_file = edit_file.absolutize().unwrap();
