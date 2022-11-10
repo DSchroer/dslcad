@@ -45,13 +45,14 @@ steps:
       api_key:
         from_secret: github_api_key
       base_url: https://github.com/
+      upload_url: https://github.com/
       files:
         - release.sh
 #        - linux.zip
 #        - windows.zip
-#    when:
-#      event:
-#        - tag
+    when:
+      event:
+        - tag
 
 volumes:
   - name: cache
