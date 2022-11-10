@@ -21,8 +21,17 @@ steps:
     commands:
       - cargo +nightly fmt --check
       - cargo clippy -- -Dwarnings
-      - cargo build
       - cargo test
+
+  - name: build releases
+    image: modelscriptci
+    pull: never
+    volumes:
+      - name: cache
+        path: /drone/src/target
+    commands:
+      - cargo build --release
+      - cargo build --release --target x86_64-pc-windows-gnu
 
   - template: github-mirror
     repo: git@github.com:DSchroer/model-script.git
