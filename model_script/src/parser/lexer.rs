@@ -45,7 +45,7 @@ pub enum Token {
     Path,
 
     #[error]
-    #[regex(r"([ \t\n\f]+|//.*)", logos::skip)]
+    #[regex(r"([ \t\n\r\f]+|//.*)", logos::skip)]
     Error,
 }
 
@@ -59,6 +59,11 @@ mod tests {
         assert_eq!(vec![Var, Identifier, Equal, Number], tokens("var x = 5"));
         assert_eq!(vec![Var, Identifier], tokens("var x"));
         assert_eq!(vec![Var, Identifier, Equal, Bool], tokens("var x = true"));
+    }
+
+    #[test]
+    fn it_can_lex_with_crlf() {
+        assert_eq!(vec![Var, Identifier], tokens("var\r\nx"));
     }
 
     #[test]
