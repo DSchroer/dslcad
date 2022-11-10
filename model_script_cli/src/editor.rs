@@ -50,6 +50,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .add_system(xyz_lines)
         .add_system(controller)
         .add_system(update_ui_scale_factor)
+        .add_system(keybindings)
         .run();
     Ok(())
 }
@@ -139,7 +140,7 @@ fn setup(mut commands: Commands) {
 }
 
 pub enum UiEvent {
-    OpenFile(PathBuf),
+    OpenFile(),
     Render(),
 }
 
@@ -152,8 +153,14 @@ fn controller(
 ) {
     for event in events.iter() {
         match event {
-            UiEvent::OpenFile(file) => {
-                state.file = Some(file.clone());
+            UiEvent::OpenFile() => {
+                let file = FileDialog::new()
+                    .add_filter("script", &["ex"])
+                    .set_directory(env::current_dir().unwrap())
+                    .pick_file();
+
+                state.file = file;
+
                 clear_model(&mut commands, &mut state);
                 display_file(&mut commands, &asset_server, &mut state, &mut materials);
             }
@@ -165,18 +172,21 @@ fn controller(
     }
 }
 
+fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
+    if keys.just_released(KeyCode::O) {
+        events.send(UiEvent::OpenFile())
+    }
+
+    if keys.just_released(KeyCode::F5) {
+        events.send(UiEvent::Render())
+    }
+}
+
 fn ui_example(mut egui_context: ResMut<EguiContext>, mut events: EventWriter<UiEvent>) {
     egui::TopBottomPanel::top("Tools").show(egui_context.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
             if ui.button("Open File").clicked() {
-                let file = FileDialog::new()
-                    .add_filter("script", &["ex"])
-                    .set_directory(env::current_dir().unwrap())
-                    .pick_file();
-
-                if let Some(file) = file {
-                    events.send(UiEvent::OpenFile(file));
-                }
+                events.send(UiEvent::OpenFile());
             }
 
             if ui.button("Render").clicked() {
