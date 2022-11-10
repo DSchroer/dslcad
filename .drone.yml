@@ -45,6 +45,7 @@ steps:
         from_secret: github_api_key
       GITHUB_REPOSITORY: DSchroer/model-script
     commands:
+      - git remote add github ssh://git@github.com:DSchroer/model-script.git
       - gh release create $DRONE_TAG
     when:
       event:
