@@ -15,26 +15,25 @@ use std::env;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
-enum Blueprint {
-    White,
-    Blue,
-    Black,
-}
+struct Blueprint;
+impl Blueprint {
+    fn white() -> Color {
+        Color::hex("CED8F7").unwrap()
+    }
 
-impl Into<Color> for Blueprint {
-    fn into(self) -> Color {
-        match self {
-            Blueprint::White => Color::hex("CED8F7").unwrap(),
-            Blueprint::Blue => Color::hex("3057E1").unwrap(),
-            Blueprint::Black => Color::hex("002082").unwrap(),
-        }
+    fn blue() -> Color {
+        Color::hex("3057E1").unwrap()
+    }
+
+    fn black() -> Color {
+        Color::hex("002082").unwrap()
     }
 }
 
 pub fn main() -> Result<(), Box<dyn Error>> {
     App::new()
         .insert_resource(Msaa { samples: 4 })
-        .insert_resource(ClearColor(Blueprint::Blue.into()))
+        .insert_resource(ClearColor(Blueprint::blue()))
         .insert_resource(State::new())
         .add_plugins(DefaultPlugins)
         .add_plugin(LookTransformPlugin)
@@ -70,7 +69,7 @@ impl State {
 
 fn xyz_lines(mut lines: ResMut<DebugLines>) {
     let end = 1_000_000.0;
-    let color = Blueprint::Black.into();
+    let color = Blueprint::black();
     lines.line_colored(
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(end, 0.0, 0.0),
@@ -116,7 +115,7 @@ fn setup(mut commands: Commands) {
     commands.spawn_bundle(DirectionalLightBundle {
         directional_light: DirectionalLight {
             illuminance: 100000.0,
-            color: Blueprint::White.into(),
+            color: Blueprint::white(),
             ..default()
         },
         transform: Transform::from_translation(Vec3::new(100.0, 100.0, 100.0))
@@ -125,7 +124,7 @@ fn setup(mut commands: Commands) {
     });
 
     commands.insert_resource(AmbientLight {
-        color: Blueprint::Blue.into(),
+        color: Blueprint::blue(),
         brightness: 0.2,
     });
 }
@@ -195,8 +194,7 @@ fn display_file(
                     let model = commands
                         .spawn_bundle(PbrBundle {
                             mesh: asset_server.load(edit_file),
-                            material: materials
-                                .add(<Blueprint as Into<Color>>::into(Blueprint::White).into()),
+                            material: materials.add(Blueprint::white().into()),
                             transform: Transform::from_rotation(Quat::from_euler(
                                 EulerRot::XYZ,
                                 -std::f32::consts::PI / 2.,
