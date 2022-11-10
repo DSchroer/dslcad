@@ -8,8 +8,8 @@ pub fn input_map(
     mut mouse_motion_events: EventReader<MouseMotion>,
     mouse_buttons: Res<Input<MouseButton>>,
     controllers: Query<&OrbitCameraController>,
+    camera_pos: Query<&Transform, With<OrbitCameraController>>,
 ) {
-    // Can only control one camera at a time.
     let controller = if let Some(controller) = controllers.iter().find(|c| c.enabled) {
         controller
     } else {
@@ -33,8 +33,11 @@ pub fn input_map(
     }
 
     if mouse_buttons.pressed(MouseButton::Right) {
+        let camera_pos = camera_pos.single();
+        let zoom_amount = camera_pos.translation.distance(Vec3::ZERO);
+
         events.send(ControlEvent::TranslateTarget(
-            mouse_translate_sensitivity * cursor_delta,
+            mouse_translate_sensitivity * cursor_delta * zoom_amount,
         ));
     }
 

@@ -3,6 +3,7 @@ mod input_map;
 use crate::editor::input_map::input_map;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_prototype_debug_lines::*;
 use model_script::{eval, parse};
 use path_absolutize::Absolutize;
 use rfd::FileDialog;
@@ -14,10 +15,26 @@ use std::env;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
+enum Blueprint {
+    White,
+    Blue,
+    Black,
+}
+
+impl Into<Color> for Blueprint {
+    fn into(self) -> Color {
+        match self {
+            Blueprint::White => Color::hex("CED8F7").unwrap(),
+            Blueprint::Blue => Color::hex("3057E1").unwrap(),
+            Blueprint::Black => Color::hex("002082").unwrap(),
+        }
+    }
+}
+
 pub fn main() -> Result<(), Box<dyn Error>> {
     App::new()
         .insert_resource(Msaa { samples: 4 })
-        .insert_resource(ClearColor(Color::hex("3057E1").unwrap()))
+        .insert_resource(ClearColor(Blueprint::Blue.into()))
         .insert_resource(State::new())
         .add_plugins(DefaultPlugins)
         .add_plugin(LookTransformPlugin)
@@ -25,10 +42,12 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .add_system(input_map)
         .add_plugin(bevy_stl::StlPlugin)
         .add_plugin(EguiPlugin)
+        .add_plugin(DebugLinesPlugin::with_depth_test(true))
         .add_startup_system(setup)
         .add_system(ui_example)
         .add_system(console_panel)
         .add_system(camera_light)
+        .add_system(xyz_lines)
         .run();
     Ok(())
 }
@@ -49,6 +68,29 @@ impl State {
     }
 }
 
+fn xyz_lines(mut lines: ResMut<DebugLines>) {
+    let end = 1_000_000.0;
+    let color = Blueprint::Black.into();
+    lines.line_colored(
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(end, 0.0, 0.0),
+        0.0,
+        color,
+    );
+    lines.line_colored(
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, end, 0.0),
+        0.0,
+        color,
+    );
+    lines.line_colored(
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, end),
+        0.0,
+        color,
+    );
+}
+
 fn camera_light(
     query: Query<&Transform, With<OrbitCameraController>>,
     mut light: Query<&mut Transform, (With<DirectionalLight>, Without<OrbitCameraController>)>,
@@ -64,26 +106,27 @@ fn setup(mut commands: Commands) {
         .spawn_bundle(Camera3dBundle::default())
         .insert_bundle(OrbitCameraBundle::new(
             OrbitCameraController {
-                mouse_translate_sensitivity: Vec2::splat(0.08),
+                mouse_translate_sensitivity: Vec2::splat(0.001),
                 ..Default::default()
             },
-            Vec3::new(100.0, 100.0, 0.0),
+            Vec3::new(100.0, 100.0, 100.0),
             Vec3::new(0., 0., 0.),
         ));
 
     commands.spawn_bundle(DirectionalLightBundle {
         directional_light: DirectionalLight {
-            illuminance: 10000.0,
+            illuminance: 100000.0,
+            color: Blueprint::White.into(),
             ..default()
         },
-        transform: Transform::from_translation(Vec3::new(100.0, 100.0, 0.0))
+        transform: Transform::from_translation(Vec3::new(100.0, 100.0, 100.0))
             .looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
         ..default()
     });
 
     commands.insert_resource(AmbientLight {
-        color: Color::hex("CED8F7").unwrap(),
-        brightness: 0.5,
+        color: Blueprint::Blue.into(),
+        brightness: 0.2,
     });
 }
 
@@ -103,10 +146,10 @@ fn ui_example(
                     .pick_file();
 
                 state.file = file;
-                try_clear(&mut commands, &mut state);
+                clear_model(&mut commands, &mut state);
                 display_file(commands, asset_server, state, materials);
             } else if ui.button("Render").clicked() {
-                try_clear(&mut commands, &mut state);
+                clear_model(&mut commands, &mut state);
                 display_file(commands, asset_server, state, materials);
             }
         });
@@ -115,6 +158,7 @@ fn ui_example(
 
 fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {
     egui::TopBottomPanel::bottom("Console").show(egui_context.ctx_mut(), |ui| {
+        ui.label("Console:");
         egui::ScrollArea::vertical()
             .max_height(256.)
             .show(ui, |ui| {
@@ -123,7 +167,7 @@ fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {
     });
 }
 
-fn try_clear(commands: &mut Commands, state: &mut ResMut<State>) {
+fn clear_model(commands: &mut Commands, state: &mut ResMut<State>) {
     if let Some(id) = state.model {
         commands.entity(id).despawn();
         state.model = None;
@@ -151,8 +195,12 @@ fn display_file(
                     let model = commands
                         .spawn_bundle(PbrBundle {
                             mesh: asset_server.load(edit_file),
-                            material: materials.add(Color::WHITE.into()),
-                            transform: Transform::from_rotation(Quat::from_rotation_x(
+                            material: materials
+                                .add(<Blueprint as Into<Color>>::into(Blueprint::White).into()),
+                            transform: Transform::from_rotation(Quat::from_euler(
+                                EulerRot::XYZ,
+                                -std::f32::consts::PI / 2.,
+                                0.0,
                                 -std::f32::consts::PI / 2.,
                             )),
                             ..Default::default()
