@@ -39,17 +39,13 @@ steps:
 #        - tag
 
   - name: publish pre-release
-    image: plugins/github-release
-    settings:
-      prerelease: true
-      api_key:
+    image: maniator/gh
+    environment:
+      GITHUB_TOKEN:
         from_secret: github_api_key
-      base_url: https://github.com/
-      upload_url: https://github.com/
-      files:
-        - release.sh
-#        - linux.zip
-#        - windows.zip
+      GITHUB_REPOSITORY: DSchroer/model-script
+    commands:
+      - gh release create $DRONE_TAG
     when:
       event:
         - tag
