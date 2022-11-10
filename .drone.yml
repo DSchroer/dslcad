@@ -23,6 +23,9 @@ steps:
       - cargo clippy -- -Dwarnings
       - cargo test
 
+  - template: github-mirror
+    repo: git@github.com:DSchroer/model-script.git
+
   - name: build releases
     image: modelscriptci
     pull: never
@@ -30,14 +33,23 @@ steps:
       - name: cache
         path: /drone/src/target
     commands:
-      - cargo build --release
-      - cargo build --release --target x86_64-pc-windows-gnu
+      - ./release.sh
     when:
       event:
         - tag
 
-  - template: github-mirror
-    repo: git@github.com:DSchroer/model-script.git
+  - name: publish release
+    image: plugins/github-release
+    settings:
+      prerelease: true
+      api_key:
+        from_secret: github_api_key
+      files:
+        - linux.zip
+        - windows.zip
+    when:
+      event:
+        - tag
 
 volumes:
   - name: cache
