@@ -4,49 +4,48 @@ type: docker
 name: build
 
 steps:
-#  - name: build image
-#    image: docker
-#    volumes:
-#      - name: dockersock
-#        path: /var/run/docker.sock
-#    commands:
-#      - docker build . -t modelscriptci
-#
-#  - name: build and test
-#    image: modelscriptci
-#    pull: never
-#    volumes:
-#      - name: cache
-#        path: /drone/src/target
-#    commands:
-#      - cargo +nightly fmt --check
-#      - cargo clippy -- -Dwarnings
-#      - cargo test
-#
-#  - template: github-mirror
-#    repo: git@github.com:DSchroer/model-script.git
-#
-#  - name: build releases
-#    image: modelscriptci
-#    pull: never
-#    volumes:
-#      - name: cache
-#        path: /drone/src/target
-#    commands:
-#      - ./release.sh
-#    when:
-#      event:
-#        - tag
+  - name: build image
+    image: docker
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+    commands:
+      - docker build . -t modelscriptci
+
+  - name: build and test
+    image: modelscriptci
+    pull: never
+    volumes:
+      - name: cache
+        path: /drone/src/target
+    commands:
+      - cargo +nightly fmt --check
+      - cargo clippy -- -Dwarnings
+      - cargo test
+
+  - template: github-mirror
+    repo: git@github.com:DSchroer/model-script.git
+
+  - name: build releases
+    image: modelscriptci
+    pull: never
+    volumes:
+      - name: cache
+        path: /drone/src/target
+    commands:
+      - ./release.sh
+    when:
+      event:
+        - tag
 
   - name: publish pre-release
     image: maniator/gh
     environment:
       GITHUB_TOKEN:
         from_secret: github_api_key
-      GITHUB_REPOSITORY: DSchroer/model-script
     commands:
       - git remote add github https://github.com/DSchroer/model-script.git
-      - gh release create $DRONE_TAG
+      - gh release create $DRONE_TAG linux.zip windows.zip
     when:
       event:
         - tag
