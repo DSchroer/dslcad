@@ -4,52 +4,54 @@ type: docker
 name: build
 
 steps:
-  - name: build image
-    image: docker
-    volumes:
-      - name: dockersock
-        path: /var/run/docker.sock
-    commands:
-      - docker build . -t modelscriptci
+#  - name: build image
+#    image: docker
+#    volumes:
+#      - name: dockersock
+#        path: /var/run/docker.sock
+#    commands:
+#      - docker build . -t modelscriptci
+#
+#  - name: build and test
+#    image: modelscriptci
+#    pull: never
+#    volumes:
+#      - name: cache
+#        path: /drone/src/target
+#    commands:
+#      - cargo +nightly fmt --check
+#      - cargo clippy -- -Dwarnings
+#      - cargo test
+#
+#  - template: github-mirror
+#    repo: git@github.com:DSchroer/model-script.git
+#
+#  - name: build releases
+#    image: modelscriptci
+#    pull: never
+#    volumes:
+#      - name: cache
+#        path: /drone/src/target
+#    commands:
+#      - ./release.sh
+#    when:
+#      event:
+#        - tag
 
-  - name: build and test
-    image: modelscriptci
-    pull: never
-    volumes:
-      - name: cache
-        path: /drone/src/target
-    commands:
-      - cargo +nightly fmt --check
-      - cargo clippy -- -Dwarnings
-      - cargo test
-
-  - template: github-mirror
-    repo: git@github.com:DSchroer/model-script.git
-
-  - name: build releases
-    image: modelscriptci
-    pull: never
-    volumes:
-      - name: cache
-        path: /drone/src/target
-    commands:
-      - ./release.sh
-    when:
-      event:
-        - tag
-
-  - name: publish release
+  - name: publish pre-release
     image: plugins/github-release
     settings:
       prerelease: true
       api_key:
         from_secret: github_api_key
+      base_url: https://github.com/
       files:
-        - linux.zip
-        - windows.zip
-    when:
-      event:
-        - tag
+        - release.sh
+#        - linux.zip
+#        - windows.zip
+#    when:
+#      event:
+#        - tag
 
 volumes:
   - name: cache
