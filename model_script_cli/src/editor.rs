@@ -13,6 +13,7 @@ use smooth_bevy_cameras::{
 };
 use std::env;
 use std::error::Error;
+use std::fs::File;
 use std::path::{Path, PathBuf};
 
 struct Blueprint;
@@ -140,6 +141,7 @@ fn setup(mut commands: Commands) {
 }
 
 pub enum UiEvent {
+    CreateFile(),
     OpenFile(),
     Render(),
 }
@@ -153,6 +155,20 @@ fn controller(
 ) {
     for event in events.iter() {
         match event {
+            UiEvent::CreateFile() => {
+                let file = FileDialog::new()
+                    .add_filter("script", &["ex"])
+                    .set_directory(env::current_dir().unwrap())
+                    .save_file();
+
+                state.file = file.clone();
+                if let Some(file) = file {
+                    File::create(file).unwrap();
+                }
+
+                clear_model(&mut commands, &mut state);
+                display_file(&mut commands, &asset_server, &mut state, &mut materials);
+            }
             UiEvent::OpenFile() => {
                 let file = FileDialog::new()
                     .add_filter("script", &["ex"])
@@ -173,6 +189,10 @@ fn controller(
 }
 
 fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
+    if keys.just_released(KeyCode::N) {
+        events.send(UiEvent::CreateFile())
+    }
+
     if keys.just_released(KeyCode::O) {
         events.send(UiEvent::OpenFile())
     }
@@ -185,6 +205,10 @@ fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
 fn ui_example(mut egui_context: ResMut<EguiContext>, mut events: EventWriter<UiEvent>) {
     egui::TopBottomPanel::top("Tools").show(egui_context.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
+            if ui.button("Create File").clicked() {
+                events.send(UiEvent::CreateFile());
+            }
+
             if ui.button("Open File").clicked() {
                 events.send(UiEvent::OpenFile());
             }
@@ -230,7 +254,11 @@ fn display_file(
             Err(e) => state.output = format!("{}", e),
             Ok(ast) => match eval(ast) {
                 Ok(mut model) => {
-                    model.write_to_file(edit_file).unwrap();
+                    let err = model.write_to_file(edit_file);
+                    if let Err(e) = err {
+                        format!("{}", e);
+                        return;
+                    }
                     asset_server.reload_asset(edit_file);
 
                     let model = commands
