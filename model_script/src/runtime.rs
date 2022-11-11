@@ -50,7 +50,8 @@ impl ScriptInstance {
             .value
             .to_shape()
             .ok_or_else(|| std::io::Error::from(ErrorKind::Other))?;
-        instance.borrow_mut().write_stl(path)
+        let mut instance = instance.borrow_mut();
+        instance.write_stl(path)
     }
 }
 

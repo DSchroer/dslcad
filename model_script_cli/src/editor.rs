@@ -256,7 +256,7 @@ fn display_file(
                 Ok(mut model) => {
                     let err = model.write_to_file(edit_file);
                     if let Err(e) = err {
-                        format!("{}", e);
+                        state.output = format!("{}", e);
                         return;
                     }
                     asset_server.reload_asset(edit_file);

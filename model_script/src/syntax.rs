@@ -74,30 +74,33 @@ impl Value {
         }
     }
 
-    pub fn to_script(&self) -> Option<&Rc<RefCell<ScriptInstance>>> {
+    pub fn to_script(&self) -> Option<Rc<RefCell<ScriptInstance>>> {
         match self {
-            Value::Script(i) => Some(i),
+            Value::Script(i) => Some(i.clone()),
             _ => None,
         }
     }
 
-    pub fn to_point(&self) -> Option<&Rc<RefCell<Point>>> {
+    pub fn to_point(&self) -> Option<Rc<RefCell<Point>>> {
         match self {
-            Value::Point(s) => Some(s),
+            Value::Point(s) => Some(s.clone()),
+            Value::Script(i) => i.borrow().value().to_point(),
             _ => None,
         }
     }
 
-    pub fn to_line(&self) -> Option<&Rc<RefCell<Edge>>> {
+    pub fn to_line(&self) -> Option<Rc<RefCell<Edge>>> {
         match self {
-            Value::Line(s) => Some(s),
+            Value::Line(s) => Some(s.clone()),
+            Value::Script(i) => i.borrow().value().to_line(),
             _ => None,
         }
     }
 
-    pub fn to_shape(&self) -> Option<&Rc<RefCell<Shape>>> {
+    pub fn to_shape(&self) -> Option<Rc<RefCell<Shape>>> {
         match self {
-            Value::Shape(s) => Some(s),
+            Value::Shape(s) => Some(s.clone()),
+            Value::Script(i) => i.borrow().value().to_shape(),
             _ => None,
         }
     }
