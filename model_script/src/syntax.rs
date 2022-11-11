@@ -1,4 +1,5 @@
 mod accessible;
+mod output;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -8,6 +9,8 @@ use std::rc::Rc;
 use crate::runtime::ScriptInstance;
 pub use accessible::Accessible;
 use opencascade::{Edge, Point, Shape};
+
+pub use output::Output;
 
 #[derive(Debug, Clone)]
 pub enum Statement {
@@ -66,6 +69,22 @@ impl Display for Value {
 }
 
 impl Value {
+    pub fn to_output(&self) -> Output {
+        match self {
+            Value::Empty => Output::Value(String::from("()")),
+            Value::Number(v) => Output::Value(v.to_string()),
+            Value::Bool(v) => Output::Value(v.to_string()),
+            Value::Text(v) => Output::Value(v.to_string()),
+
+            Value::Script(s) => s.borrow().value().to_output(),
+
+            Value::Point(_) => Output::Figure(),
+            Value::Line(_) => Output::Figure(),
+
+            Value::Shape(_) => Output::Shape(),
+        }
+    }
+
     pub fn to_number(&self) -> Option<f64> {
         match self {
             Value::Number(f) => Some(*f),

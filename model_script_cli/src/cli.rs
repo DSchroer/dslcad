@@ -17,7 +17,7 @@ struct Args {
 pub(crate) fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let ast = parse(&args.source)?;
-    let mut model = eval(ast)?;
-    model.write_to_file(&args.out)?;
+    let model = eval(ast)?;
+    println!("{}", model);
     Ok(())
 }

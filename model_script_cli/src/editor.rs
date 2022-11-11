@@ -5,7 +5,6 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_prototype_debug_lines::*;
 use model_script::{eval, parse};
-use path_absolutize::Absolutize;
 use rfd::FileDialog;
 use smooth_bevy_cameras::{
     controllers::orbit::{OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin},
@@ -14,7 +13,7 @@ use smooth_bevy_cameras::{
 use std::env;
 use std::error::Error;
 use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 struct Blueprint;
 impl Blueprint {
@@ -150,8 +149,8 @@ fn controller(
     mut events: EventReader<UiEvent>,
     mut commands: Commands,
     mut state: ResMut<State>,
-    asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    // asset_server: Res<AssetServer>,
+    // mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     for event in events.iter() {
         match event {
@@ -165,7 +164,7 @@ fn controller(
                     state.file = Some(file);
 
                     clear_model(&mut commands, &mut state);
-                    display_file(&mut commands, &asset_server, &mut state, &mut materials);
+                    display_file(&mut state);
                 }
             }
             UiEvent::OpenFile() => {
@@ -174,12 +173,12 @@ fn controller(
                     state.file = Some(file);
 
                     clear_model(&mut commands, &mut state);
-                    display_file(&mut commands, &asset_server, &mut state, &mut materials);
+                    display_file(&mut state);
                 }
             }
             UiEvent::Render() => {
                 clear_model(&mut commands, &mut state);
-                display_file(&mut commands, &asset_server, &mut state, &mut materials);
+                display_file(&mut state);
             }
         }
     }
@@ -250,42 +249,38 @@ fn clear_model(commands: &mut Commands, state: &mut ResMut<State>) {
 }
 
 fn display_file(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
+    // commands: &mut Commands,
+    // asset_server: &Res<AssetServer>,
     state: &mut ResMut<State>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
+    // materials: &mut ResMut<Assets<StandardMaterial>>,
 ) {
-    let edit_file = Path::new("./a.stl");
-    let edit_file = edit_file.absolutize().unwrap();
-    let edit_file = edit_file.to_str().unwrap();
+    // let edit_file = Path::new("./a.stl");
+    // let edit_file = edit_file.absolutize().unwrap();
+    // let edit_file = edit_file.to_str().unwrap();
 
     if let Some(file) = &state.file {
         match parse(file.to_str().unwrap()) {
             Err(e) => state.output = format!("{}", e),
             Ok(ast) => match eval(ast) {
-                Ok(mut model) => {
-                    let err = model.write_to_file(edit_file);
-                    if let Err(e) = err {
-                        state.output = format!("{}", e);
-                        return;
-                    }
-                    asset_server.reload_asset(edit_file);
-
-                    let model = commands
-                        .spawn_bundle(PbrBundle {
-                            mesh: asset_server.load(edit_file),
-                            material: materials.add(Blueprint::white().into()),
-                            transform: Transform::from_rotation(Quat::from_euler(
-                                EulerRot::XYZ,
-                                -std::f32::consts::PI / 2.,
-                                0.0,
-                                -std::f32::consts::PI / 2.,
-                            )),
-                            ..Default::default()
-                        })
-                        .id();
-                    state.model = Some(model);
-                    state.output.clear();
+                Ok(model) => {
+                    state.output = format!("{}", model);
+                    // asset_server.reload_asset(edit_file);
+                    //
+                    // let model = commands
+                    //     .spawn_bundle(PbrBundle {
+                    //         mesh: asset_server.load(edit_file),
+                    //         material: materials.add(Blueprint::white().into()),
+                    //         transform: Transform::from_rotation(Quat::from_euler(
+                    //             EulerRot::XYZ,
+                    //             -std::f32::consts::PI / 2.,
+                    //             0.0,
+                    //             -std::f32::consts::PI / 2.,
+                    //         )),
+                    //         ..Default::default()
+                    //     })
+                    //     .id();
+                    // state.model = Some(model);
+                    // state.output.clear();
                 }
                 Err(e) => state.output = format!("{:?}", e),
             },

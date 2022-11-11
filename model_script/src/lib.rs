@@ -5,7 +5,8 @@ mod syntax;
 
 use crate::library::Library;
 use crate::parser::{Ast, ParseError};
-use crate::runtime::{EvalContext, RuntimeError, ScriptInstance};
+use crate::runtime::{EvalContext, RuntimeError};
+use crate::syntax::Output;
 use parser::Reader;
 use path_absolutize::Absolutize;
 use std::collections::HashMap;
@@ -17,14 +18,17 @@ pub fn parse(path: &str) -> Result<Ast, ParseError> {
     parser.parse()
 }
 
-pub fn eval(ast: Ast) -> Result<ScriptInstance, RuntimeError> {
+pub fn eval(ast: Ast) -> Result<Output, RuntimeError> {
     let ctx = EvalContext {
         documents: ast.documents(),
         library: Library,
     };
     let main = ast.root_document();
 
-    runtime::eval(main, HashMap::new(), &ctx)
+    let output = runtime::eval(main, HashMap::new(), &ctx)?
+        .value()
+        .to_output();
+    Ok(output)
 }
 
 struct FileReader;
