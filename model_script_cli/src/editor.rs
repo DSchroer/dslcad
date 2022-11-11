@@ -156,29 +156,26 @@ fn controller(
     for event in events.iter() {
         match event {
             UiEvent::CreateFile() => {
-                let file = FileDialog::new()
-                    .add_filter("script", &["ex"])
-                    .set_directory(env::current_dir().unwrap())
-                    .save_file();
+                let file = file_dialog(&state).save_file();
 
-                state.file = file.clone();
                 if let Some(file) = file {
-                    File::create(file).unwrap();
-                }
+                    let file = file.with_extension("ex");
+                    File::create(&file).unwrap();
 
-                clear_model(&mut commands, &mut state);
-                display_file(&mut commands, &asset_server, &mut state, &mut materials);
+                    state.file = Some(file);
+
+                    clear_model(&mut commands, &mut state);
+                    display_file(&mut commands, &asset_server, &mut state, &mut materials);
+                }
             }
             UiEvent::OpenFile() => {
-                let file = FileDialog::new()
-                    .add_filter("script", &["ex"])
-                    .set_directory(env::current_dir().unwrap())
-                    .pick_file();
+                let file = file_dialog(&state).pick_file();
+                if let Some(file) = file {
+                    state.file = Some(file);
 
-                state.file = file;
-
-                clear_model(&mut commands, &mut state);
-                display_file(&mut commands, &asset_server, &mut state, &mut materials);
+                    clear_model(&mut commands, &mut state);
+                    display_file(&mut commands, &asset_server, &mut state, &mut materials);
+                }
             }
             UiEvent::Render() => {
                 clear_model(&mut commands, &mut state);
@@ -186,6 +183,18 @@ fn controller(
             }
         }
     }
+}
+
+fn file_dialog(state: &State) -> FileDialog {
+    let dir = if let Some(file) = &state.file {
+        file.parent().unwrap().to_path_buf()
+    } else {
+        env::current_dir().unwrap()
+    };
+
+    FileDialog::new()
+        .add_filter("script", &["ex"])
+        .set_directory(dir)
 }
 
 fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
@@ -204,16 +213,17 @@ fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
 
 fn ui_example(mut egui_context: ResMut<EguiContext>, mut events: EventWriter<UiEvent>) {
     egui::TopBottomPanel::top("Tools").show(egui_context.ctx_mut(), |ui| {
-        ui.horizontal(|ui| {
-            if ui.button("Create File").clicked() {
-                events.send(UiEvent::CreateFile());
-            }
-
-            if ui.button("Open File").clicked() {
-                events.send(UiEvent::OpenFile());
-            }
-
-            if ui.button("Render").clicked() {
+        egui::menu::bar(ui, |ui| {
+            ui.menu_button("File", |ui| {
+                if ui.button("New (n)").clicked() {
+                    events.send(UiEvent::CreateFile());
+                }
+                if ui.button("Open (o)").clicked() {
+                    events.send(UiEvent::OpenFile());
+                }
+            });
+            ui.separator();
+            if ui.button("Render (F5)").clicked() {
                 events.send(UiEvent::Render());
             }
         });
