@@ -10,16 +10,18 @@ use opencascade::{Axis, Edge, Point, Shape};
 
 use super::*;
 
+/// syntax[3D]: `cube(x=number,y=number,z=number)`  Create a 3D cube
 pub fn cube(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let width = number!(args, "width");
-    let height = number!(args, "height");
-    let length = number!(args, "length");
+    let x = number!(args, "x");
+    let y = number!(args, "y");
+    let z = number!(args, "z");
 
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::cube(
-        length, width, height,
+        x, y, z,
     )))))
 }
 
+/// syntax[3D]: `cylinder(radius=number,height=number)`  Create a 3D cylinder
 pub fn cylinder(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let radius = number!(args, "radius");
     let height = number!(args, "height");
@@ -29,6 +31,8 @@ pub fn cylinder(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     )))))
 }
 
+/// syntax[2D]: `union(left=line,right=line)`  Combine two 2D lines
+/// syntax[3D]: `union(left=shape,right=shape)`  Combine two 3D shapes
 pub fn union(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     if let Ok(left) = shape!(args, "left") {
         let mut left = left.borrow_mut();
@@ -51,6 +55,7 @@ pub fn union(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
+/// syntax[3D]: `difference(left=shape,right=shape)`  Remove one 3D shape from another
 pub fn difference(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let left = shape!(args, "left")?;
     let right = shape!(args, "right")?;
@@ -63,6 +68,7 @@ pub fn difference(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> 
     )))))
 }
 
+/// syntax[3D]: `chamfer(shape=shape,radius=number)`  Chamfer all edges of a 3D shape
 pub fn chamfer(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let shape = shape!(args, "shape")?;
     let radius = number!(args, "radius");
@@ -73,6 +79,7 @@ pub fn chamfer(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     )))))
 }
 
+/// syntax[3D]: `fillet(shape=shape,radius=number)`  Fillet all edges of a 3D shape
 pub fn fillet(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let shape = shape!(args, "shape")?;
     let radius = number!(args, "radius");
@@ -83,6 +90,7 @@ pub fn fillet(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     )))))
 }
 
+/// syntax[3D]: `translate(shape=shape,x=number,y=number,z=number)`  Translate a 3D shape
 pub fn translate(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let shape = shape!(args, "shape")?;
     let x = number!(args, "x", 0.);
@@ -96,6 +104,7 @@ pub fn translate(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     )))))
 }
 
+/// syntax[3D]: `rotate(shape=shape,x=number,y=number,z=number)`  Rotate a 3D shape
 pub fn rotate(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let shape = shape!(args, "shape")?;
     let x = number!(args, "x", 0.);
@@ -110,6 +119,7 @@ pub fn rotate(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     Ok(Value::Shape(Rc::new(RefCell::new(shape))))
 }
 
+/// syntax[3D]: `scale(shape=shape,size=number)` Scale a 3D shape
 pub fn scale(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let shape = shape!(args, "shape")?;
     let size = number!(args, "size", 0.);

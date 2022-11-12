@@ -14,14 +14,14 @@ unset IFS
 echo \# Cheat Sheet;
 SECTION=""
 for key in "${CHEATS[@]}"; do
-  NEW_SECTION=$(echo $key | awk '{print $1;}')
+  NEW_SECTION=$(echo "$key" | awk '{print $1;}')
   if [ "$NEW_SECTION" != "$SECTION" ];
   then
     SECTION=$NEW_SECTION
     echo
-    echo \## $SECTION;
+    echo \## "$SECTION";
   fi
 
-  REST=$(echo $key | awk '{print substr($0, index($0, " ")+1)}')
-  echo - $REST;
+  REST=$(echo "$key" | awk '{print substr($0, index($0, " ")+1)}')
+  echo - "$REST";
 done

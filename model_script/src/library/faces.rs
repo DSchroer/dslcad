@@ -8,7 +8,9 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-/// syntax[2d]: `point(x=number,y=number)`  Create a new 2D point
+/// syntax[Syntax]: `variable ->name function()`  Pass variable as an argument called name to function
+
+/// syntax[2D]: `point(x=number,y=number)`  Create a new 2D point
 pub fn point(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let x = number!(args, "x", 0.);
     let y = number!(args, "y", 0.);
@@ -16,7 +18,7 @@ pub fn point(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     Ok(Value::Point(Rc::new(RefCell::new(Point::new(x, y, 0.0)))))
 }
 
-/// syntax[2d]: `line(start=point,end=point)`  Create a line between two points
+/// syntax[2D]: `line(start=point,end=point)`  Create a line between two points
 pub fn line(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let start = point!(args, "start")?;
     let end = point!(args, "end")?;
@@ -26,7 +28,7 @@ pub fn line(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
-/// syntax[2d]: `arc(start=point,center=point,end=point)`  Create an arcing line between three points
+/// syntax[2D]: `arc(start=point,center=point,end=point)`  Create an arcing line between three points
 pub fn arc(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let start = point!(args, "start")?;
     let center = point!(args, "center")?;
@@ -37,7 +39,7 @@ pub fn arc(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
-/// syntax[2d]: `extrude(shape=line,height=number)`  Extrude a face into a 3d shape
+/// syntax[2D]: `extrude(shape=line,height=number)`  Extrude a face into a 3D shape
 pub fn extrude(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let shape = edge!(args, "shape")?;
     let height = number!(args, "height");
@@ -48,7 +50,7 @@ pub fn extrude(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     )))))
 }
 
-/// syntax[2d]: `revolve(shape=line,x=number,y=number)`  Extrude a face into a 3d shape around x or y
+/// syntax[2D]: `revolve(shape=line,x=number,y=number)`  Extrude a face into a 3D shape around x or y
 pub fn revolve(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let shape = edge!(args, "shape")?;
     let x = number!(args, "x", 0.);

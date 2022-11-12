@@ -4,6 +4,10 @@ use crate::syntax::Value;
 
 use std::collections::HashMap;
 
+/// syntax[Math]: `number + number`  Addition
+/// syntax[Math]: `number - number`  Subtraction
+/// syntax[Math]: `number * number`  Multiplication
+/// syntax[Math]: `number / number`  Division
 pub fn numeric(
     args: &HashMap<String, Value>,
     op: impl FnOnce(f64, f64) -> f64,
