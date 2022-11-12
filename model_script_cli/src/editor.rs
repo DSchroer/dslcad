@@ -258,10 +258,10 @@ fn display_file(
 ) {
     if let Some(file) = &state.file {
         match parse(file.to_str().unwrap()) {
-            Err(e) => state.output = format!("{}", e),
+            Err(e) => state.output = e.to_string(),
             Ok(ast) => match eval(ast) {
                 Ok(model) => match model {
-                    Output::Value(s) => state.output = format!("{}", s),
+                    Output::Value(s) => state.output = s,
                     Output::Figure() => state.output = String::from("TODO display 2D!"),
                     Output::Shape(mesh) => {
                         let mesh = stl_to_triangle_mesh(&mesh);
