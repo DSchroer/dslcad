@@ -12,17 +12,17 @@ use super::*;
 
 /// syntax[3D]: `cube(x=number,y=number,z=number)`  Create a 3D cube
 pub fn cube(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let x = number!(args, "x");
-    let y = number!(args, "y");
-    let z = number!(args, "z");
+    let x = number!(args, "x", 1.);
+    let y = number!(args, "y", 1.);
+    let z = number!(args, "z", 1.);
 
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::cube(x, y, z)))))
 }
 
 /// syntax[3D]: `cylinder(radius=number,height=number)`  Create a 3D cylinder
 pub fn cylinder(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let radius = number!(args, "radius");
-    let height = number!(args, "height");
+    let radius = number!(args, "radius", 0.5);
+    let height = number!(args, "height", 1.);
 
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::cylinder(
         radius, height,
