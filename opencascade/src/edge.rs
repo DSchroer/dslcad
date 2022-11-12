@@ -6,12 +6,12 @@ use opencascade_sys::ffi::{
     GC_MakeArcOfCircle_point_point_point, GC_MakeSegment_Value, GC_MakeSegment_point_point,
 };
 
-pub struct Edge(pub(crate) Box<UniquePtr<BRepBuilderAPI_MakeWire>>);
+pub struct Edge(pub(crate) UniquePtr<BRepBuilderAPI_MakeWire>);
 
 impl Edge {
     pub fn new() -> Self {
         let make_wire = BRepBuilderAPI_MakeWire_ctor();
-        Edge(Box::new(make_wire))
+        Edge(make_wire)
     }
 
     pub fn add_line(&mut self, a: &Point, b: &Point) {

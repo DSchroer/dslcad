@@ -8,15 +8,15 @@ use std::io::ErrorKind;
 pub use stl_io::{IndexedMesh};
 
 pub enum Shape {
-    Box(Box<UniquePtr<BRepPrimAPI_MakeBox>>),
-    Cylinder(Box<UniquePtr<BRepPrimAPI_MakeCylinder>>),
-    Fuse(Box<UniquePtr<BRepAlgoAPI_Fuse>>),
-    Cut(Box<UniquePtr<BRepAlgoAPI_Cut>>),
-    Fillet(Box<UniquePtr<BRepFilletAPI_MakeFillet>>),
-    Chamfer(Box<UniquePtr<BRepFilletAPI_MakeChamfer>>),
-    Transformed(Box<UniquePtr<BRepBuilderAPI_Transform>>),
-    Prism(Box<UniquePtr<BRepPrimAPI_MakePrism>>),
-    Revol(Box<UniquePtr<BRepPrimAPI_MakeRevol>>),
+    Box(UniquePtr<BRepPrimAPI_MakeBox>),
+    Cylinder(UniquePtr<BRepPrimAPI_MakeCylinder>),
+    Fuse(UniquePtr<BRepAlgoAPI_Fuse>),
+    Cut(UniquePtr<BRepAlgoAPI_Cut>),
+    Fillet(UniquePtr<BRepFilletAPI_MakeFillet>),
+    Chamfer(UniquePtr<BRepFilletAPI_MakeChamfer>),
+    Transformed(UniquePtr<BRepBuilderAPI_Transform>),
+    Prism(UniquePtr<BRepPrimAPI_MakePrism>),
+    Revol(UniquePtr<BRepPrimAPI_MakeRevol>),
 }
 
 pub enum Axis {
@@ -28,28 +28,28 @@ pub enum Axis {
 impl Shape {
     pub fn cube(dx: f64, dy: f64, dz: f64) -> Self {
         let origin = Point::new(0., 0., 0.);
-        Shape::Box(Box::new(BRepPrimAPI_MakeBox_ctor(
+        Shape::Box(BRepPrimAPI_MakeBox_ctor(
             &origin.point,
             dx,
             dy,
             dz,
-        )))
+        ))
     }
 
     pub fn cylinder(radius: f64, height: f64) -> Self {
         let origin = Point::new(0., 0., 0.);
         let axis = gp_Ax2_ctor(&origin.point, gp_DZ());
-        Shape::Cylinder(Box::new(BRepPrimAPI_MakeCylinder_ctor(
+        Shape::Cylinder(BRepPrimAPI_MakeCylinder_ctor(
             &axis, radius, height,
-        )))
+        ))
     }
 
     pub fn fuse(left: &mut Shape, right: &mut Shape) -> Shape {
-        Shape::Fuse(Box::new(BRepAlgoAPI_Fuse_ctor(left.shape(), right.shape())))
+        Shape::Fuse(BRepAlgoAPI_Fuse_ctor(left.shape(), right.shape()))
     }
 
     pub fn cut(left: &mut Shape, right: &mut Shape) -> Shape {
-        Shape::Cut(Box::new(BRepAlgoAPI_Cut_ctor(left.shape(), right.shape())))
+        Shape::Cut(BRepAlgoAPI_Cut_ctor(left.shape(), right.shape()))
     }
 
     pub fn extrude(wire: &mut Edge, height: f64) -> Shape {
@@ -58,7 +58,7 @@ impl Shape {
         // We're calling Shape here instead of Face(), hope that's also okay.
         let body =
             BRepPrimAPI_MakePrism_ctor(face_profile.pin_mut().Shape(), &prism_vec, true, true);
-        Shape::Prism(Box::new(body))
+        Shape::Prism(body)
     }
 
     pub fn extrude_rotate(wire: &mut Edge, axis: Axis, degrees: f64) -> Shape {
@@ -73,7 +73,7 @@ impl Shape {
 
         let body =
             BRepPrimAPI_MakeRevol_ctor(face_profile.pin_mut().Shape(), gp_axis, radians, true);
-        Shape::Revol(Box::new(body))
+        Shape::Revol(body)
     }
 
     pub fn translate(left: &mut Shape, point: &Point) -> Shape {
@@ -82,11 +82,11 @@ impl Shape {
             .pin_mut()
             .SetTranslation(&Point::new(0., 0., 0.).point, &point.point);
 
-        Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(
+        Shape::Transformed(BRepBuilderAPI_Transform_ctor(
             left.shape(),
             &transform,
             true,
-        )))
+        ))
     }
 
     pub fn rotate(left: &mut Shape, axis: Axis, degrees: f64) -> Shape {
@@ -99,11 +99,11 @@ impl Shape {
         let radians = degrees * (std::f64::consts::PI / 180.);
         transform.pin_mut().SetRotation(gp_axis, radians);
 
-        Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(
+        Shape::Transformed(BRepBuilderAPI_Transform_ctor(
             left.shape(),
             &transform,
             true,
-        )))
+        ))
     }
 
     pub fn scale(left: &mut Shape, scale: f64) -> Shape {
@@ -112,11 +112,11 @@ impl Shape {
             .pin_mut()
             .SetScale(&Point::new(0., 0., 0.).point, scale);
 
-        Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(
+        Shape::Transformed(BRepBuilderAPI_Transform_ctor(
             left.shape(),
             &transform,
             true,
-        )))
+        ))
     }
 
     pub fn mirror(left: &mut Shape, axis: Axis) -> Shape {
@@ -128,11 +128,11 @@ impl Shape {
         };
         transform.pin_mut().set_mirror_axis(gp_axis);
 
-        Shape::Transformed(Box::new(BRepBuilderAPI_Transform_ctor(
+        Shape::Transformed(BRepBuilderAPI_Transform_ctor(
             left.shape(),
             &transform,
             true,
-        )))
+        ))
     }
 
     pub fn fillet(target: &mut Shape, thickness: f64) -> Shape {
@@ -145,7 +145,7 @@ impl Shape {
             edge_explorer.pin_mut().Next();
         }
 
-        Shape::Fillet(Box::new(fillet))
+        Shape::Fillet(fillet)
     }
 
     pub fn chamfer(target: &mut Shape, thickness: f64) -> Shape {
@@ -158,7 +158,7 @@ impl Shape {
             edge_explorer.pin_mut().Next();
         }
 
-        Shape::Chamfer(Box::new(chamfer))
+        Shape::Chamfer(chamfer)
     }
 
     pub fn mesh(&mut self) -> Result<IndexedMesh, std::io::Error> {
