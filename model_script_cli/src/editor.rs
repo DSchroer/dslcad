@@ -218,9 +218,11 @@ fn ui_example(mut egui_context: ResMut<EguiContext>, mut events: EventWriter<UiE
             ui.menu_button("File", |ui| {
                 if ui.button("New (n)").clicked() {
                     events.send(UiEvent::CreateFile());
+                    ui.close_menu();
                 }
                 if ui.button("Open (o)").clicked() {
                     events.send(UiEvent::OpenFile());
+                    ui.close_menu();
                 }
             });
             ui.separator();
