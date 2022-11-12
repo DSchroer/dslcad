@@ -16,9 +16,7 @@ pub fn cube(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
     let y = number!(args, "y");
     let z = number!(args, "z");
 
-    Ok(Value::Shape(Rc::new(RefCell::new(Shape::cube(
-        x, y, z,
-    )))))
+    Ok(Value::Shape(Rc::new(RefCell::new(Shape::cube(x, y, z)))))
 }
 
 /// syntax[3D]: `cylinder(radius=number,height=number)`  Create a 3D cylinder
