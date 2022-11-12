@@ -2,8 +2,8 @@ var width = 10;
 var length = 10;
 var height = 5;
 
-var leg = cube(width=2, length=2, height=height);
-var base = cube(width=width, length=length, height=1);
+var leg = cube(x=2, y=2, z=height);
+var base = cube(x=width, y=length, z=1);
 
 base
     ->right union(left=leg)

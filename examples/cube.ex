@@ -1,1 +1,1 @@
-cube(width=1, length=1, height=1);
+cube(x=1, y=1, z=1);

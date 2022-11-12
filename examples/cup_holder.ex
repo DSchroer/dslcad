@@ -9,7 +9,7 @@ var base = cylinder(radius=baseRadius, height=baseHeight);
 var top = cylinder(radius=topRadius, height=topHeight)
             ->shape translate(z=baseHeight);
 
-var cutout = cube(width=baseRadius, height=topHeight, length=topRadius)
+var cutout = cube(y=baseRadius, z=topHeight, x=topRadius)
             ->shape translate(y=-baseRadius/2)
             ->left union(right=cylinder(radius=baseRadius/2, height=topRadius)
                 ->shape rotate(y=90))
