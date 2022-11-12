@@ -28,7 +28,8 @@ pub fn eval(ast: Ast) -> Result<Output, RuntimeError> {
 
     let output = runtime::eval(main, HashMap::new(), &ctx)?
         .value()
-        .to_output().map_err(|_|RuntimeError::CantWrite())?;
+        .to_output()
+        .map_err(|_| RuntimeError::CantWrite())?;
     Ok(output)
 }
 

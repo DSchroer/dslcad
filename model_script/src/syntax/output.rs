@@ -1,5 +1,5 @@
+use opencascade::IndexedMesh;
 use std::fmt::{Display, Formatter};
-use opencascade::{IndexedMesh};
 
 #[derive(Clone)]
 pub enum Output {

@@ -1,11 +1,20 @@
+use crate::{Edge, Point};
+use cxx::UniquePtr;
+use opencascade_sys::ffi::{
+    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, write_stl, BRepAlgoAPI_Cut,
+    BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_MakeFace_wire,
+    BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer,
+    BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor,
+    BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
+    BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
+    BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
+    StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge,
+};
 use std::env;
 use std::fs::File;
-use crate::{Edge, Point};
-use cxx::{UniquePtr};
-use opencascade_sys::ffi::{gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, write_stl, BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge};
 use std::io::ErrorKind;
 
-pub use stl_io::{IndexedMesh};
+pub use stl_io::IndexedMesh;
 
 pub enum Shape {
     Box(UniquePtr<BRepPrimAPI_MakeBox>),
@@ -28,20 +37,13 @@ pub enum Axis {
 impl Shape {
     pub fn cube(dx: f64, dy: f64, dz: f64) -> Self {
         let origin = Point::new(0., 0., 0.);
-        Shape::Box(BRepPrimAPI_MakeBox_ctor(
-            &origin.point,
-            dx,
-            dy,
-            dz,
-        ))
+        Shape::Box(BRepPrimAPI_MakeBox_ctor(&origin.point, dx, dy, dz))
     }
 
     pub fn cylinder(radius: f64, height: f64) -> Self {
         let origin = Point::new(0., 0., 0.);
         let axis = gp_Ax2_ctor(&origin.point, gp_DZ());
-        Shape::Cylinder(BRepPrimAPI_MakeCylinder_ctor(
-            &axis, radius, height,
-        ))
+        Shape::Cylinder(BRepPrimAPI_MakeCylinder_ctor(&axis, radius, height))
     }
 
     pub fn fuse(left: &mut Shape, right: &mut Shape) -> Shape {
@@ -190,7 +192,11 @@ impl Shape {
         let mut writer = StlAPI_Writer_ctor();
         let shape = self.shape();
         let triangulation = BRepMesh_IncrementalMesh_ctor(shape, 0.01);
-        let res = write_stl(writer.pin_mut(), triangulation.Shape(), stl_path.to_string());
+        let res = write_stl(
+            writer.pin_mut(),
+            triangulation.Shape(),
+            stl_path.to_string(),
+        );
 
         match res {
             true => Ok(()),

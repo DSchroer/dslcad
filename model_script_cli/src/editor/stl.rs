@@ -1,4 +1,4 @@
-use bevy::prelude::{Mesh};
+use bevy::prelude::Mesh;
 use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 
 pub fn stl_to_triangle_mesh(stl: &stl_io::IndexedMesh) -> Mesh {

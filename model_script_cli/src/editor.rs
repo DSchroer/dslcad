@@ -2,6 +2,7 @@ mod input_map;
 mod stl;
 
 use crate::editor::input_map::input_map;
+use crate::editor::stl::stl_to_triangle_mesh;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_prototype_debug_lines::*;
@@ -15,7 +16,6 @@ use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
-use crate::editor::stl::stl_to_triangle_mesh;
 
 struct Blueprint;
 impl Blueprint {
@@ -260,31 +260,29 @@ fn display_file(
         match parse(file.to_str().unwrap()) {
             Err(e) => state.output = format!("{}", e),
             Ok(ast) => match eval(ast) {
-                Ok(model) => {
-                    match model {
-                        Output::Value(s) => state.output = format!("{}", s),
-                        Output::Figure() => state.output = String::from("TODO display 2D!"),
-                        Output::Shape(mesh) => {
-                            let mesh = stl_to_triangle_mesh(&mesh);
+                Ok(model) => match model {
+                    Output::Value(s) => state.output = format!("{}", s),
+                    Output::Figure() => state.output = String::from("TODO display 2D!"),
+                    Output::Shape(mesh) => {
+                        let mesh = stl_to_triangle_mesh(&mesh);
 
-                            let model = commands
-                                .spawn_bundle(PbrBundle {
-                                    mesh: meshes.add(mesh),
-                                    material: materials.add(Blueprint::white().into()),
-                                    transform: Transform::from_rotation(Quat::from_euler(
-                                        EulerRot::XYZ,
-                                        -std::f32::consts::PI / 2.,
-                                        0.0,
-                                        -std::f32::consts::PI / 2.,
-                                    )),
-                                    ..Default::default()
-                                })
-                                .id();
-                            state.model = Some(model);
-                            state.output.clear();
-                        }
+                        let model = commands
+                            .spawn_bundle(PbrBundle {
+                                mesh: meshes.add(mesh),
+                                material: materials.add(Blueprint::white().into()),
+                                transform: Transform::from_rotation(Quat::from_euler(
+                                    EulerRot::XYZ,
+                                    -std::f32::consts::PI / 2.,
+                                    0.0,
+                                    -std::f32::consts::PI / 2.,
+                                )),
+                                ..Default::default()
+                            })
+                            .id();
+                        state.model = Some(model);
+                        state.output.clear();
                     }
-                }
+                },
                 Err(e) => state.output = format!("{:?}", e),
             },
         }
