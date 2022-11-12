@@ -45,7 +45,7 @@ steps:
         from_secret: github_api_key
     commands:
       - git remote add github https://github.com/DSchroer/model-script.git
-      - gh release create --prerelease $DRONE_TAG linux.zip windows.zip
+      - gh release create --prerelease $DRONE_TAG cheatsheet.md examples.zip linux.zip windows.zip
     when:
       event:
         - tag

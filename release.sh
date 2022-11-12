@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -ex
 
+./scripts/cheatsheet.sh > cheatsheet.md
+(cd examples && zip -r ../examples.zip *)
+
 cargo build --release --target x86_64-unknown-linux-gnu
 (cd target/x86_64-unknown-linux-gnu/release/ && zip ../../../linux.zip model-script)
 
