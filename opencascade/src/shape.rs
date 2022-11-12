@@ -1,18 +1,11 @@
+use std::env;
+use std::fs::File;
 use crate::{Edge, Point};
-use cxx::UniquePtr;
-use opencascade_sys::ffi::{
-    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, write_stl, BRepAlgoAPI_Cut,
-    BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_MakeFace_wire,
-    BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer,
-    BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor,
-    BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
-    BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
-    BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
-    StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge,
-};
-use path_absolutize::*;
+use cxx::{UniquePtr};
+use opencascade_sys::ffi::{gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, write_stl, BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge};
 use std::io::ErrorKind;
-use std::path::PathBuf;
+
+pub use stl_io::{IndexedMesh};
 
 pub enum Shape {
     Box(Box<UniquePtr<BRepPrimAPI_MakeBox>>),
@@ -168,6 +161,17 @@ impl Shape {
         Shape::Chamfer(Box::new(chamfer))
     }
 
+    pub fn mesh(&mut self) -> Result<IndexedMesh, std::io::Error> {
+        let dir = env::temp_dir();
+        let file = dir.join("a.stl");
+
+        self.write_stl(file.to_str().unwrap())?;
+        let mut file = File::open(file)?;
+
+        let stl = stl_io::read_stl(&mut file).unwrap();
+        Ok(stl)
+    }
+
     fn shape(&mut self) -> &TopoDS_Shape {
         match self {
             Shape::Box(b) => b.pin_mut().Shape(),
@@ -182,14 +186,11 @@ impl Shape {
         }
     }
 
-    pub fn write_stl(&mut self, stl_path: &str) -> Result<(), std::io::Error> {
-        let buf = PathBuf::from(stl_path);
-        let stl_path = buf.absolutize()?.to_str().unwrap().to_string();
-
+    fn write_stl(&mut self, stl_path: &str) -> Result<(), std::io::Error> {
         let mut writer = StlAPI_Writer_ctor();
         let shape = self.shape();
         let triangulation = BRepMesh_IncrementalMesh_ctor(shape, 0.01);
-        let res = write_stl(writer.pin_mut(), triangulation.Shape(), stl_path);
+        let res = write_stl(writer.pin_mut(), triangulation.Shape(), stl_path.to_string());
 
         match res {
             true => Ok(()),
@@ -206,6 +207,12 @@ mod tests {
     fn it_can_write_box_stl() {
         let mut shape = Shape::cube(1., 10., 1.);
         shape.write_stl("./demo.stl").unwrap();
+    }
+
+    #[test]
+    fn it_can_mesh_box_stl() {
+        let mut shape = Shape::cube(1., 10., 1.);
+        println!("{:?}", shape.mesh())
     }
 
     #[test]

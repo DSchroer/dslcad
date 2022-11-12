@@ -6,12 +6,13 @@ mod syntax;
 use crate::library::Library;
 use crate::parser::{Ast, ParseError};
 use crate::runtime::{EvalContext, RuntimeError};
-use crate::syntax::Output;
 use parser::Reader;
 use path_absolutize::Absolutize;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+pub use crate::syntax::Output;
 
 pub fn parse(path: &str) -> Result<Ast, ParseError> {
     let parser = parser::Parser::new(path, &FileReader);
@@ -27,7 +28,7 @@ pub fn eval(ast: Ast) -> Result<Output, RuntimeError> {
 
     let output = runtime::eval(main, HashMap::new(), &ctx)?
         .value()
-        .to_output();
+        .to_output().map_err(|_|RuntimeError::CantWrite())?;
     Ok(output)
 }
 

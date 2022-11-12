@@ -4,7 +4,6 @@ use crate::syntax::Accessible;
 use crate::syntax::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::{Error, ErrorKind};
 use std::ops::Deref;
 use std::rc::Rc;
 use thiserror::Error;
@@ -43,15 +42,6 @@ impl ScriptInstance {
 
     pub fn value(&self) -> &Value {
         &self.value
-    }
-
-    pub fn write_to_file(&mut self, path: &str) -> Result<(), Error> {
-        let instance = self
-            .value
-            .to_shape()
-            .ok_or_else(|| std::io::Error::from(ErrorKind::Other))?;
-        let mut instance = instance.borrow_mut();
-        instance.write_stl(path)
     }
 }
 

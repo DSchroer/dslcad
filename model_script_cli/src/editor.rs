@@ -1,10 +1,11 @@
 mod input_map;
+mod stl;
 
 use crate::editor::input_map::input_map;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_prototype_debug_lines::*;
-use model_script::{eval, parse};
+use model_script::{eval, parse, Output};
 use rfd::FileDialog;
 use smooth_bevy_cameras::{
     controllers::orbit::{OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin},
@@ -14,6 +15,7 @@ use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
+use crate::editor::stl::stl_to_triangle_mesh;
 
 struct Blueprint;
 impl Blueprint {
@@ -149,8 +151,8 @@ fn controller(
     mut events: EventReader<UiEvent>,
     mut commands: Commands,
     mut state: ResMut<State>,
-    // asset_server: Res<AssetServer>,
-    // mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     for event in events.iter() {
         match event {
@@ -164,7 +166,7 @@ fn controller(
                     state.file = Some(file);
 
                     clear_model(&mut commands, &mut state);
-                    display_file(&mut state);
+                    display_file(&mut commands, &mut state, &mut meshes, &mut materials);
                 }
             }
             UiEvent::OpenFile() => {
@@ -173,12 +175,12 @@ fn controller(
                     state.file = Some(file);
 
                     clear_model(&mut commands, &mut state);
-                    display_file(&mut state);
+                    display_file(&mut commands, &mut state, &mut meshes, &mut materials);
                 }
             }
             UiEvent::Render() => {
                 clear_model(&mut commands, &mut state);
-                display_file(&mut state);
+                display_file(&mut commands, &mut state, &mut meshes, &mut materials);
             }
         }
     }
@@ -249,38 +251,39 @@ fn clear_model(commands: &mut Commands, state: &mut ResMut<State>) {
 }
 
 fn display_file(
-    // commands: &mut Commands,
-    // asset_server: &Res<AssetServer>,
+    commands: &mut Commands,
     state: &mut ResMut<State>,
-    // materials: &mut ResMut<Assets<StandardMaterial>>,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
 ) {
-    // let edit_file = Path::new("./a.stl");
-    // let edit_file = edit_file.absolutize().unwrap();
-    // let edit_file = edit_file.to_str().unwrap();
-
     if let Some(file) = &state.file {
         match parse(file.to_str().unwrap()) {
             Err(e) => state.output = format!("{}", e),
             Ok(ast) => match eval(ast) {
                 Ok(model) => {
-                    state.output = format!("{}", model);
-                    // asset_server.reload_asset(edit_file);
-                    //
-                    // let model = commands
-                    //     .spawn_bundle(PbrBundle {
-                    //         mesh: asset_server.load(edit_file),
-                    //         material: materials.add(Blueprint::white().into()),
-                    //         transform: Transform::from_rotation(Quat::from_euler(
-                    //             EulerRot::XYZ,
-                    //             -std::f32::consts::PI / 2.,
-                    //             0.0,
-                    //             -std::f32::consts::PI / 2.,
-                    //         )),
-                    //         ..Default::default()
-                    //     })
-                    //     .id();
-                    // state.model = Some(model);
-                    // state.output.clear();
+                    match model {
+                        Output::Value(s) => state.output = format!("{}", s),
+                        Output::Figure() => state.output = String::from("TODO display 2D!"),
+                        Output::Shape(mesh) => {
+                            let mesh = stl_to_triangle_mesh(&mesh);
+
+                            let model = commands
+                                .spawn_bundle(PbrBundle {
+                                    mesh: meshes.add(mesh),
+                                    material: materials.add(Blueprint::white().into()),
+                                    transform: Transform::from_rotation(Quat::from_euler(
+                                        EulerRot::XYZ,
+                                        -std::f32::consts::PI / 2.,
+                                        0.0,
+                                        -std::f32::consts::PI / 2.,
+                                    )),
+                                    ..Default::default()
+                                })
+                                .id();
+                            state.model = Some(model);
+                            state.output.clear();
+                        }
+                    }
                 }
                 Err(e) => state.output = format!("{:?}", e),
             },

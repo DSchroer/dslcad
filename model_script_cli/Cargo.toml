@@ -18,3 +18,4 @@ smooth-bevy-cameras = "0.5.0"
 path-absolutize = "3.0.14"
 rfd = "0.10.0"
 model-script = { path = "../model_script" }
+stl_io = "0.6.0"

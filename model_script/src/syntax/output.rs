@@ -1,10 +1,11 @@
 use std::fmt::{Display, Formatter};
+use opencascade::{IndexedMesh};
 
 #[derive(Clone)]
 pub enum Output {
     Value(String),
     Figure(),
-    Shape(),
+    Shape(IndexedMesh),
 }
 
 impl Display for Output {
@@ -12,7 +13,7 @@ impl Display for Output {
         match self {
             Output::Value(s) => f.write_str(s),
             Output::Figure() => f.write_str("TODO: FIGURE"),
-            Output::Shape() => f.write_str("TODO: SHAPE"),
+            Output::Shape(_) => f.write_str("TODO: SHAPE"),
         }
     }
 }

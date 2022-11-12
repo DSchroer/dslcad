@@ -772,7 +772,7 @@ checksum = "79e44b721af4176c38090e320df29882d8970bb853bcf2e56b81963aef8a0d77"
 dependencies = [
  "anyhow",
  "bevy",
- "stl_io",
+ "stl_io 0.5.2",
  "thiserror",
 ]
 
@@ -2484,6 +2484,7 @@ dependencies = [
  "path-absolutize",
  "rfd",
  "smooth-bevy-cameras",
+ "stl_io 0.6.0",
 ]
 
 [[package]]
@@ -2857,7 +2858,7 @@ version = "0.1.0"
 dependencies = [
  "cxx",
  "opencascade-sys",
- "path-absolutize",
+ "stl_io 0.6.0",
 ]
 
 [[package]]
@@ -3378,6 +3379,16 @@ name = "stl_io"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c9aa78767a21a3f57ea37a9b643c80dcb67ff6b130ccdedc43eaafa9e9cdd7d1"
+dependencies = [
+ "byteorder",
+ "float-cmp",
+]
+
+[[package]]
+name = "stl_io"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c68e41108b3ec269d885cc56af66cd15f1392f68d2ae461df86d7d3285f065d"
 dependencies = [
  "byteorder",
  "float-cmp",

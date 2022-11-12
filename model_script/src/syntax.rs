@@ -4,6 +4,7 @@ mod output;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
+use std::io;
 use std::rc::Rc;
 
 use crate::runtime::ScriptInstance;
@@ -69,20 +70,20 @@ impl Display for Value {
 }
 
 impl Value {
-    pub fn to_output(&self) -> Output {
-        match self {
+    pub fn to_output(&self) -> Result<Output, io::Error> {
+        Ok(match self {
             Value::Empty => Output::Value(String::from("()")),
             Value::Number(v) => Output::Value(v.to_string()),
             Value::Bool(v) => Output::Value(v.to_string()),
             Value::Text(v) => Output::Value(v.to_string()),
 
-            Value::Script(s) => s.borrow().value().to_output(),
+            Value::Script(s) => s.borrow().value().to_output()?,
 
             Value::Point(_) => Output::Figure(),
             Value::Line(_) => Output::Figure(),
 
-            Value::Shape(_) => Output::Shape(),
-        }
+            Value::Shape(s) => Output::Shape(s.borrow_mut().mesh()?),
+        })
     }
 
     pub fn to_number(&self) -> Option<f64> {
