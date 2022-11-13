@@ -1,12 +1,13 @@
+mod file_watcher;
 mod input_map;
 mod stl;
-mod file_watcher;
 
 use crate::editor::input_map::input_map;
 use crate::editor::stl::stl_to_triangle_mesh;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_prototype_debug_lines::*;
+use file_watcher::{FileWatcher, FileWatcherPlugin};
 use model_script::{eval, parse, Output};
 use rfd::FileDialog;
 use smooth_bevy_cameras::{
@@ -17,7 +18,6 @@ use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
-use file_watcher::{FileWatcher, FileWatcherPlugin};
 
 struct Blueprint;
 impl Blueprint {
@@ -71,7 +71,7 @@ struct State {
     model: Option<Entity>,
     output: String,
     autowatch: bool,
-    watcher: Option<FileWatcher>
+    watcher: Option<FileWatcher>,
 }
 
 impl State {
@@ -81,7 +81,7 @@ impl State {
             model: None,
             output: String::new(),
             autowatch: true,
-            watcher: None
+            watcher: None,
         }
     }
 }
@@ -187,15 +187,31 @@ fn controller(
     }
 }
 
-fn load_file(commands: &mut Commands, state: &mut ResMut<State>, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, file: PathBuf) {
-    state.watcher.as_mut().unwrap().clear().expect("failed to clear watcher");
+fn load_file(
+    commands: &mut Commands,
+    state: &mut ResMut<State>,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    file: PathBuf,
+) {
+    state
+        .watcher
+        .as_mut()
+        .unwrap()
+        .clear()
+        .expect("failed to clear watcher");
     state.file = Some(file);
 
     clear_model(commands, state);
     let files = display_file(commands, state, meshes, materials);
     if let Some(files) = files {
         for file in files {
-            state.watcher.as_mut().unwrap().add(file).expect("failed to watch file");
+            state
+                .watcher
+                .as_mut()
+                .unwrap()
+                .add(file)
+                .expect("failed to watch file");
         }
     }
 }
@@ -226,7 +242,11 @@ fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
     }
 }
 
-fn ui_example(mut egui_context: ResMut<EguiContext>, mut events: EventWriter<UiEvent>, mut state: ResMut<State>) {
+fn ui_example(
+    mut egui_context: ResMut<EguiContext>,
+    mut events: EventWriter<UiEvent>,
+    mut state: ResMut<State>,
+) {
     egui::TopBottomPanel::top("Tools").show(egui_context.ctx_mut(), |ui| {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("File", |ui| {
@@ -280,7 +300,7 @@ fn display_file(
         match parse(file.to_str().unwrap()) {
             Err(e) => state.output = e.to_string(),
             Ok(ast) => {
-                files = Some(ast.documents().keys().map(|k|PathBuf::from(k)).collect());
+                files = Some(ast.documents().keys().map(PathBuf::from).collect());
 
                 match eval(ast) {
                     Ok(model) => match model {

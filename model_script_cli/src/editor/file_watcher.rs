@@ -1,11 +1,11 @@
+use crate::editor::{State, UiEvent};
+use bevy::prelude::ResMut;
+use bevy::prelude::*;
+use notify::event::{AccessKind, AccessMode};
+use notify::{Error, Event, EventKind, INotifyWatcher, RecursiveMode, Watcher};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc};
-use bevy::prelude::*;
-use bevy::prelude::ResMut;
-use notify::{Error, Event, EventKind, INotifyWatcher, RecursiveMode, Watcher};
-use notify::event::{AccessKind, AccessMode};
-use crate::editor::{State, UiEvent};
+use std::sync::Arc;
 
 pub struct FileWatcherPlugin;
 
@@ -19,7 +19,7 @@ impl Plugin for FileWatcherPlugin {
 pub struct FileWatcher {
     status: Arc<AtomicBool>,
     files: Vec<PathBuf>,
-    watcher: INotifyWatcher
+    watcher: INotifyWatcher,
 }
 
 impl FileWatcher {
@@ -27,27 +27,31 @@ impl FileWatcher {
         let status = Arc::new(AtomicBool::new(false));
 
         let watch_status = status.clone();
-        let watcher = notify::recommended_watcher(move |res: Result<Event, Error>| {
-            match res {
-                Ok(e) => {
-                    if let EventKind::Access(AccessKind::Close(AccessMode::Write)) = e.kind {
-                        watch_status.swap(true, Ordering::Relaxed);
-                    }
-                },
-                Err(e) => {println!("watch error: {:?}", e)},
+        let watcher = notify::recommended_watcher(move |res: Result<Event, Error>| match res {
+            Ok(e) => {
+                if let EventKind::Access(AccessKind::Close(AccessMode::Write)) = e.kind {
+                    watch_status.swap(true, Ordering::Relaxed);
+                }
             }
-        }).unwrap();
+            Err(e) => {
+                println!("watch error: {:?}", e)
+            }
+        })
+        .unwrap();
 
-        FileWatcher{
+        FileWatcher {
             status,
             files: Vec::new(),
-            watcher
+            watcher,
         }
     }
 
     pub fn add(&mut self, path: PathBuf) -> Result<(), Error> {
         self.files.push(path);
-        self.watcher.watch(&self.files[self.files.len() - 1], RecursiveMode::NonRecursive)
+        self.watcher.watch(
+            &self.files[self.files.len() - 1],
+            RecursiveMode::NonRecursive,
+        )
     }
 
     pub fn clear(&mut self) -> Result<(), Error> {
@@ -63,11 +67,11 @@ impl FileWatcher {
     }
 }
 
-fn setup_watcher(mut state: ResMut<State>){
+fn setup_watcher(mut state: ResMut<State>) {
     state.watcher = Some(FileWatcher::new())
 }
 
-fn notify_watch(mut state: ResMut<State>, mut events: EventWriter<UiEvent>){
+fn notify_watch(mut state: ResMut<State>, mut events: EventWriter<UiEvent>) {
     if state.autowatch && state.watcher.as_mut().unwrap().dirty() {
         events.send(UiEvent::Render())
     }
