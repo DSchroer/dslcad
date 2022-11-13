@@ -2481,6 +2481,7 @@ dependencies = [
  "bevy_stl",
  "clap",
  "model-script",
+ "notify",
  "path-absolutize",
  "rfd",
  "smooth-bevy-cameras",
