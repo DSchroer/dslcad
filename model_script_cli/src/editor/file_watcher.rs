@@ -2,7 +2,7 @@ use crate::editor::{State, UiEvent};
 use bevy::prelude::ResMut;
 use bevy::prelude::*;
 use notify::event::{AccessKind, AccessMode};
-use notify::{Error, Event, EventKind, INotifyWatcher, RecursiveMode, Watcher};
+use notify::{Error, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -19,7 +19,7 @@ impl Plugin for FileWatcherPlugin {
 pub struct FileWatcher {
     status: Arc<AtomicBool>,
     files: Vec<PathBuf>,
-    watcher: INotifyWatcher,
+    watcher: RecommendedWatcher,
 }
 
 impl FileWatcher {
