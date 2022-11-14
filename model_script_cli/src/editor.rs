@@ -45,7 +45,6 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .add_plugin(LookTransformPlugin)
         .add_plugin(OrbitCameraPlugin::new(true))
         .add_system(input_map)
-        .add_plugin(bevy_stl::StlPlugin)
         .add_plugin(EguiPlugin)
         .add_plugin(DebugLinesPlugin::with_depth_test(true))
         .add_startup_system(setup)

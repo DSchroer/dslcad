@@ -765,18 +765,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_stl"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79e44b721af4176c38090e320df29882d8970bb853bcf2e56b81963aef8a0d77"
-dependencies = [
- "anyhow",
- "bevy",
- "stl_io 0.5.2",
- "thiserror",
-]
-
-[[package]]
 name = "bevy_tasks"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2478,14 +2466,13 @@ dependencies = [
  "bevy",
  "bevy_egui",
  "bevy_prototype_debug_lines",
- "bevy_stl",
  "clap",
  "model-script",
  "notify",
  "path-absolutize",
  "rfd",
  "smooth-bevy-cameras",
- "stl_io 0.6.0",
+ "stl_io",
 ]
 
 [[package]]
@@ -2859,7 +2846,7 @@ version = "0.1.0"
 dependencies = [
  "cxx",
  "opencascade-sys",
- "stl_io 0.6.0",
+ "stl_io",
 ]
 
 [[package]]
@@ -3374,16 +3361,6 @@ name = "stdweb"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef5430c8e36b713e13b48a9f709cc21e046723fe44ce34587b73a830203b533e"
-
-[[package]]
-name = "stl_io"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9aa78767a21a3f57ea37a9b643c80dcb67ff6b130ccdedc43eaafa9e9cdd7d1"
-dependencies = [
- "byteorder",
- "float-cmp",
-]
 
 [[package]]
 name = "stl_io"

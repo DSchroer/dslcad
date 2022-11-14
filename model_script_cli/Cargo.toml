@@ -12,7 +12,6 @@ path = "src/main.rs"
 clap = { version = "4.0", features = ["derive"] }
 bevy = "0.8"
 bevy_egui = "0.16"
-bevy_stl = "0.6.0"
 bevy_prototype_debug_lines = { version = "0.8", features = ["3d"] }
 smooth-bevy-cameras = "0.5.0"
 path-absolutize = "3.0.14"
