@@ -20,8 +20,8 @@ set -ex
 # Build MacOSX
 (
   PATH="/osxcross/target/bin:$PATH" \
-  CC=oa64-clang \
-  CXX=oa64-clang++ \
+  CC=x86_64-apple-darwin20.4-clang \
+  CXX=x86_64-apple-darwin20.4-clang++ \
   cargo build --target x86_64-apple-darwin
   (cd target/x86_64-apple-darwin/release/ && zip ../../../macosx.zip model-script)
 )

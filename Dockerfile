@@ -26,7 +26,7 @@ RUN cd osxcross && \
     wget -nc https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX11.3.sdk.tar.xz && \
     mv MacOSX11.3.sdk.tar.xz tarballs/ && \
     UNATTENDED=yes ./build.sh
-RUN ln -s /osxcross/target/bin/x86_64-apple-darwin20.4-cmake /osxcross/target/bin/cmake
+RUN ln -s /osxcross/target/bin/x86_64-apple-darwin20.4-ld /osxcross/target/bin/x86_64-apple-darwin-ld
 
 # Rustup
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
