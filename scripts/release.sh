@@ -19,9 +19,9 @@ set -ex
 
 # Build MacOSX
 (
-  PATH="$(pwd)/osxcross/target/bin:$PATH" \
-  CC=o64-clang \
-  CXX=o64-clang++ \
+  PATH="/osxcross/target/bin:$PATH" \
+  CC=oa64-clang \
+  CXX=oa64-clang++ \
   cargo build --target x86_64-apple-darwin
   (cd target/x86_64-apple-darwin/release/ && zip ../../../macosx.zip model-script)
 )
