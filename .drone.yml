@@ -23,9 +23,6 @@ steps:
       - cargo clippy -- -Dwarnings
       - cargo test
 
-  - template: github-mirror
-    repo: git@github.com:DSchroer/model-script.git
-
   - name: build releases
     image: modelscriptci
     pull: never
@@ -37,6 +34,9 @@ steps:
     when:
       event:
         - tag
+
+  - template: github-mirror
+    repo: git@github.com:DSchroer/model-script.git
 
   - name: publish release
     image: maniator/gh
