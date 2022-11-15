@@ -97,42 +97,36 @@ fn xyz_lines(
     commands.spawn_bundle(PolylineBundle {
         polyline: polylines.add(Polyline {
             vertices: vec![origin, Vec3::new(end, 0.0, 0.0)],
-            ..Default::default()
         }),
         material: polyline_materials.add(PolylineMaterial {
             width: 2.0,
             color,
             perspective: false,
             depth_bias: 0.1,
-            ..Default::default()
         }),
         ..Default::default()
     });
     commands.spawn_bundle(PolylineBundle {
         polyline: polylines.add(Polyline {
             vertices: vec![origin, Vec3::new(0.0, end, 0.0)],
-            ..Default::default()
         }),
         material: polyline_materials.add(PolylineMaterial {
             width: 2.0,
             color,
             perspective: false,
             depth_bias: 0.1,
-            ..Default::default()
         }),
         ..Default::default()
     });
     commands.spawn_bundle(PolylineBundle {
         polyline: polylines.add(Polyline {
             vertices: vec![origin, Vec3::new(0.0, 0.0, end)],
-            ..Default::default()
         }),
         material: polyline_materials.add(PolylineMaterial {
             width: 2.0,
             color,
             perspective: false,
             depth_bias: 0.1,
-            ..Default::default()
         }),
         ..Default::default()
     });
@@ -382,7 +376,6 @@ fn display_file(
                                                     Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32)
                                                 })
                                                 .collect(),
-                                            ..Default::default()
                                         }),
                                         material: polyline_materials.add(PolylineMaterial {
                                             width: 2.0,
