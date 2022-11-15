@@ -32,9 +32,9 @@ impl From<UniquePtr<gp_Pnt>> for Point {
     }
 }
 
-impl Into<[f64;3]> for Point {
-    fn into(self) -> [f64; 3] {
-        [self.x(), self.y(), self.z()]
+impl From<Point> for [f64;3] {
+    fn from(value: Point) -> Self {
+        [value.x(), value.y(), value.z()]
     }
 }
 
