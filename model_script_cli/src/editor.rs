@@ -1,12 +1,13 @@
 mod file_watcher;
 mod input_map;
 mod stl;
+mod edge;
 
 use crate::editor::input_map::input_map;
 use crate::editor::stl::stl_to_triangle_mesh;
 use bevy::prelude::*;
+use bevy_polyline::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
-use bevy_prototype_debug_lines::*;
 use file_watcher::{FileWatcher, FileWatcherPlugin};
 use model_script::{eval, parse, Output};
 use rfd::FileDialog;
@@ -40,18 +41,18 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .insert_resource(ClearColor(Blueprint::blue()))
         .insert_resource(State::new())
         .add_event::<UiEvent>()
-        .add_plugin(FileWatcherPlugin)
         .add_plugins(DefaultPlugins)
+        .add_plugin(PolylinePlugin)
+        .add_plugin(FileWatcherPlugin)
         .add_plugin(LookTransformPlugin)
         .add_plugin(OrbitCameraPlugin::new(true))
         .add_system(input_map)
         .add_plugin(EguiPlugin)
-        .add_plugin(DebugLinesPlugin::with_depth_test(true))
         .add_startup_system(setup)
+        .add_startup_system(xyz_lines)
         .add_system(ui_example)
         .add_system(console_panel)
         .add_system(camera_light)
-        .add_system(xyz_lines)
         .add_system(controller)
         .add_system(update_ui_scale_factor)
         .add_system(keybindings)
@@ -85,27 +86,52 @@ impl State {
     }
 }
 
-fn xyz_lines(mut lines: ResMut<DebugLines>) {
+fn xyz_lines(mut commands: Commands,
+             mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
+             mut polylines: ResMut<Assets<Polyline>>) {
     let end = 1_000_000.0;
     let color = Blueprint::black();
-    lines.line_colored(
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(end, 0.0, 0.0),
-        0.0,
-        color,
-    );
-    lines.line_colored(
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(0.0, end, 0.0),
-        0.0,
-        color,
-    );
-    lines.line_colored(
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, end),
-        0.0,
-        color,
-    );
+    let origin = Vec3::new(0.0, 0.0, 0.0);
+
+    commands.spawn_bundle(PolylineBundle {
+        polyline: polylines.add(Polyline {
+            vertices: vec![origin, Vec3::new(end, 0.0, 0.0)],
+            ..Default::default()
+        }),
+        material: polyline_materials.add(PolylineMaterial {
+            width: 2.0,
+            color: color.into(),
+            perspective: false,
+            ..Default::default()
+        }),
+        ..Default::default()
+    });
+    commands.spawn_bundle(PolylineBundle {
+        polyline: polylines.add(Polyline {
+            vertices: vec![origin, Vec3::new(0.0, end, 0.0)],
+            ..Default::default()
+        }),
+        material: polyline_materials.add(PolylineMaterial {
+            width: 2.0,
+            color: color.into(),
+            perspective: false,
+            ..Default::default()
+        }),
+        ..Default::default()
+    });
+    commands.spawn_bundle(PolylineBundle {
+        polyline: polylines.add(Polyline {
+            vertices: vec![origin, Vec3::new(0.0, 0.0, end)],
+            ..Default::default()
+        }),
+        material: polyline_materials.add(PolylineMaterial {
+            width: 2.0,
+            color: color.into(),
+            perspective: false,
+            ..Default::default()
+        }),
+        ..Default::default()
+    });
 }
 
 fn camera_light(

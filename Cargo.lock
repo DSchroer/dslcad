@@ -615,12 +615,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_prototype_debug_lines"
-version = "0.8.1"
+name = "bevy_polyline"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e272fe1736bff610fc80982d31b437eb75dc7d7e087fdd470ddcbeb9bdfa8a0"
+checksum = "1198822d48734a1de7f0fe9ddb67111a0b63ab732a612458249d7ccb23c32666"
 dependencies = [
  "bevy",
+ "bitflags",
+ "naga",
 ]
 
 [[package]]
@@ -2465,7 +2467,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_egui",
- "bevy_prototype_debug_lines",
+ "bevy_polyline",
  "clap",
  "model-script",
  "notify",
@@ -3769,7 +3771,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc6a3cffdb686fbb24d9fb8f03a213803277ed2300f11026a3afe1f108dc021b"
 dependencies = [
  "jni",
- "ndk-glue 0.6.2",
+ "ndk-glue 0.5.2",
  "url",
  "web-sys",
  "widestring",
