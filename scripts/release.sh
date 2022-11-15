@@ -22,6 +22,6 @@ set -ex
   PATH="/osxcross/target/bin:$PATH" \
   CC=x86_64-apple-darwin20.4-clang \
   CXX=x86_64-apple-darwin20.4-clang++ \
-  cargo build --target x86_64-apple-darwin
+  cargo build --release --target x86_64-apple-darwin
   (cd target/x86_64-apple-darwin/release/ && zip ../../../macosx.zip model-script)
 )
