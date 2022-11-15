@@ -44,10 +44,8 @@ steps:
       GITHUB_TOKEN:
         from_secret: github_api_key
     commands:
-      - FLAGS=""
-      - if [[ "$DRONE_TAG" == *"-"* ]]; then FLAGS="$FLAGS --prerelease" fi
       - git remote add github https://github.com/DSchroer/model-script.git
-      - gh release create $FLAGS $DRONE_TAG cheatsheet.md examples.zip linux.zip windows.zip macosx.zip
+      - gh release create --prerelease $DRONE_TAG cheatsheet.md examples.zip linux.zip windows.zip macosx.zip
     when:
       event:
         - tag
