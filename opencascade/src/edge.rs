@@ -5,7 +5,7 @@ use opencascade_sys::ffi::{
     BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor, BRep_Tool_Curve,
     GC_MakeArcOfCircle_Value, GC_MakeArcOfCircle_point_point_point, GC_MakeSegment_Value,
     GC_MakeSegment_point_point, HandleGeomCurve_Value, TopAbs_ShapeEnum, TopExp_Explorer_ctor,
-    TopoDS_cast_to_edge,
+    TopoDS_Edge, TopoDS_cast_to_edge,
 };
 
 pub struct Edge(pub(crate) UniquePtr<BRepBuilderAPI_MakeWire>);
@@ -37,19 +37,33 @@ impl Edge {
         self.0.pin_mut().add_wire(right.0.pin_mut().Wire());
     }
 
-    pub fn points(&mut self) {
+    pub fn points(&mut self) -> Vec<Vec<[f64; 3]>> {
+        let mut lines = Vec::new();
+
         let mut edge_explorer =
             TopExp_Explorer_ctor(self.0.pin_mut().Shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
-            let mut first = 0.;
-            let mut last = 0.;
-            let curve = BRep_Tool_Curve(edge, &mut first, &mut last);
 
-            let pnt: Point = HandleGeomCurve_Value(&curve, 6.).into();
-            println!(". {:?}", pnt);
+            lines.push(Self::extract_line(edge));
             edge_explorer.pin_mut().Next();
         }
+
+        lines
+    }
+
+    fn extract_line(edge: &TopoDS_Edge) -> Vec<[f64; 3]> {
+        let mut first = 0.;
+        let mut last = 0.;
+        let curve = BRep_Tool_Curve(edge, &mut first, &mut last);
+
+        let mut points = Vec::new();
+        for u in 0..=10 {
+            let point: Point =
+                HandleGeomCurve_Value(&curve, first + (((last - first) / 10.0) * u as f64)).into();
+            points.push(point.into())
+        }
+        points
     }
 }
 
@@ -68,6 +82,6 @@ mod tests {
         let mut edge = Edge::new();
         edge.add_line(&Point::new(0., 0., 0.), &Point::new(0., 10., 0.));
 
-        edge.points();
+        assert!(edge.points().len() > 0);
     }
 }

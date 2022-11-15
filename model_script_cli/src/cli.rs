@@ -23,7 +23,7 @@ pub(crate) fn main() -> Result<(), Box<dyn Error>> {
     let model = eval(ast)?;
     match model {
         Output::Value(v) => println!("{}", v),
-        Output::Figure() => todo!(),
+        Output::Figure(_) => todo!(),
         Output::Shape(mesh) => {
             let mut triangles = Vec::new();
 

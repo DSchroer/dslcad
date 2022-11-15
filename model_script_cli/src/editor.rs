@@ -1,13 +1,12 @@
 mod file_watcher;
 mod input_map;
 mod stl;
-mod edge;
 
 use crate::editor::input_map::input_map;
 use crate::editor::stl::stl_to_triangle_mesh;
 use bevy::prelude::*;
-use bevy_polyline::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
+use bevy_polyline::prelude::*;
 use file_watcher::{FileWatcher, FileWatcherPlugin};
 use model_script::{eval, parse, Output};
 use rfd::FileDialog;
@@ -86,9 +85,11 @@ impl State {
     }
 }
 
-fn xyz_lines(mut commands: Commands,
-             mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
-             mut polylines: ResMut<Assets<Polyline>>) {
+fn xyz_lines(
+    mut commands: Commands,
+    mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
+    mut polylines: ResMut<Assets<Polyline>>,
+) {
     let end = 1_000_000.0;
     let color = Blueprint::black();
     let origin = Vec3::new(0.0, 0.0, 0.0);
@@ -102,6 +103,7 @@ fn xyz_lines(mut commands: Commands,
             width: 2.0,
             color: color.into(),
             perspective: false,
+            depth_bias: 0.1,
             ..Default::default()
         }),
         ..Default::default()
@@ -115,6 +117,7 @@ fn xyz_lines(mut commands: Commands,
             width: 2.0,
             color: color.into(),
             perspective: false,
+            depth_bias: 0.1,
             ..Default::default()
         }),
         ..Default::default()
@@ -128,6 +131,7 @@ fn xyz_lines(mut commands: Commands,
             width: 2.0,
             color: color.into(),
             perspective: false,
+            depth_bias: 0.1,
             ..Default::default()
         }),
         ..Default::default()
@@ -185,6 +189,8 @@ fn controller(
     mut state: ResMut<State>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
+    mut polylines: ResMut<Assets<Polyline>>,
 ) {
     for event in events.iter() {
         match event {
@@ -195,18 +201,41 @@ fn controller(
                     let file = file.with_extension("ex");
                     File::create(&file).unwrap();
 
-                    load_file(&mut commands, &mut state, &mut meshes, &mut materials, file);
+                    load_file(
+                        &mut commands,
+                        &mut state,
+                        &mut meshes,
+                        &mut materials,
+                        &mut polyline_materials,
+                        &mut polylines,
+                        file,
+                    );
                 }
             }
             UiEvent::OpenFile() => {
                 let file = file_dialog(&state).pick_file();
                 if let Some(file) = file {
-                    load_file(&mut commands, &mut state, &mut meshes, &mut materials, file);
+                    load_file(
+                        &mut commands,
+                        &mut state,
+                        &mut meshes,
+                        &mut materials,
+                        &mut polyline_materials,
+                        &mut polylines,
+                        file,
+                    );
                 }
             }
             UiEvent::Render() => {
                 clear_model(&mut commands, &mut state);
-                display_file(&mut commands, &mut state, &mut meshes, &mut materials);
+                display_file(
+                    &mut commands,
+                    &mut state,
+                    &mut meshes,
+                    &mut materials,
+                    &mut polyline_materials,
+                    &mut polylines,
+                );
             }
         }
     }
@@ -217,6 +246,8 @@ fn load_file(
     state: &mut ResMut<State>,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
+    polyline_materials: &mut ResMut<Assets<PolylineMaterial>>,
+    polylines: &mut ResMut<Assets<Polyline>>,
     file: PathBuf,
 ) {
     state
@@ -228,7 +259,14 @@ fn load_file(
     state.file = Some(file);
 
     clear_model(commands, state);
-    let files = display_file(commands, state, meshes, materials);
+    let files = display_file(
+        commands,
+        state,
+        meshes,
+        materials,
+        polyline_materials,
+        polylines,
+    );
     if let Some(files) = files {
         for file in files {
             state
@@ -308,7 +346,7 @@ fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {
 
 fn clear_model(commands: &mut Commands, state: &mut ResMut<State>) {
     if let Some(id) = state.model {
-        commands.entity(id).despawn();
+        commands.entity(id).despawn_recursive();
         state.model = None;
     }
 }
@@ -318,6 +356,8 @@ fn display_file(
     state: &mut ResMut<State>,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
+    polyline_materials: &mut ResMut<Assets<PolylineMaterial>>,
+    polylines: &mut ResMut<Assets<Polyline>>,
 ) -> Option<Vec<PathBuf>> {
     let mut files = None;
 
@@ -330,7 +370,39 @@ fn display_file(
                 match eval(ast) {
                     Ok(model) => match model {
                         Output::Value(s) => state.output = s,
-                        Output::Figure() => state.output = String::from("TODO display 2D!"),
+                        Output::Figure(lines) => {
+                            let mut model = commands.spawn_bundle(SpatialBundle::default());
+                            model.add_children(|builder| {
+                                for line in lines {
+                                    builder.spawn_bundle(PolylineBundle {
+                                        polyline: polylines.add(Polyline {
+                                            vertices: line
+                                                .iter()
+                                                .map(|p| {
+                                                    Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32)
+                                                })
+                                                .collect(),
+                                            ..Default::default()
+                                        }),
+                                        material: polyline_materials.add(PolylineMaterial {
+                                            width: 2.0,
+                                            color: Blueprint::white().into(),
+                                            perspective: false,
+                                            ..Default::default()
+                                        }),
+                                        transform: Transform::from_rotation(Quat::from_euler(
+                                            EulerRot::XYZ,
+                                            -std::f32::consts::PI / 2.,
+                                            0.0,
+                                            -std::f32::consts::PI / 2.,
+                                        )),
+                                        ..Default::default()
+                                    });
+                                }
+                            });
+                            state.model = Some(model.id());
+                            state.output.clear();
+                        }
                         Output::Shape(mesh) => {
                             let mesh = stl_to_triangle_mesh(&mesh);
 

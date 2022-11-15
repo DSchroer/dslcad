@@ -79,8 +79,10 @@ impl Value {
 
             Value::Script(s) => s.borrow().value().to_output()?,
 
-            Value::Point(_) => Output::Figure(),
-            Value::Line(_) => Output::Figure(),
+            Value::Point(p) => {
+                Output::Figure(vec![vec![[p.borrow().x(), p.borrow().y(), p.borrow().z()]]])
+            }
+            Value::Line(l) => Output::Figure(l.borrow_mut().points()),
 
             Value::Shape(s) => Output::Shape(s.borrow_mut().mesh()?),
         })
