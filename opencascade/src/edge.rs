@@ -82,6 +82,6 @@ mod tests {
         let mut edge = Edge::new();
         edge.add_line(&Point::new(0., 0., 0.), &Point::new(0., 10., 0.));
 
-        assert!(edge.points().len() > 0);
+        assert!(!edge.points().is_empty());
     }
 }

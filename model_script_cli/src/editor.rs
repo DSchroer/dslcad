@@ -101,7 +101,7 @@ fn xyz_lines(
         }),
         material: polyline_materials.add(PolylineMaterial {
             width: 2.0,
-            color: color.into(),
+            color,
             perspective: false,
             depth_bias: 0.1,
             ..Default::default()
@@ -115,7 +115,7 @@ fn xyz_lines(
         }),
         material: polyline_materials.add(PolylineMaterial {
             width: 2.0,
-            color: color.into(),
+            color,
             perspective: false,
             depth_bias: 0.1,
             ..Default::default()
@@ -129,7 +129,7 @@ fn xyz_lines(
         }),
         material: polyline_materials.add(PolylineMaterial {
             width: 2.0,
-            color: color.into(),
+            color,
             perspective: false,
             depth_bias: 0.1,
             ..Default::default()
@@ -386,7 +386,7 @@ fn display_file(
                                         }),
                                         material: polyline_materials.add(PolylineMaterial {
                                             width: 2.0,
-                                            color: Blueprint::white().into(),
+                                            color: Blueprint::white(),
                                             perspective: false,
                                             ..Default::default()
                                         }),

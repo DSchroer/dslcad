@@ -105,7 +105,7 @@ pub mod tests {
             source.to_string(),
         );
 
-        assert_eq!("v", source[range.clone()].to_string());
+        assert_eq!("v", source[range].to_string());
         assert_eq!(
             "error: test.txt[3:2]\nexpected foo but found v\n",
             format!("{}", error)
