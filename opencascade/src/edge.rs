@@ -1,6 +1,12 @@
 use crate::Point;
 use cxx::UniquePtr;
-use opencascade_sys::ffi::{HandleGeomCurve_Value, BRep_Tool_Curve, new_HandleGeomCurve_from_HandleGeom_TrimmedCurve, BRepBuilderAPI_MakeEdge_HandleGeomCurve, BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor, GC_MakeArcOfCircle_Value, GC_MakeArcOfCircle_point_point_point, GC_MakeSegment_Value, GC_MakeSegment_point_point, TopExp_Explorer_ctor, TopAbs_ShapeEnum, TopoDS_cast_to_edge};
+use opencascade_sys::ffi::{
+    new_HandleGeomCurve_from_HandleGeom_TrimmedCurve, BRepBuilderAPI_MakeEdge_HandleGeomCurve,
+    BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor, BRep_Tool_Curve,
+    GC_MakeArcOfCircle_Value, GC_MakeArcOfCircle_point_point_point, GC_MakeSegment_Value,
+    GC_MakeSegment_point_point, HandleGeomCurve_Value, TopAbs_ShapeEnum, TopExp_Explorer_ctor,
+    TopoDS_cast_to_edge,
+};
 
 pub struct Edge(pub(crate) UniquePtr<BRepBuilderAPI_MakeWire>);
 
@@ -32,7 +38,8 @@ impl Edge {
     }
 
     pub fn points(&mut self) {
-        let mut edge_explorer = TopExp_Explorer_ctor(self.0.pin_mut().Shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+        let mut edge_explorer =
+            TopExp_Explorer_ctor(self.0.pin_mut().Shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
             let mut first = 0.;
