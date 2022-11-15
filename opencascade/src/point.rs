@@ -12,6 +12,36 @@ impl Point {
             point: new_point(x, y, z),
         }
     }
+
+    pub fn x(&self) -> f64 {
+        self.point.X()
+    }
+
+    pub fn y(&self) -> f64 {
+        self.point.Y()
+    }
+
+    pub fn z(&self) -> f64 {
+        self.point.Z()
+    }
+}
+
+impl From<UniquePtr<gp_Pnt>> for Point {
+    fn from(point: UniquePtr<gp_Pnt>) -> Self {
+        Point { point }
+    }
+}
+
+impl Into<[f64;3]> for Point {
+    fn into(self) -> [f64; 3] {
+        [self.x(), self.y(), self.z()]
+    }
+}
+
+impl Default for Point {
+    fn default() -> Self {
+        Point::new(0., 0., 0.)
+    }
 }
 
 impl Debug for Point {
