@@ -54,9 +54,9 @@ impl Shape {
         Shape::Cut(BRepAlgoAPI_Cut_ctor(left.shape(), right.shape()))
     }
 
-    pub fn extrude(wire: &mut Edge, height: f64) -> Shape {
+    pub fn extrude(wire: &mut Edge, x: f64, y: f64, z: f64) -> Shape {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.0.pin_mut().Wire(), false);
-        let prism_vec = new_vec(0.0, 0.0, height);
+        let prism_vec = new_vec(x, y, z);
         // We're calling Shape here instead of Face(), hope that's also okay.
         let body =
             BRepPrimAPI_MakePrism_ctor(face_profile.pin_mut().Shape(), &prism_vec, true, true);
