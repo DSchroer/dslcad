@@ -10,12 +10,12 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
-bevy = "0.8"
-bevy_egui = "0.16"
-smooth-bevy-cameras = "0.5.0"
+bevy = "0.9.0"
+bevy_egui = "0.17.1"
+smooth-bevy-cameras = { git = "https://github.com/bonsairobo/smooth-bevy-cameras" }
 path-absolutize = "3.0.14"
 rfd = "0.10.0"
 model-script = { path = "../model_script" }
 stl_io = "0.6.0"
 notify = "5.0.0-pre.15"
-bevy_polyline = "0.3.0"
+bevy_polyline = "0.4.0"

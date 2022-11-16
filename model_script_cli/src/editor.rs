@@ -65,6 +65,7 @@ fn update_ui_scale_factor(mut egui_settings: ResMut<EguiSettings>, windows: Res<
     }
 }
 
+#[derive(Resource)]
 struct State {
     file: Option<PathBuf>,
     model: Option<Entity>,
@@ -94,7 +95,7 @@ fn xyz_lines(
     let color = Blueprint::black();
     let origin = Vec3::new(0.0, 0.0, 0.0);
 
-    commands.spawn_bundle(PolylineBundle {
+    commands.spawn(PolylineBundle {
         polyline: polylines.add(Polyline {
             vertices: vec![origin, Vec3::new(end, 0.0, 0.0)],
         }),
@@ -106,7 +107,7 @@ fn xyz_lines(
         }),
         ..Default::default()
     });
-    commands.spawn_bundle(PolylineBundle {
+    commands.spawn(PolylineBundle {
         polyline: polylines.add(Polyline {
             vertices: vec![origin, Vec3::new(0.0, end, 0.0)],
         }),
@@ -118,7 +119,7 @@ fn xyz_lines(
         }),
         ..Default::default()
     });
-    commands.spawn_bundle(PolylineBundle {
+    commands.spawn(PolylineBundle {
         polyline: polylines.add(Polyline {
             vertices: vec![origin, Vec3::new(0.0, 0.0, end)],
         }),
@@ -144,8 +145,8 @@ fn camera_light(
 
 fn setup(mut commands: Commands) {
     commands
-        .spawn_bundle(Camera3dBundle::default())
-        .insert_bundle(OrbitCameraBundle::new(
+        .spawn(Camera3dBundle::default())
+        .insert(OrbitCameraBundle::new(
             OrbitCameraController {
                 mouse_translate_sensitivity: Vec2::splat(0.001),
                 ..Default::default()
@@ -154,7 +155,7 @@ fn setup(mut commands: Commands) {
             Vec3::new(0., 0., 0.),
         ));
 
-    commands.spawn_bundle(DirectionalLightBundle {
+    commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             illuminance: 100000.0,
             color: Blueprint::white(),
@@ -365,10 +366,10 @@ fn display_file(
                     Ok(model) => match model {
                         Output::Value(s) => state.output = s,
                         Output::Figure(lines) => {
-                            let mut model = commands.spawn_bundle(SpatialBundle::default());
+                            let mut model = commands.spawn(SpatialBundle::default());
                             model.add_children(|builder| {
                                 for line in lines {
-                                    builder.spawn_bundle(PolylineBundle {
+                                    builder.spawn(PolylineBundle {
                                         polyline: polylines.add(Polyline {
                                             vertices: line
                                                 .iter()
@@ -400,7 +401,7 @@ fn display_file(
                             let mesh = stl_to_triangle_mesh(&mesh);
 
                             let model = commands
-                                .spawn_bundle(PbrBundle {
+                                .spawn(PbrBundle {
                                     mesh: meshes.add(mesh),
                                     material: materials.add(Blueprint::white().into()),
                                     transform: Transform::from_rotation(Quat::from_euler(
