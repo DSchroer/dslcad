@@ -1,23 +1,20 @@
+mod camera;
 mod file_watcher;
-mod input_map;
+mod gui;
 mod stl;
+mod xyz;
 
-use crate::editor::input_map::input_map;
-use crate::editor::stl::stl_to_triangle_mesh;
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_polyline::prelude::*;
 use file_watcher::{FileWatcher, FileWatcherPlugin};
+use gui::UiEvent;
 use model_script::{eval, parse, Output};
 use rfd::FileDialog;
-use smooth_bevy_cameras::{
-    controllers::orbit::{OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin},
-    LookTransformPlugin,
-};
 use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
+use stl::stl_to_triangle_mesh;
 
 struct Blueprint;
 impl Blueprint {
@@ -39,30 +36,14 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(ClearColor(Blueprint::blue()))
         .insert_resource(State::new())
-        .add_event::<UiEvent>()
         .add_plugins(DefaultPlugins)
         .add_plugin(PolylinePlugin)
+        .add_plugin(camera::CameraPlugin)
+        .add_plugin(gui::GuiPlugin)
         .add_plugin(FileWatcherPlugin)
-        .add_plugin(LookTransformPlugin)
-        .add_plugin(OrbitCameraPlugin::new(true))
-        .add_system(input_map)
-        .add_plugin(EguiPlugin)
-        .add_startup_system(setup)
-        .add_startup_system(xyz_lines)
-        .add_system(ui_example)
-        .add_system(console_panel)
-        .add_system(camera_light)
         .add_system(controller)
-        .add_system(update_ui_scale_factor)
-        .add_system(keybindings)
         .run();
     Ok(())
-}
-
-fn update_ui_scale_factor(mut egui_settings: ResMut<EguiSettings>, windows: Res<Windows>) {
-    if let Some(window) = windows.get_primary() {
-        egui_settings.scale_factor = 1.0 / window.scale_factor();
-    }
 }
 
 #[derive(Resource)]
@@ -84,98 +65,6 @@ impl State {
             watcher: None,
         }
     }
-}
-
-fn xyz_lines(
-    mut commands: Commands,
-    mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
-    mut polylines: ResMut<Assets<Polyline>>,
-) {
-    let end = 1_000_000.0;
-    let color = Blueprint::black();
-    let origin = Vec3::new(0.0, 0.0, 0.0);
-
-    commands.spawn(PolylineBundle {
-        polyline: polylines.add(Polyline {
-            vertices: vec![origin, Vec3::new(end, 0.0, 0.0)],
-        }),
-        material: polyline_materials.add(PolylineMaterial {
-            width: 2.0,
-            color,
-            perspective: false,
-            depth_bias: 0.1,
-        }),
-        ..Default::default()
-    });
-    commands.spawn(PolylineBundle {
-        polyline: polylines.add(Polyline {
-            vertices: vec![origin, Vec3::new(0.0, end, 0.0)],
-        }),
-        material: polyline_materials.add(PolylineMaterial {
-            width: 2.0,
-            color,
-            perspective: false,
-            depth_bias: 0.1,
-        }),
-        ..Default::default()
-    });
-    commands.spawn(PolylineBundle {
-        polyline: polylines.add(Polyline {
-            vertices: vec![origin, Vec3::new(0.0, 0.0, end)],
-        }),
-        material: polyline_materials.add(PolylineMaterial {
-            width: 2.0,
-            color,
-            perspective: false,
-            depth_bias: 0.1,
-        }),
-        ..Default::default()
-    });
-}
-
-fn camera_light(
-    query: Query<&Transform, With<OrbitCameraController>>,
-    mut light: Query<&mut Transform, (With<DirectionalLight>, Without<OrbitCameraController>)>,
-) {
-    let gxf = query.single();
-    for mut transform in light.iter_mut() {
-        transform.clone_from(gxf);
-    }
-}
-
-fn setup(mut commands: Commands) {
-    commands
-        .spawn(Camera3dBundle::default())
-        .insert(OrbitCameraBundle::new(
-            OrbitCameraController {
-                mouse_translate_sensitivity: Vec2::splat(0.001),
-                ..Default::default()
-            },
-            Vec3::new(100.0, 100.0, 100.0),
-            Vec3::new(0., 0., 0.),
-        ));
-
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            illuminance: 100000.0,
-            color: Blueprint::white(),
-            ..default()
-        },
-        transform: Transform::from_translation(Vec3::new(100.0, 100.0, 100.0))
-            .looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
-        ..default()
-    });
-
-    commands.insert_resource(AmbientLight {
-        color: Blueprint::blue(),
-        brightness: 0.2,
-    });
-}
-
-pub enum UiEvent {
-    CreateFile(),
-    OpenFile(),
-    Render(),
 }
 
 fn controller(
@@ -284,59 +173,6 @@ fn file_dialog(state: &State) -> FileDialog {
     FileDialog::new()
         .add_filter("script", &["ex"])
         .set_directory(dir)
-}
-
-fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
-    if keys.just_released(KeyCode::N) {
-        events.send(UiEvent::CreateFile())
-    }
-
-    if keys.just_released(KeyCode::O) {
-        events.send(UiEvent::OpenFile())
-    }
-
-    if keys.just_released(KeyCode::F5) {
-        events.send(UiEvent::Render())
-    }
-}
-
-fn ui_example(
-    mut egui_context: ResMut<EguiContext>,
-    mut events: EventWriter<UiEvent>,
-    mut state: ResMut<State>,
-) {
-    egui::TopBottomPanel::top("Tools").show(egui_context.ctx_mut(), |ui| {
-        egui::menu::bar(ui, |ui| {
-            ui.menu_button("File", |ui| {
-                if ui.button("New (n)").clicked() {
-                    events.send(UiEvent::CreateFile());
-                    ui.close_menu();
-                }
-                if ui.button("Open (o)").clicked() {
-                    events.send(UiEvent::OpenFile());
-                    ui.close_menu();
-                }
-            });
-            ui.separator();
-            if ui.button("Render (F5)").clicked() {
-                events.send(UiEvent::Render());
-            }
-
-            ui.checkbox(&mut state.autowatch, "Auto Render");
-        });
-    });
-}
-
-fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {
-    egui::TopBottomPanel::bottom("Console").show(egui_context.ctx_mut(), |ui| {
-        ui.label("Console:");
-        ui.separator();
-        egui::ScrollArea::vertical()
-            .max_height(256.)
-            .show(ui, |ui| {
-                ui.monospace(&state.output);
-            });
-    });
 }
 
 fn clear_model(commands: &mut Commands, state: &mut ResMut<State>) {
