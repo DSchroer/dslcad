@@ -7,6 +7,8 @@ pub enum ParseError {
     NoSuchFile(PathBuf),
     AggregateError(Vec<ParseError>),
     UnexpectedEndOfFile(PathBuf, String),
+    UndeclaredIdentifier(PathBuf, Span, String),
+    DuplicateVariableName(PathBuf, Span, String),
     Expected(&'static str, PathBuf, Span, String),
     ExpectedOneOf(Vec<&'static str>, PathBuf, Span, String),
 }
@@ -41,6 +43,32 @@ impl Display for ParseError {
                         f.write_fmt(format_args!("unexpected end of line [{}]: {}", line, text))?
                     }
                 }
+            }
+            ParseError::UndeclaredIdentifier(file, span, text) => {
+                let (line, col) = line_col(text, span);
+                f.write_fmt(format_args!(
+                    "error: {}[{}:{}]\n",
+                    file.display(),
+                    line,
+                    col.start
+                ))?;
+                f.write_fmt(format_args!(
+                    "undeclared identifier {}",
+                    text.slice(span.clone()).unwrap()
+                ))?;
+            }
+            ParseError::DuplicateVariableName(file, span, text) => {
+                let (line, col) = line_col(text, span);
+                f.write_fmt(format_args!(
+                    "error: {}[{}:{}]\n",
+                    file.display(),
+                    line,
+                    col.start
+                ))?;
+                f.write_fmt(format_args!(
+                    "duplicate variable name {}",
+                    text.slice(span.clone()).unwrap()
+                ))?;
             }
             ParseError::Expected(expected, file, span, text) => {
                 let (line, col) = line_col(text, span);

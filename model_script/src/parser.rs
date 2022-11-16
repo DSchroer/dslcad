@@ -7,7 +7,7 @@ use crate::syntax::*;
 use lexer::{Lexer, Token};
 use logos::Logos;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -19,8 +19,10 @@ pub struct Parser<'a, T> {
     reader: &'a T,
     path: PathBuf,
     documents: HashMap<String, Document>,
+    variables: HashSet<String>,
 }
 
+#[derive(Debug)]
 pub struct Ast {
     root: PathBuf,
     documents: HashMap<String, Document>,
@@ -61,6 +63,7 @@ impl<'a, T: Reader> Parser<'a, T> {
             reader,
             path,
             documents: HashMap::new(),
+            variables: HashSet::new(),
         }
     }
 
@@ -76,11 +79,26 @@ impl<'a, T: Reader> Parser<'a, T> {
         let source = self.source()?;
         let mut lex = Token::lexer(&source);
 
+        let mut seen_return = false;
         let mut statements = Vec::new();
         while let Some(_) = lex.clone().next() {
             let statement = self.parse_statement(&mut lex);
             match statement {
-                Ok(s) => statements.push(s),
+                Ok(s) => {
+                    if matches!(s, Statement::Return(_)) {
+                        if !seen_return {
+                            seen_return = true;
+                        } else {
+                            return Err(ParseError::Expected(
+                                "end of file",
+                                self.path.clone(),
+                                lex.span(),
+                                self.source()?,
+                            ));
+                        }
+                    }
+                    statements.push(s)
+                }
                 Err(error) => return Err(error),
             }
         }
@@ -117,6 +135,17 @@ impl<'a, T: Reader> Parser<'a, T> {
         take!(self, lexer, Token::Var = "var");
         let name =
             take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
+
+        if !self.variables.contains(&name) {
+            self.variables.insert(name.clone());
+        } else {
+            return Err(ParseError::DuplicateVariableName(
+                self.path.clone(),
+                lexer.span(),
+                self.source()?,
+            ));
+        }
+
         let expr = take!(self, lexer,
             Token::Semicolon = ";" => None,
             Token::Equal = "=" => {
@@ -190,9 +219,18 @@ impl<'a, T: Reader> Parser<'a, T> {
     }
 
     fn parse_reference(&self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
-        Ok(
-            take!(self, lexer, Token::Identifier = "identifier" => Expression::Reference(lexer.slice().to_string())),
-        )
+        let name =
+            take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
+
+        if !self.variables.contains(&name) {
+            return Err(ParseError::UndeclaredIdentifier(
+                self.path.clone(),
+                lexer.span(),
+                self.source()?,
+            ));
+        }
+
+        Ok(Expression::Reference(name))
     }
 
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
@@ -352,14 +390,14 @@ pub mod tests {
     #[test]
     fn it_can_parse_adds() {
         Parser::new("test", &TestReader("2 + 2;")).parse().unwrap();
-        Parser::new("test", &TestReader("test.area + 10;"))
+        Parser::new("test", &TestReader("var test; test.area + 10;"))
             .parse()
             .unwrap();
     }
 
     #[test]
     fn it_can_parse_divide() {
-        Parser::new("test", &TestReader("test(x=test / 2);"))
+        Parser::new("test", &TestReader("var test; test(x=test / 2);"))
             .parse()
             .unwrap();
     }
@@ -367,7 +405,15 @@ pub mod tests {
     #[test]
     fn it_can_parse_unary_minus() {
         Parser::new("test", &TestReader("-2;")).parse().unwrap();
-        Parser::new("test", &TestReader("-foo;")).parse().unwrap();
+        Parser::new("test", &TestReader("var foo; -foo;"))
+            .parse()
+            .unwrap();
+    }
+
+    macro_rules! parse {
+        ($code: literal) => {
+            Parser::new("test", &TestReader($code)).parse()
+        };
     }
 
     macro_rules! parse_statement {
@@ -392,6 +438,21 @@ pub mod tests {
     }
 
     #[test]
+    fn it_rejects_duplicate_returns() {
+        parse!("5; 10;").expect_err("expected duplicate return error");
+    }
+
+    #[test]
+    fn it_rejects_duplicate_variables() {
+        parse!("var x; var x;").expect_err("expected duplicate variable error");
+    }
+
+    #[test]
+    fn it_rejects_undeclared_variables() {
+        parse!("x;").expect_err("expected undeclared identifier error");
+    }
+
+    #[test]
     fn it_can_parse_brackets() {
         Parser::new("test", &TestReader("3 - (3 + 2);"))
             .parse()
@@ -403,7 +464,7 @@ pub mod tests {
 
     #[test]
     fn it_can_parse_access() {
-        Parser::new("test", &TestReader("foo.bar;"))
+        Parser::new("test", &TestReader("var foo; foo.bar;"))
             .parse()
             .unwrap();
     }
