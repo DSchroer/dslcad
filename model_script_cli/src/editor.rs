@@ -40,6 +40,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .add_plugin(PolylinePlugin)
         .add_plugin(camera::CameraPlugin)
         .add_plugin(gui::GuiPlugin)
+        .add_plugin(xyz::XYZPlugin)
         .add_plugin(FileWatcherPlugin)
         .add_system(controller)
         .run();
