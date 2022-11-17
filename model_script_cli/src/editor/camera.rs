@@ -34,6 +34,7 @@ fn camera_system(mut commands: Commands) {
         .insert(OrbitCameraBundle::new(
             OrbitCameraController {
                 mouse_translate_sensitivity: Vec2::splat(0.05),
+                mouse_rotate_sensitivity: Vec2::splat(0.5),
                 ..Default::default()
             },
             Vec3::new(100.0, 100.0, 100.0),

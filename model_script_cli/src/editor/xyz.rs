@@ -16,6 +16,7 @@ fn xyz_lines(
     mut polylines: ResMut<Assets<Polyline>>,
 ) {
     let end = 1_000_000.0;
+    let bias = 0.0001;
     let color = Blueprint::black();
     let origin = Vec3::new(0.0, 0.0, 0.0);
 
@@ -27,7 +28,7 @@ fn xyz_lines(
             width: 2.0,
             color,
             perspective: false,
-            depth_bias: 0.1,
+            depth_bias: bias,
         }),
         ..Default::default()
     });
@@ -39,7 +40,7 @@ fn xyz_lines(
             width: 2.0,
             color,
             perspective: false,
-            depth_bias: 0.1,
+            depth_bias: bias,
         }),
         ..Default::default()
     });
@@ -51,7 +52,7 @@ fn xyz_lines(
             width: 2.0,
             color,
             perspective: false,
-            depth_bias: 0.1,
+            depth_bias: bias,
         }),
         ..Default::default()
     });
