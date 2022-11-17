@@ -105,7 +105,7 @@ impl<'a, T: Reader> Parser<'a, T> {
 
         self.documents.insert(
             String::from(self.path.to_str().unwrap()),
-            Document::new(statements),
+            Document::new(self.variables, statements),
         );
         Ok(Ast {
             root: self.path,

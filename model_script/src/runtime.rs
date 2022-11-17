@@ -105,6 +105,12 @@ fn eval_expression(
                     Some(f) => Ok(f(&argument_values)?),
                 },
                 Some(doc) => {
+                    for name in arguments.keys() {
+                        if !doc.has_identifier(name) {
+                            return Err(RuntimeError::ArgumentDoesNotExist(path.to_string(), name.to_string()))
+                        }
+                    }
+
                     let v = eval(doc, argument_values, ctx)?;
                     Ok(Value::Script(Rc::new(RefCell::new(v))))
                 }
@@ -143,6 +149,8 @@ fn access(
 
 #[derive(Error, Debug)]
 pub enum RuntimeError {
+    #[error("Argument does not exist {1} in {0}")]
+    ArgumentDoesNotExist(String, String),
     #[error("Unknown identifier {0}")]
     UnknownIdentifier(String),
     #[error("Unset parameter {0}")]
