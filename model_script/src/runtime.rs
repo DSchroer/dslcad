@@ -1,3 +1,5 @@
+mod scope;
+
 use crate::library::Library;
 use crate::parser::Document;
 use crate::syntax::Accessible;
@@ -7,6 +9,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
 use thiserror::Error;
+use crate::runtime::scope::Scope;
 
 pub struct EvalContext<'a> {
     pub library: Library,
@@ -21,23 +24,12 @@ pub struct ScriptInstance {
 }
 
 impl ScriptInstance {
-    pub fn new(arguments: HashMap<String, Value>) -> Self {
+    pub fn from_scope(value: Value, scope: Scope) -> Self {
         ScriptInstance {
-            arguments: arguments
-                .into_iter()
-                .map(|(k, v)| (k, Box::new(v)))
-                .collect(),
-            variables: HashMap::new(),
-            value: Box::new(Value::Empty),
+            arguments: scope.arguments,
+            variables: scope.variables,
+            value: Box::new(value),
         }
-    }
-
-    pub fn set(&mut self, identifier: String, value: Value) {
-        self.variables.insert(identifier, Box::new(value));
-    }
-
-    pub fn set_value(&mut self, value: Value) {
-        self.value = Box::new(value);
     }
 
     pub fn value(&self) -> &Value {
@@ -60,32 +52,33 @@ pub fn eval(
     arguments: HashMap<String, Value>,
     ctx: &EvalContext,
 ) -> Result<ScriptInstance, RuntimeError> {
-    let mut instance = ScriptInstance::new(arguments);
+    let mut scope = Scope::new(arguments);
 
     for statement in doc.statements() {
         match statement {
             Statement::Variable { name, value } => match value {
                 Some(value) => {
-                    let value = eval_expression(&instance, value, ctx)?;
-                    instance.set(name.clone(), value);
+                    let value = eval_expression(&scope, value, ctx)?;
+                    scope.set(name.clone(), value);
                 }
                 None => {
-                    if instance.get(name).is_none() {
+                    if scope.get(name).is_none() {
                         return Err(RuntimeError::UnsetParameter(name.to_string()));
                     }
                 }
             },
             Statement::Return(e) => {
-                instance.set_value(eval_expression(&instance, e, ctx)?);
+                let value = eval_expression(&scope, e, ctx)?;
+                return Ok(ScriptInstance::from_scope(value, scope))
             }
         }
     }
 
-    Ok(instance)
+    Err(RuntimeError::NoReturnValue())
 }
 
 fn eval_expression(
-    instance: &dyn Accessible,
+    instance: &Scope,
     expression: &Expression,
     ctx: &EvalContext,
 ) -> Result<Value, RuntimeError> {
@@ -97,10 +90,11 @@ fn eval_expression(
                 let value = eval_expression(instance, argument.deref(), ctx)?;
                 argument_values.insert(name, value);
             }
+            let argument_types = argument_values.iter().map(|(name, value)|(name.as_str(), value.get_type())).collect();
 
             let doc = ctx.documents.get(path);
             match doc {
-                None => match ctx.library.find(path) {
+                None => match ctx.library.find(path, &argument_types) {
                     None => Err(RuntimeError::UnknownIdentifier(path.to_string())),
                     Some(f) => Ok(f(&argument_values)?),
                 },
@@ -128,22 +122,21 @@ fn eval_expression(
 }
 
 fn access(
-    instance: &dyn Accessible,
+    instance: &Scope,
     ctx: &EvalContext,
     l: &Expression,
     name: &str,
 ) -> Result<Value, RuntimeError> {
     let l = eval_expression(instance, l.deref(), ctx)?;
 
-    let lv = l.to_script();
-
-    if let Some(instance) = lv {
-        match instance.borrow().get(name) {
+    let script = l.to_script();
+    if let Some(instance) = script {
+        match instance.get(name) {
             None => Err(RuntimeError::MissingProperty(name.to_owned())),
             Some(v) => Ok(v.clone()),
         }
     } else {
-        Err(RuntimeError::UnexpectedType(l))
+        Err(RuntimeError::MissingProperty(String::from(name)))
     }
 }
 
@@ -159,6 +152,8 @@ pub enum RuntimeError {
     MissingProperty(String),
     #[error("Mismatched types between {0}")]
     UnexpectedType(Value),
+    #[error("Script did not return a value")]
+    NoReturnValue(),
     #[error("Cant Write")]
     CantWrite(),
     #[error("Mismatched types between {0} and {1}")]

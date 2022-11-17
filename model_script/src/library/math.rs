@@ -1,19 +1,26 @@
-use super::*;
 use crate::runtime::RuntimeError;
 use crate::syntax::Value;
 
-use std::collections::HashMap;
-
-/// syntax[Math]: `number + number`  Addition
-/// syntax[Math]: `number - number`  Subtraction
-/// syntax[Math]: `number * number`  Multiplication
-/// syntax[Math]: `number / number`  Division
-pub fn numeric(
-    args: &HashMap<String, Value>,
-    op: impl FnOnce(f64, f64) -> f64,
+pub fn add(
+    left: f64, right: f64,
 ) -> Result<Value, RuntimeError> {
-    let left = number!(args, "left");
-    let right = number!(args, "right");
+    Ok(Value::Number(left + right))
+}
 
-    Ok(Value::Number(op(left, right)))
+pub fn subtract(
+    left: f64, right: f64,
+) -> Result<Value, RuntimeError> {
+    Ok(Value::Number(left - right))
+}
+
+pub fn multiply(
+    left: f64, right: f64,
+) -> Result<Value, RuntimeError> {
+    Ok(Value::Number(left * right))
+}
+
+pub fn divide(
+    left: f64, right: f64,
+) -> Result<Value, RuntimeError> {
+    Ok(Value::Number(left / right))
 }

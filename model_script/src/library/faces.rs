@@ -1,75 +1,56 @@
-use crate::library::edge;
-use crate::library::number;
-use crate::library::point;
 use crate::runtime::RuntimeError;
 use crate::syntax::Value;
 use opencascade::{Axis, Edge, Point, Shape};
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
 /// syntax[Syntax]: `variable ->name function()`  Pass variable as an argument called name to function
 
-/// syntax[2D]: `point(x=number,y=number,z=number)`  Create a new 2D point
-pub fn point(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let x = number!(args, "x", 0.);
-    let y = number!(args, "y", 0.);
-    let z = number!(args, "z", 0.);
-
-    Ok(Value::Point(Rc::new(RefCell::new(Point::new(x, y, z)))))
+pub fn point(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
+    Ok(Value::Point(Rc::new(RefCell::new(Point::new(x.unwrap_or(0.0), y.unwrap_or(0.0), z.unwrap_or(0.0))))))
 }
 
-/// syntax[2D]: `line(start=point,end=point)`  Create a line between two points
-pub fn line(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let start = point!(args, "start")?;
-    let end = point!(args, "end")?;
-
+pub fn line(start: Rc<RefCell<Point>>, end: Rc<RefCell<Point>>) -> Result<Value, RuntimeError> {
     let mut edge = Edge::new();
     edge.add_line(&start.borrow(), &end.borrow());
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
-/// syntax[2D]: `arc(start=point,center=point,end=point)`  Create an arcing line between three points
-pub fn arc(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let start = point!(args, "start")?;
-    let center = point!(args, "center")?;
-    let end = point!(args, "end")?;
-
+pub fn arc(start: Rc<RefCell<Point>>, center: Rc<RefCell<Point>>, end: Rc<RefCell<Point>>) -> Result<Value, RuntimeError> {
     let mut edge = Edge::new();
     edge.add_arc(&start.borrow(), &center.borrow(), &end.borrow());
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
-/// syntax[2D]: `extrude(shape=line,x=number,y=number,z=number)`  Extrude a face into a 3D shape
-pub fn extrude(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let shape = edge!(args, "shape")?;
-    let x = number!(args, "x", 0.);
-    let y = number!(args, "y", 0.);
-    let z = number!(args, "z", 0.);
-
+pub fn extrude(shape: Rc<RefCell<Edge>>, x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
     let mut shape = shape.borrow_mut();
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::extrude(
-        &mut shape, x, y, z,
+        &mut shape, x.unwrap_or(0.0), y.unwrap_or(0.0), z.unwrap_or(0.0),
     )))))
 }
 
-/// syntax[2D]: `revolve(shape=line,x=number,y=number,z=number)`  Extrude a face into a 3D shape around x or y
-pub fn revolve(args: &HashMap<String, Value>) -> Result<Value, RuntimeError> {
-    let shape = edge!(args, "shape")?;
-    let x = number!(args, "x", 0.);
-    let y = number!(args, "y", 0.);
-    let z = number!(args, "z", 0.);
-
-    let (axis, angle) = if x != 0.0 {
+pub fn revolve(shape: Rc<RefCell<Edge>>, x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
+    let (axis, angle) = if let Some(x) = x {
         (Axis::X, x)
-    } else if y != 0.0 {
+    } else if let Some(y) = y {
         (Axis::Y, y)
-    } else {
+    } else if let Some(z) = z {
         (Axis::Z, z)
+    } else {
+        return Err(RuntimeError::UnsetParameter(String::from("x, y, or z")))
     };
 
     let mut shape = shape.borrow_mut();
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::extrude_rotate(
         &mut shape, axis, angle,
     )))))
+}
+
+pub fn union_edge(left: Rc<RefCell<Edge>>, right: Rc<RefCell<Edge>>) -> Result<Value, RuntimeError> {
+    let mut left = left.borrow_mut();
+    let mut right = right.borrow_mut();
+
+    let mut edge = Edge::new();
+    edge.join(&mut left, &mut right);
+    Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }

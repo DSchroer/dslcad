@@ -1,12 +1,14 @@
 mod accessible;
 mod output;
+mod types;
 
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
 use std::rc::Rc;
 
+pub use types::Type;
 use crate::runtime::ScriptInstance;
 pub use accessible::Accessible;
 use opencascade::{Edge, Point, Shape};
@@ -44,8 +46,6 @@ pub enum Value {
     Point(Rc<RefCell<Point>>),
     Line(Rc<RefCell<Edge>>),
     Shape(Rc<RefCell<Shape>>),
-
-    Empty,
 }
 
 impl Debug for Value {
@@ -58,7 +58,6 @@ impl Debug for Value {
             Value::Shape(_) => Display::fmt("SHAPE", f),
             Value::Point(_) => Display::fmt("POINT", f),
             Value::Line(_) => Display::fmt("LINE", f),
-            Value::Empty => f.write_str("()"),
         }
     }
 }
@@ -72,7 +71,6 @@ impl Display for Value {
 impl Value {
     pub fn to_output(&self) -> Result<Output, io::Error> {
         Ok(match self {
-            Value::Empty => Output::Value(String::from("()")),
             Value::Number(v) => Output::Value(v.to_string()),
             Value::Bool(v) => Output::Value(v.to_string()),
             Value::Text(v) => Output::Value(v.to_string()),
@@ -96,9 +94,10 @@ impl Value {
         }
     }
 
-    pub fn to_script(&self) -> Option<Rc<RefCell<ScriptInstance>>> {
+    pub fn to_script(&self) -> Option<Ref<dyn Accessible>> {
         match self {
-            Value::Script(i) => Some(i.clone()),
+            Value::Script(i) => Some(i.borrow()),
+            Value::Shape(s) => Some(s.borrow()),
             _ => None,
         }
     }
@@ -124,6 +123,18 @@ impl Value {
             Value::Shape(s) => Some(s.clone()),
             Value::Script(i) => i.borrow().value().to_shape(),
             _ => None,
+        }
+    }
+
+    pub fn get_type(&self) -> Type {
+        match self {
+            Value::Number(_) => Type::Number,
+            Value::Bool(_) => Type::Bool,
+            Value::Text(_) => Type::Text,
+            Value::Script(i) => i.borrow().value().get_type(),
+            Value::Point(_) => Type::Point,
+            Value::Line(_) => Type::Edge,
+            Value::Shape(_) => Type::Shape,
         }
     }
 }

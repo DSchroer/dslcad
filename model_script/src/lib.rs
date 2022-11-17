@@ -22,7 +22,7 @@ pub fn parse(path: &str) -> Result<Ast, ParseError> {
 pub fn eval(ast: Ast) -> Result<Output, RuntimeError> {
     let ctx = EvalContext {
         documents: ast.documents(),
-        library: Library,
+        library: Library::new(),
     };
     let main = ast.root_document();
 
@@ -59,7 +59,7 @@ mod tests {
         let documents = parser.parse().unwrap();
         let ctx = EvalContext {
             documents: documents.documents(),
-            library: Library,
+            library: Library::new(),
         };
         let main = documents.root_document();
         runtime::eval(main, HashMap::new(), &ctx).expect("failed to eval")

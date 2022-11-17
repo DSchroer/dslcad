@@ -1,0 +1,33 @@
+use std::collections::HashMap;
+use crate::syntax::{Value};
+
+#[derive(Debug)]
+pub struct Scope {
+    pub arguments: HashMap<String, Box<Value>>,
+    pub variables: HashMap<String, Box<Value>>,
+}
+
+impl Scope {
+    pub fn new(arguments: HashMap<String, Value>) -> Self {
+        Scope{
+            arguments: arguments
+                .into_iter()
+                .map(|(k, v)| (k, Box::new(v)))
+                .collect(),
+            variables: HashMap::new()
+        }
+    }
+
+    pub fn get(&self, identifier: &str) -> Option<&Value> {
+        let val = self
+            .arguments
+            .get(identifier)
+            .or_else(|| self.variables.get(identifier))?;
+        Some(val)
+    }
+
+    pub fn set(&mut self, identifier: String, value: Value) {
+        self.variables.insert(identifier, Box::new(value));
+    }
+}
+
