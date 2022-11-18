@@ -139,7 +139,7 @@ fn access(
     if let Some(instance) = script {
         match instance.get(name) {
             None => Err(RuntimeError::MissingProperty(name.to_owned())),
-            Some(v) => Ok(v.clone()),
+            Some(v) => Ok(v),
         }
     } else {
         Err(RuntimeError::MissingProperty(String::from(name)))
