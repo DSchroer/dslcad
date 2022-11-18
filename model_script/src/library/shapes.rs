@@ -28,9 +28,9 @@ pub fn union_shape(
     let mut left = left.borrow_mut();
     let mut right = right.borrow_mut();
 
-    return Ok(Value::Shape(Rc::new(RefCell::new(Shape::fuse(
+    Ok(Value::Shape(Rc::new(RefCell::new(Shape::fuse(
         &mut left, &mut right,
-    )))));
+    )))))
 }
 
 pub fn difference(

@@ -173,7 +173,7 @@ impl Library {
         None
     }
 
-    fn build_lookup<'a>(signatures: &'a Vec<Signature>) -> HashMap<&'static str, Vec<usize>> {
+    fn build_lookup<'a>(signatures: &'a [Signature]) -> HashMap<&'static str, Vec<usize>> {
         let mut lookup: HashMap<&str, Vec<usize>> = HashMap::new();
         for (i, sig) in signatures.iter().enumerate() {
             if lookup.contains_key(sig.name) {
@@ -183,6 +183,12 @@ impl Library {
             }
         }
         lookup
+    }
+}
+
+impl Default for Library {
+    fn default() -> Self {
+        Library::new()
     }
 }
 
