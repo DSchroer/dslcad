@@ -38,10 +38,10 @@ pub enum Token {
     #[token("var")]
     Var,
 
-    #[regex("[a-zA-Z]+")]
+    #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
     Identifier,
 
-    #[regex(r"(\.|\.\.)(/(\.|\.\.|[a-zA-Z]+))*/[a-zA-Z]+")]
+    #[regex(r"(\.\.?)(/[a-zA-Z0-9_]+)+")]
     Path,
 
     #[error]
@@ -86,6 +86,10 @@ mod tests {
         assert_eq!(
             vec![Path, OpenBracket, CloseBracket],
             tokens("./test/cube()")
+        );
+        assert_eq!(
+            vec![Path, OpenBracket, CloseBracket],
+            tokens("../test/cube()")
         );
     }
 

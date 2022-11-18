@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-./scripts/cheatsheet.sh > cheatsheet.md
+cargo run --bin cheat_sheet > cheatsheet.md
 (cd examples && zip -r ../examples.zip *)
 
 # Build Linux

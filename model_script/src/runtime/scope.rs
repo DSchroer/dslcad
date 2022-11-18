@@ -1,5 +1,5 @@
+use crate::syntax::Value;
 use std::collections::HashMap;
-use crate::syntax::{Value};
 
 #[derive(Debug)]
 pub struct Scope {
@@ -9,12 +9,12 @@ pub struct Scope {
 
 impl Scope {
     pub fn new(arguments: HashMap<String, Value>) -> Self {
-        Scope{
+        Scope {
             arguments: arguments
                 .into_iter()
                 .map(|(k, v)| (k, Box::new(v)))
                 .collect(),
-            variables: HashMap::new()
+            variables: HashMap::new(),
         }
     }
 
@@ -30,4 +30,3 @@ impl Scope {
         self.variables.insert(identifier, Box::new(value));
     }
 }
-

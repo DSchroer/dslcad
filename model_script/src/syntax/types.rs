@@ -7,7 +7,7 @@ pub enum Type {
     Text,
     Point,
     Edge,
-    Shape
+    Shape,
 }
 
 impl Display for Type {

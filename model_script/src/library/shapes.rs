@@ -6,21 +6,25 @@ use std::rc::Rc;
 
 use opencascade::{Axis, Point, Shape};
 
-/// syntax[3D]: `cube(x=number,y=number,z=number)`  Create a 3D cube
 pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
-    Ok(Value::Shape(Rc::new(RefCell::new(Shape::cube(x.unwrap_or(1.0), y.unwrap_or(1.0), z.unwrap_or(1.0))))))
-}
-
-/// syntax[3D]: `cylinder(radius=number,height=number)`  Create a 3D cylinder
-pub fn cylinder(radius: Option<f64>, height: Option<f64>) -> Result<Value, RuntimeError> {
-    Ok(Value::Shape(Rc::new(RefCell::new(Shape::cylinder(
-        radius.unwrap_or(0.5), height.unwrap_or(1.0),
+    Ok(Value::Shape(Rc::new(RefCell::new(Shape::cube(
+        x.unwrap_or(1.0),
+        y.unwrap_or(1.0),
+        z.unwrap_or(1.0),
     )))))
 }
 
-/// syntax[2D]: `union(left=line,right=line)`  Combine two 2D lines
-/// syntax[3D]: `union(left=shape,right=shape)`  Combine two 3D shapes
-pub fn union_shape(left: Rc<RefCell<Shape>>, right: Rc<RefCell<Shape>>) -> Result<Value, RuntimeError> {
+pub fn cylinder(radius: Option<f64>, height: Option<f64>) -> Result<Value, RuntimeError> {
+    Ok(Value::Shape(Rc::new(RefCell::new(Shape::cylinder(
+        radius.unwrap_or(0.5),
+        height.unwrap_or(1.0),
+    )))))
+}
+
+pub fn union_shape(
+    left: Rc<RefCell<Shape>>,
+    right: Rc<RefCell<Shape>>,
+) -> Result<Value, RuntimeError> {
     let mut left = left.borrow_mut();
     let mut right = right.borrow_mut();
 
@@ -29,8 +33,10 @@ pub fn union_shape(left: Rc<RefCell<Shape>>, right: Rc<RefCell<Shape>>) -> Resul
     )))));
 }
 
-/// syntax[3D]: `difference(left=shape,right=shape)`  Remove one 3D shape from another
-pub fn difference(left: Rc<RefCell<Shape>>, right: Rc<RefCell<Shape>>) -> Result<Value, RuntimeError> {
+pub fn difference(
+    left: Rc<RefCell<Shape>>,
+    right: Rc<RefCell<Shape>>,
+) -> Result<Value, RuntimeError> {
     let mut left = left.borrow_mut();
     let mut right = right.borrow_mut();
 
@@ -39,7 +45,6 @@ pub fn difference(left: Rc<RefCell<Shape>>, right: Rc<RefCell<Shape>>) -> Result
     )))))
 }
 
-/// syntax[3D]: `chamfer(shape=shape,radius=number)`  Chamfer all edges of a 3D shape
 pub fn chamfer(shape: Rc<RefCell<Shape>>, radius: f64) -> Result<Value, RuntimeError> {
     let mut shape = shape.borrow_mut();
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::chamfer(
@@ -47,7 +52,6 @@ pub fn chamfer(shape: Rc<RefCell<Shape>>, radius: f64) -> Result<Value, RuntimeE
     )))))
 }
 
-/// syntax[3D]: `fillet(shape=shape,radius=number)`  Fillet all edges of a 3D shape
 pub fn fillet(shape: Rc<RefCell<Shape>>, radius: f64) -> Result<Value, RuntimeError> {
     let mut shape = shape.borrow_mut();
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::fillet(
@@ -55,8 +59,12 @@ pub fn fillet(shape: Rc<RefCell<Shape>>, radius: f64) -> Result<Value, RuntimeEr
     )))))
 }
 
-/// syntax[3D]: `translate(shape=shape,x=number,y=number,z=number)`  Translate a 3D shape
-pub fn translate(shape: Rc<RefCell<Shape>>, x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
+pub fn translate(
+    shape: Rc<RefCell<Shape>>,
+    x: Option<f64>,
+    y: Option<f64>,
+    z: Option<f64>,
+) -> Result<Value, RuntimeError> {
     let mut shape = shape.borrow_mut();
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::translate(
         &mut shape,
@@ -64,8 +72,12 @@ pub fn translate(shape: Rc<RefCell<Shape>>, x: Option<f64>, y: Option<f64>, z: O
     )))))
 }
 
-/// syntax[3D]: `rotate(shape=shape,x=number,y=number,z=number)`  Rotate a 3D shape
-pub fn rotate(shape: Rc<RefCell<Shape>>, x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
+pub fn rotate(
+    shape: Rc<RefCell<Shape>>,
+    x: Option<f64>,
+    y: Option<f64>,
+    z: Option<f64>,
+) -> Result<Value, RuntimeError> {
     let mut shape = shape.borrow_mut();
     let mut shape = Shape::rotate(&mut shape, Axis::X, x.unwrap_or(0.0));
     let mut shape = Shape::rotate(&mut shape, Axis::Y, y.unwrap_or(0.0));
@@ -74,7 +86,6 @@ pub fn rotate(shape: Rc<RefCell<Shape>>, x: Option<f64>, y: Option<f64>, z: Opti
     Ok(Value::Shape(Rc::new(RefCell::new(shape))))
 }
 
-/// syntax[3D]: `scale(shape=shape,size=number)` Scale a 3D shape
 pub fn scale(shape: Rc<RefCell<Shape>>, size: f64) -> Result<Value, RuntimeError> {
     let mut shape = shape.borrow_mut();
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::scale(

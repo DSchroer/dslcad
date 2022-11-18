@@ -8,10 +8,10 @@ use std::fmt::{Debug, Display, Formatter};
 use std::io;
 use std::rc::Rc;
 
-pub use types::Type;
 use crate::runtime::ScriptInstance;
 pub use accessible::Accessible;
 use opencascade::{Edge, Point, Shape};
+pub use types::Type;
 
 pub use output::Output;
 

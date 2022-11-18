@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 use crate::syntax::Statement;
+use std::collections::HashSet;
 use std::slice::Iter;
 
 #[derive(Debug)]
@@ -10,7 +10,10 @@ pub struct Document {
 
 impl Document {
     pub fn new(identifiers: HashSet<String>, statements: Vec<Statement>) -> Self {
-        Document { identifiers, statements }
+        Document {
+            identifiers,
+            statements,
+        }
     }
 
     pub fn has_identifier(&self, name: &str) -> bool {

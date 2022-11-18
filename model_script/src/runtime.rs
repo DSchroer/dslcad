@@ -2,6 +2,7 @@ mod scope;
 
 use crate::library::Library;
 use crate::parser::Document;
+use crate::runtime::scope::Scope;
 use crate::syntax::Accessible;
 use crate::syntax::*;
 use std::cell::RefCell;
@@ -9,7 +10,6 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
 use thiserror::Error;
-use crate::runtime::scope::Scope;
 
 pub struct EvalContext<'a> {
     pub library: Library,
@@ -69,7 +69,7 @@ pub fn eval(
             },
             Statement::Return(e) => {
                 let value = eval_expression(&scope, e, ctx)?;
-                return Ok(ScriptInstance::from_scope(value, scope))
+                return Ok(ScriptInstance::from_scope(value, scope));
             }
         }
     }
@@ -90,7 +90,10 @@ fn eval_expression(
                 let value = eval_expression(instance, argument.deref(), ctx)?;
                 argument_values.insert(name, value);
             }
-            let argument_types = argument_values.iter().map(|(name, value)|(name.as_str(), value.get_type())).collect();
+            let argument_types = argument_values
+                .iter()
+                .map(|(name, value)| (name.as_str(), value.get_type()))
+                .collect();
 
             let doc = ctx.documents.get(path);
             match doc {
@@ -101,7 +104,10 @@ fn eval_expression(
                 Some(doc) => {
                     for name in arguments.keys() {
                         if !doc.has_identifier(name) {
-                            return Err(RuntimeError::ArgumentDoesNotExist(path.to_string(), name.to_string()))
+                            return Err(RuntimeError::ArgumentDoesNotExist(
+                                path.to_string(),
+                                name.to_string(),
+                            ));
                         }
                     }
 

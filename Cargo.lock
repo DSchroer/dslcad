@@ -2425,6 +2425,7 @@ dependencies = [
 name = "model-script"
 version = "0.1.0"
 dependencies = [
+ "indexmap",
  "logos",
  "opencascade",
  "path-absolutize",

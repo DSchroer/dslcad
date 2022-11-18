@@ -3,7 +3,6 @@ mod parser;
 mod runtime;
 mod syntax;
 
-use crate::library::Library;
 use crate::parser::{Ast, ParseError};
 use crate::runtime::{EvalContext, RuntimeError};
 use parser::Reader;
@@ -12,6 +11,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+pub use crate::library::Library;
 pub use crate::syntax::Output;
 
 pub fn parse(path: &str) -> Result<Ast, ParseError> {
