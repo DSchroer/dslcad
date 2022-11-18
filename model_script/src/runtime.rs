@@ -38,12 +38,12 @@ impl ScriptInstance {
 }
 
 impl Accessible for ScriptInstance {
-    fn get(&self, identifier: &str) -> Option<&Value> {
+    fn get(&self, identifier: &str) -> Option<Value> {
         let val = self
             .arguments
             .get(identifier)
             .or_else(|| self.variables.get(identifier))?;
-        Some(val)
+        Some(*val.clone())
     }
 }
 
@@ -135,7 +135,7 @@ fn access(
 ) -> Result<Value, RuntimeError> {
     let l = eval_expression(instance, l.deref(), ctx)?;
 
-    let script = l.to_script();
+    let script = l.to_accessible();
     if let Some(instance) = script {
         match instance.get(name) {
             None => Err(RuntimeError::MissingProperty(name.to_owned())),

@@ -94,10 +94,11 @@ impl Value {
         }
     }
 
-    pub fn to_script(&self) -> Option<Ref<dyn Accessible>> {
+    pub fn to_accessible(&self) -> Option<Ref<dyn Accessible>> {
         match self {
             Value::Script(i) => Some(i.borrow()),
             Value::Shape(s) => Some(s.borrow()),
+            Value::Point(p) => Some(p.borrow()),
             _ => None,
         }
     }

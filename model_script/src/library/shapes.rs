@@ -1,5 +1,5 @@
 use crate::runtime::RuntimeError;
-use crate::syntax::{Accessible, Value};
+use crate::syntax::Value;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -91,10 +91,4 @@ pub fn scale(shape: Rc<RefCell<Shape>>, size: f64) -> Result<Value, RuntimeError
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::scale(
         &mut shape, size,
     )))))
-}
-
-impl Accessible for Shape {
-    fn get(&self, _: &str) -> Option<&Value> {
-        None
-    }
 }

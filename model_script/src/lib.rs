@@ -68,6 +68,7 @@ mod tests {
     #[test]
     fn it_has_point() {
         run("point(x=10,y=10);");
+        run("point(x=10,y=10).x;");
     }
 
     #[test]
