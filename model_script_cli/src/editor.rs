@@ -178,7 +178,10 @@ fn file_dialog(state: &State) -> FileDialog {
     };
 
     FileDialog::new()
-        .add_filter(&(model_script::constants::NAME.to_owned() + " Script"), &[model_script::constants::FILE_EXTENSION])
+        .add_filter(
+            &(model_script::constants::NAME.to_owned() + " Script"),
+            &[model_script::constants::FILE_EXTENSION],
+        )
         .set_directory(dir)
 }
 
