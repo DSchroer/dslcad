@@ -2,10 +2,10 @@
 name = "model-script-cli"
 version = "0.1.0"
 edition = "2021"
-default-run = "model-script"
+default-run = "dslcad"
 
 [[bin]]
-name = "model-script"
+name = "dslcad"
 path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

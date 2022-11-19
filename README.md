@@ -1,56 +1,27 @@
-# ModelScript
+# DSLCAD - DieselCAD
 
-ModelScript is a programming language & interpreter for building 3D models. 
+DSLCAD is a programming language & interpreter for building 3D models.
+Inspired by OpenSCAD, it has a simple language and 3D viewer to 
+simplify the 3D modeling experience. 
 
-**WARNING!!!** ModelScript is in very early stages. Documentation and usability is a work 
+**WARNING!!!** DSLCAD is in very early stages. Documentation and usability is a work 
 in progress. There will be breaking changes. 
+
+## Installation
+
+Download the latest DSLCAD from the [Releases](https://github.com/DSchroer/model-script/releases) tab of this repo. 
+
+You can find pre-built binaries for:
+- Windows
+- MacOS
+- Linux
+
+Check out the cheatsheet.md file of the release for the latest command reference. 
+
 
 ## Usage
 
-```
-cargo run -- ./examples/table.ex -o table.stl
+For basic editing, run DSLCAD and use the GUI.
 
-#OR
+For automated usage, list the CLI options with `dslcad --help`.
 
-model-script ./examples/table.ex -o table.stl
-```
-
-## Development Status
-
-- 3D Editing:
-  - Primitives
-    - [X] Cube
-    - [X] Cylinder
-  - Transforms
-    - [X] Translation
-    - [X] Rotation
-    - [X] Scaling
-    - [ ] Mirror
-  - Solid Modeling
-    - [X] Union
-    - [X] Difference
-    - [ ] Intersect
-  - Tools
-    - [X] Chamfer
-      - [ ] Mask
-    - [X] Fillet
-      - [ ] Mask
-- Language:
-  - Literals:
-    - [X] Numbers
-    - [X] Booleans
-    - [X] Text
-  - [X] Immutable Variables
-  - [X] Function Calls
-  - [X] Cross Document Calls
-  - [X] Pipe Operator
-- 2D Design:
-  - [X] Points
-  - [X] Lines
-  - [X] Arcs
-  - [X] Extrude
-  - [X] Rotational Extrude
-- CLI interface:
-  - [ ] Variable overriding
-  - [ ] Unified output format
-  - [X] 3D output display

@@ -2,6 +2,7 @@ mod library;
 mod parser;
 mod runtime;
 mod syntax;
+pub mod constants;
 
 use crate::parser::{Ast, ParseError};
 use crate::runtime::{EvalContext, RuntimeError};

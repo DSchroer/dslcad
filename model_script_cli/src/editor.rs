@@ -36,7 +36,13 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(ClearColor(Blueprint::blue()))
         .insert_resource(State::new())
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            window: WindowDescriptor {
+                title: model_script::constants::FULL_NAME.to_string(),
+                ..default()
+            },
+            ..default()
+        }))
         .add_plugin(PolylinePlugin)
         .add_plugin(camera::CameraPlugin)
         .add_plugin(gui::GuiPlugin)
@@ -83,7 +89,7 @@ fn controller(
                 let file = file_dialog(&state).save_file();
 
                 if let Some(file) = file {
-                    let file = file.with_extension("ex");
+                    let file = file.with_extension(model_script::constants::FILE_EXTENSION);
                     File::create(&file).unwrap();
 
                     load_file(
@@ -172,7 +178,7 @@ fn file_dialog(state: &State) -> FileDialog {
     };
 
     FileDialog::new()
-        .add_filter("script", &["ex"])
+        .add_filter(&(model_script::constants::NAME.to_owned() + " Script"), &[model_script::constants::FILE_EXTENSION])
         .set_directory(dir)
 }
 
