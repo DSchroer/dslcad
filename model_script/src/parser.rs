@@ -234,11 +234,16 @@ impl<'a, T: Reader> Parser<'a, T> {
     }
 
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+        let first = self.parse_expression_lhs(lexer)?;
+        self.parse_expression_rhs(first, lexer)
+    }
+
+    fn parse_expression_lhs(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
         let mut peek = lexer.clone();
-        let first = take!(self, peek,
+        Ok(take!(self, peek,
             Token::Minus = "-" => {
                 lexer.next();
-                let expr = self.parse_expression(lexer)?;
+                let expr = self.parse_expression_lhs(lexer)?;
                 Expression::Invocation {
                     path: String::from("subtract"),
                     arguments: HashMap::from([
@@ -252,7 +257,7 @@ impl<'a, T: Reader> Parser<'a, T> {
             },
             Token::Not = "not" => {
                 lexer.next();
-                let expr = self.parse_expression(lexer)?;
+                let expr = self.parse_expression_lhs(lexer)?;
                 Expression::Invocation {
                     path: String::from("not"),
                     arguments: HashMap::from([
@@ -287,9 +292,7 @@ impl<'a, T: Reader> Parser<'a, T> {
                 let expr = self.parse_expression(lexer)?;
                 take!(self, lexer, Token::CloseBracket = ")" => expr)
             }
-        );
-
-        self.parse_expression_rhs(first, lexer)
+        ))
     }
 
     fn parse_expression_rhs(
