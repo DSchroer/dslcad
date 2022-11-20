@@ -1,3 +1,5 @@
+extern crate core;
+
 pub mod constants;
 mod library;
 mod parser;

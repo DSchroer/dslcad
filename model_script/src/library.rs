@@ -110,6 +110,7 @@ pub struct Library {
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 pub enum Category {
+    Hidden,
     Math,
     TwoD,
     ThreeD,
@@ -118,6 +119,7 @@ pub enum Category {
 impl Display for Category {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            Category::Hidden => panic!("can not display hidden category"),
             Category::Math => f.write_str("Math"),
             Category::TwoD => f.write_str("2D"),
             Category::ThreeD => f.write_str("3D"),
@@ -129,26 +131,26 @@ impl Library {
     pub fn new() -> Self {
         let signatures = vec![
             // Math
-            bind!(add, math::add[left=number, right=number], Category::Math, "addition"),
-            bind!(subtract, math::subtract[left=number, right=number], Category::Math, "subtraction"),
-            bind!(multiply, math::multiply[left=number, right=number], Category::Math, "multiplication"),
-            bind!(divide, math::divide[left=number, right=number], Category::Math, "division"),
-            bind!(modulo, math::modulo[left=number, right=number], Category::Math, "modulo"),
-            bind!(power, math::power[left=number, right=number], Category::Math, "exponentiation"),
+            bind!(add, math::add[left=number, right=number], Category::Hidden, "addition"),
+            bind!(subtract, math::subtract[left=number, right=number], Category::Hidden, "subtraction"),
+            bind!(multiply, math::multiply[left=number, right=number], Category::Hidden, "multiplication"),
+            bind!(divide, math::divide[left=number, right=number], Category::Hidden, "division"),
+            bind!(modulo, math::modulo[left=number, right=number], Category::Hidden, "modulo"),
+            bind!(power, math::power[left=number, right=number], Category::Hidden, "exponentiation"),
             bind!(pi, math::pi[], Category::Math, "constant pi"),
-            bind!(less, math::less[left=number, right=number], Category::Math, "less than"),
-            bind!(less_or_equal, math::less_or_equal[left=number, right=number], Category::Math, "less than or equal"),
-            bind!(equals, math::equals[left=number, right=number], Category::Math, "equal"),
-            bind!(not_equals, math::not_equals[left=number, right=number], Category::Math, "not equal"),
-            bind!(greater, math::greater[left=number, right=number], Category::Math, "greater than"),
-            bind!(greater_or_equal, math::greater_or_equal[left=number, right=number], Category::Math, "greater than or equal"),
+            bind!(less, math::less[left=number, right=number], Category::Hidden, "less than"),
+            bind!(less_or_equal, math::less_or_equal[left=number, right=number], Category::Hidden, "less than or equal"),
+            bind!(equals, math::equals[left=number, right=number], Category::Hidden, "equal"),
+            bind!(not_equals, math::not_equals[left=number, right=number], Category::Hidden, "not equal"),
+            bind!(greater, math::greater[left=number, right=number], Category::Hidden, "greater than"),
+            bind!(greater_or_equal, math::greater_or_equal[left=number, right=number], Category::Hidden, "greater than or equal"),
             // Boolean
-            bind!(and, boolean::and[left=bool, right=bool], Category::Math, "logical and"),
-            bind!(or, boolean::or[left=bool, right=bool], Category::Math, "logical or"),
+            bind!(and, boolean::and[left=bool, right=bool], Category::Hidden, "logical and"),
+            bind!(or, boolean::or[left=bool, right=bool], Category::Hidden, "logical or"),
             bind!(
                 not,
                 boolean::not[value = bool],
-                Category::Math,
+                Category::Hidden,
                 "logical not"
             ),
             // 2D
@@ -252,14 +254,28 @@ impl Display for Library {
 ## Syntax
 - `var name = value;` create a variable called name that stores value
 - `value;` draw the value, each script can only draw one thing
+- `b(name=a)` pass a into the name parameter of function b
+- `a ->name b()` pipe a into the name parameter of function b
+- `./file(name=a)` run a file as if it were a function
 
 ## Operators
 - `a + b` addition
 - `a - b` subtraction
 - `a * b` multiplication
 - `a / b` division
-- `b(name=a)` pass a into the name parameter of function b
-- `a ->name b()` pipe a into the name parameter of function b
+- `a % b` modulo
+- `a ^ b` power
+
+## Logic
+- `a < b` less than
+- `a <= b` less than or equal
+- `a == b` equal
+- `a != b` not equal
+- `a > b` greater than
+- `a >= b` greater than or equal
+- `a and b` logical and
+- `a or b` logical or
+- `not a` logical not
 "
         )?;
 
@@ -269,6 +285,10 @@ impl Display for Library {
         let mut category: Option<Category> = None;
 
         for signature in &to_print {
+            if signature.category == Category::Hidden {
+                continue;
+            }
+
             if category.is_none() || category.unwrap() != signature.category {
                 category = Some(signature.category);
                 writeln!(f)?;
