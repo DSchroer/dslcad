@@ -14,6 +14,13 @@ pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, Run
     )))))
 }
 
+pub fn sphere(radius: Option<f64>) -> Result<Value, RuntimeError> {
+    let r = radius.unwrap_or(0.5);
+    let mut base = Shape::sphere(r);
+    let moved = Shape::translate(&mut base, &Point::new(r, r, r));
+    Ok(Value::Shape(Rc::new(RefCell::new(moved))))
+}
+
 pub fn cylinder(radius: Option<f64>, height: Option<f64>) -> Result<Value, RuntimeError> {
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::cylinder(
         radius.unwrap_or(0.5),

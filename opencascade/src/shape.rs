@@ -8,7 +8,8 @@ use opencascade_sys::ffi::{
     BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
     BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
     BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
-    StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge,
+    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, StlAPI_Writer_ctor, TopAbs_ShapeEnum,
+    TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge,
 };
 use std::env;
 use std::fs::File;
@@ -19,6 +20,7 @@ pub use stl_io::IndexedMesh;
 pub enum Shape {
     Box(UniquePtr<BRepPrimAPI_MakeBox>),
     Cylinder(UniquePtr<BRepPrimAPI_MakeCylinder>),
+    Sphere(UniquePtr<BRepPrimAPI_MakeSphere>),
     Fuse(UniquePtr<BRepAlgoAPI_Fuse>),
     Cut(UniquePtr<BRepAlgoAPI_Cut>),
     Fillet(UniquePtr<BRepFilletAPI_MakeFillet>),
@@ -38,6 +40,10 @@ impl Shape {
     pub fn cube(dx: f64, dy: f64, dz: f64) -> Self {
         let origin = Point::new(0., 0., 0.);
         Shape::Box(BRepPrimAPI_MakeBox_ctor(&origin.point, dx, dy, dz))
+    }
+
+    pub fn sphere(r: f64) -> Self {
+        Shape::Sphere(BRepPrimAPI_MakeSphere_ctor(r))
     }
 
     pub fn cylinder(radius: f64, height: f64) -> Self {
@@ -177,6 +183,7 @@ impl Shape {
     fn shape(&mut self) -> &TopoDS_Shape {
         match self {
             Shape::Box(b) => b.pin_mut().Shape(),
+            Shape::Sphere(b) => b.pin_mut().Shape(),
             Shape::Cylinder(c) => c.pin_mut().Shape(),
             Shape::Fuse(f) => f.pin_mut().Shape(),
             Shape::Cut(f) => f.pin_mut().Shape(),
@@ -212,6 +219,12 @@ mod tests {
     #[test]
     fn it_can_write_box_stl() {
         let mut shape = Shape::cube(1., 10., 1.);
+        shape.write_stl("./demo.stl").unwrap();
+    }
+
+    #[test]
+    fn it_can_write_sphere_stl() {
+        let mut shape = Shape::sphere(1.);
         shape.write_stl("./demo.stl").unwrap();
     }
 

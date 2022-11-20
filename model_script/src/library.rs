@@ -167,6 +167,12 @@ impl Library {
             bind!(extrude, faces::extrude[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),
             bind!(cube, shapes::cube[x=option_number, y=option_number, z=option_number], Category::ThreeD, "create a cube"),
+            bind!(
+                sphere,
+                shapes::sphere[radius = option_number],
+                Category::ThreeD,
+                "create a sphere"
+            ),
             bind!(cylinder, shapes::cylinder[radius=option_number, height=option_number], Category::ThreeD, "create a cylinder"),
             bind!(union, shapes::union_shape[left=shape, right=shape], Category::ThreeD, "combine two shapes"),
             bind!(chamfer, shapes::chamfer[shape=shape, radius=number], Category::ThreeD, "chamfer edges"),
