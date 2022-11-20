@@ -41,7 +41,7 @@ impl Shape {
     }
 
     pub fn cylinder(radius: f64, height: f64) -> Self {
-        let origin = Point::new(0., 0., 0.);
+        let origin = Point::new(radius, radius, 0.);
         let axis = gp_Ax2_ctor(&origin.point, gp_DZ());
         Shape::Cylinder(BRepPrimAPI_MakeCylinder_ctor(&axis, radius, height))
     }

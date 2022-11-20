@@ -7,6 +7,10 @@ pub struct Point {
 }
 
 impl Point {
+    pub fn new_2d(x: f64, y: f64) -> Self {
+       Point::new(x, y, 0.0)
+    }
+
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Point {
             point: new_point(x, y, z),

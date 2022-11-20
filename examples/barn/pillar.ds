@@ -1,2 +1,2 @@
 // As simple as it gets
-cylinder(radius=0.5, height=10);
+cylinder(radius=0.5, height=10) ->shape translate(x=-0.5, y=-0.5);
