@@ -1,4 +1,4 @@
-use model_script::{eval, parse};
+use model_script::DSLCAD;
 use std::fs::{self, DirEntry};
 use std::io;
 use std::path::Path;
@@ -10,9 +10,9 @@ fn test_can_run_examples() {
 
     assert_ne!(0, examples.len());
     for example in examples {
-        let ast =
-            parse(example.path().to_str().unwrap()).expect(&format!("cant parse {:?}", example));
-        eval(ast).expect(&format!("cant run {:?}", example));
+        let mut cad = DSLCAD::default();
+        cad.render_file(example.path().to_str().unwrap())
+            .expect(&format!("cant render {:?}", example));
     }
 }
 

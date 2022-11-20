@@ -6,6 +6,7 @@ mod syntax;
 
 use crate::parser::ParseError;
 use crate::runtime::{EvalContext, RuntimeError};
+use library::Library;
 use parser::Reader;
 use path_absolutize::Absolutize;
 use std::collections::HashMap;
@@ -14,7 +15,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
-pub use crate::library::Library;
 pub use crate::syntax::Output;
 
 #[derive(Error, Debug)]
@@ -32,21 +32,23 @@ impl Display for Error {
     }
 }
 
-pub struct DSLCAD<R: Reader> {
+pub struct DSLCAD<R> {
     reader: R,
+    library: Library,
     paths: Vec<String>,
 }
 
 impl Default for DSLCAD<FileReader> {
     fn default() -> Self {
-        DSLCAD::<FileReader>::with_reader(FileReader)
+        DSLCAD::<FileReader>::new(FileReader, Library::default())
     }
 }
 
 impl<R: Reader> DSLCAD<R> {
-    pub fn with_reader(reader: R) -> Self {
+    pub fn new(reader: R, library: Library) -> Self {
         DSLCAD {
             reader,
+            library,
             paths: Vec::new(),
         }
     }
@@ -59,7 +61,7 @@ impl<R: Reader> DSLCAD<R> {
 
         let ctx = EvalContext {
             documents: ast.documents(),
-            library: Library::new(),
+            library: &self.library,
         };
         let main = ast.root_document();
 
@@ -73,6 +75,10 @@ impl<R: Reader> DSLCAD<R> {
 
     pub fn documents(&self) -> impl Iterator<Item = &str> {
         self.paths.iter().map(|p| p.as_str())
+    }
+
+    pub fn cheat_sheet(&self) -> String {
+        self.library.to_string()
     }
 }
 
@@ -102,7 +108,7 @@ mod tests {
         let documents = parser.parse().unwrap();
         let ctx = EvalContext {
             documents: documents.documents(),
-            library: Library::new(),
+            library: &Library::new(),
         };
         let main = documents.root_document();
         runtime::eval(main, HashMap::new(), &ctx).expect("failed to eval")

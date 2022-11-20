@@ -13,7 +13,7 @@ use std::rc::Rc;
 use thiserror::Error;
 
 pub struct EvalContext<'a> {
-    pub library: Library,
+    pub library: &'a Library,
     pub documents: &'a HashMap<String, Document>,
 }
 

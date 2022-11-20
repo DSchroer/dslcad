@@ -1,5 +1,5 @@
-use model_script::Library;
+use model_script::DSLCAD;
 
 fn main() {
-    println!("{}", &Library::new())
+    println!("{}", DSLCAD::default().cheat_sheet())
 }
