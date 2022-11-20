@@ -73,6 +73,11 @@ mod tests {
     }
 
     #[test]
+    fn it_has_math() {
+        run("less_or_equal(left=10,right=10);");
+    }
+
+    #[test]
     fn it_has_lines() {
         run("line(start=point(x=0,y=0), end=point(x=1,y=1));");
         run("arc(start=point(x=0,y=0),center=point(x=1,y=0), end=point(x=0,y=1));");

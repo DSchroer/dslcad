@@ -1,3 +1,4 @@
+mod boolean;
 mod faces;
 mod math;
 mod shapes;
@@ -40,6 +41,7 @@ macro_rules! bind {
 macro_rules! arguments {
     (number) => {Access::Required(Type::Number)};
     (option_number) => {Access::Optional(Type::Number)};
+    (bool) => {Access::Required(Type::Bool)};
     (point) => {Access::Required(Type::Point)};
     (edge) => {Access::Required(Type::Edge)};
     (shape) => {Access::Required(Type::Shape)};
@@ -62,6 +64,14 @@ macro_rules! invoke {
                 .ok_or(RuntimeError::UnexpectedType(value.clone()))?),
             None => None,
         }
+    }};
+    ($map: ident, $name: ident=bool) => {{
+        let value = $map
+            .get(stringify!($name))
+            .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
+        value
+            .to_bool()
+            .ok_or(RuntimeError::UnexpectedType(value.clone()))?
     }};
     ($map: ident, $name: ident=point) => {{
         let value = $map
@@ -87,10 +97,9 @@ macro_rules! invoke {
             .to_line()
             .ok_or(RuntimeError::UnexpectedType(value.clone()))?
     }};
-    ($func: path[$name:ident=$value:ident, $($name1: ident=$value1: ident), *]) => {&|a|{
-        let $name = invoke!(a, $name=$value);
-        $(let $name1 = invoke!(a, $name1=$value1);)*
-        $func($name, $($name1),*)
+    ($func: path[$($name: ident=$value: ident), *]) => {&|a|{
+        $(let $name = invoke!(a, $name=$value);)*
+        $func($($name),*)
     }};
 }
 
@@ -119,14 +128,34 @@ impl Display for Category {
 impl Library {
     pub fn new() -> Self {
         let signatures = vec![
-            bind!(add, math::add[left=number, right=number], Category::Math, "add numbers"),
-            bind!(subtract, math::subtract[left=number, right=number], Category::Math, "subtract numbers"),
-            bind!(multiply, math::multiply[left=number, right=number], Category::Math, "multiply numbers"),
-            bind!(divide, math::divide[left=number, right=number], Category::Math, "divide numbers"),
+            // Math
+            bind!(add, math::add[left=number, right=number], Category::Math, "addition"),
+            bind!(subtract, math::subtract[left=number, right=number], Category::Math, "subtraction"),
+            bind!(multiply, math::multiply[left=number, right=number], Category::Math, "multiplication"),
+            bind!(divide, math::divide[left=number, right=number], Category::Math, "division"),
+            bind!(modulo, math::modulo[left=number, right=number], Category::Math, "modulo"),
+            bind!(power, math::power[left=number, right=number], Category::Math, "exponentiation"),
+            bind!(less, math::less[left=number, right=number], Category::Math, "less than"),
+            bind!(less_or_equal, math::less_or_equal[left=number, right=number], Category::Math, "less than or equal"),
+            bind!(equals, math::equals[left=number, right=number], Category::Math, "equal"),
+            bind!(not_equals, math::not_equals[left=number, right=number], Category::Math, "not equal"),
+            bind!(greater, math::greater[left=number, right=number], Category::Math, "greater than"),
+            bind!(greater_or_equal, math::greater_or_equal[left=number, right=number], Category::Math, "greater than or equal"),
+            // Boolean
+            bind!(and, boolean::and[left=bool, right=bool], Category::Math, "logical and"),
+            bind!(or, boolean::or[left=bool, right=bool], Category::Math, "logical or"),
+            bind!(
+                not,
+                boolean::not[value = bool],
+                Category::Math,
+                "logical not"
+            ),
+            // 2D
             bind!(point, faces::point[x=option_number, y=option_number, z=option_number], Category::TwoD, "create a new 2D point"),
             bind!(line, faces::line[start=point, end=point], Category::TwoD, "create a line between two points"),
             bind!(arc, faces::arc[start=point, center=point, end=point], Category::TwoD, "create an arcing line between three points"),
             bind!(union, faces::union_edge[left=edge, right=edge], Category::TwoD, "combine two edges"),
+            // 3D
             bind!(extrude, faces::extrude[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),
             bind!(cube, shapes::cube[x=option_number, y=option_number, z=option_number], Category::ThreeD, "create a cube"),

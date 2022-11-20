@@ -94,6 +94,14 @@ impl Value {
         }
     }
 
+    pub fn to_bool(&self) -> Option<bool> {
+        match self {
+            Value::Bool(f) => Some(*f),
+            Value::Script(i) => i.borrow().value().to_bool(),
+            _ => None,
+        }
+    }
+
     pub fn to_accessible(&self) -> Option<Ref<dyn Accessible>> {
         match self {
             Value::Script(i) => Some(i.borrow()),
