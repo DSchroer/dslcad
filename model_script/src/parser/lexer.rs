@@ -25,6 +25,30 @@ pub enum Token {
     Multiply,
     #[token("/")]
     Divide,
+    #[token("^")]
+    Power,
+    #[token("%")]
+    Modulo,
+    #[token("<")]
+    Less,
+    #[token("<=")]
+    LessEquals,
+    #[token("==")]
+    Equals,
+    #[token("!=")]
+    NotEquals,
+    #[token(">")]
+    Greater,
+    #[token(">=")]
+    GreaterEquals,
+
+    #[token("and")]
+    And,
+    #[token("or")]
+    Or,
+    #[token("not")]
+    Not,
+
     #[token("->")]
     Inject,
 

@@ -76,6 +76,13 @@ mod tests {
     fn it_has_math() {
         run("less_or_equal(left=10,right=10);");
         run("pi();");
+
+        let ops = vec![
+            "+", "-", "*", "/", "&", "^", ">", ">=", "==", "!=", "<", "<=",
+        ];
+        for op in ops {
+            run(format!("1 {} 1;", op).as_str());
+        }
     }
 
     #[test]

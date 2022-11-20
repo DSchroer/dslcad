@@ -235,31 +235,31 @@ impl<'a, T: Reader> Parser<'a, T> {
 
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
         let mut peek = lexer.clone();
-        let unary = match peek.next() {
-            Some(Token::Minus) => {
+        let first = take!(self, peek,
+            Token::Minus = "-" => {
                 lexer.next();
-                Some(|e| Expression::Invocation {
+                let expr = self.parse_expression(lexer)?;
+                Expression::Invocation {
                     path: String::from("subtract"),
                     arguments: HashMap::from([
                         (
                             "left".to_string(),
                             Box::new(Expression::Literal(Value::Number(0.0))),
                         ),
-                        ("right".to_string(), Box::new(e)),
+                        ("right".to_string(), Box::new(expr)),
                     ]),
-                })
-            }
-            Some(_) => None,
-            None => {
-                return Err(ParseError::UnexpectedEndOfFile(
-                    self.path.clone(),
-                    self.source()?,
-                ))
-            }
-        };
-
-        let mut peek = lexer.clone();
-        let first = take!(self, peek,
+                }
+            },
+            Token::Not = "not" => {
+                lexer.next();
+                let expr = self.parse_expression(lexer)?;
+                Expression::Invocation {
+                    path: String::from("not"),
+                    arguments: HashMap::from([
+                         ("value".to_string(), Box::new(expr)),
+                    ]),
+                }
+            },
             Token::Number = "number" => {
                 lexer.next();
                 let value = f64::from_str(lexer.slice()).unwrap();
@@ -288,11 +288,6 @@ impl<'a, T: Reader> Parser<'a, T> {
                 take!(self, lexer, Token::CloseBracket = ")" => expr)
             }
         );
-
-        let first = match unary {
-            Some(builder) => builder(first),
-            None => first,
-        };
 
         self.parse_expression_rhs(first, lexer)
     }
@@ -347,6 +342,16 @@ impl<'a, T: Reader> Parser<'a, T> {
             Some(Token::Minus) => op_shorthand!("subtract", first, lexer),
             Some(Token::Multiply) => op_shorthand!("multiply", first, lexer),
             Some(Token::Divide) => op_shorthand!("divide", first, lexer),
+            Some(Token::Modulo) => op_shorthand!("modulo", first, lexer),
+            Some(Token::Power) => op_shorthand!("power", first, lexer),
+            Some(Token::Less) => op_shorthand!("less", first, lexer),
+            Some(Token::LessEquals) => op_shorthand!("less_or_equal", first, lexer),
+            Some(Token::Equals) => op_shorthand!("equals", first, lexer),
+            Some(Token::NotEquals) => op_shorthand!("not_equals", first, lexer),
+            Some(Token::Greater) => op_shorthand!("greater", first, lexer),
+            Some(Token::GreaterEquals) => op_shorthand!("greater_or_equal", first, lexer),
+            Some(Token::And) => op_shorthand!("and", first, lexer),
+            Some(Token::Or) => op_shorthand!("or", first, lexer),
             _ => Ok(first),
         }
     }
@@ -356,6 +361,21 @@ impl<'a, T: Reader> Parser<'a, T> {
 pub mod tests {
     use super::*;
     use std::path::PathBuf;
+
+    macro_rules! parse {
+        ($code: literal) => {
+            Parser::new("test", &TestReader($code)).parse()
+        };
+    }
+
+    macro_rules! parse_statement {
+        ($code: literal) => {{
+            let parsed = Parser::new("test", &TestReader($code)).parse().unwrap();
+            let doc = parsed.root_document();
+            let statement = doc.statements().next();
+            statement.unwrap().clone()
+        }};
+    }
 
     #[test]
     fn it_can_parse_variable() {
@@ -410,19 +430,10 @@ pub mod tests {
             .unwrap();
     }
 
-    macro_rules! parse {
-        ($code: literal) => {
-            Parser::new("test", &TestReader($code)).parse()
-        };
-    }
-
-    macro_rules! parse_statement {
-        ($code: literal) => {{
-            let parsed = Parser::new("test", &TestReader($code)).parse().unwrap();
-            let doc = parsed.root_document();
-            let statement = doc.statements().next();
-            statement.unwrap().clone()
-        }};
+    #[test]
+    fn it_can_parse_unary_not() {
+        parse_statement!("not true;");
+        parse_statement!("not not true;");
     }
 
     #[test]
