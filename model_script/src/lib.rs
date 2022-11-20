@@ -75,6 +75,7 @@ mod tests {
     #[test]
     fn it_has_math() {
         run("less_or_equal(left=10,right=10);");
+        run("pi();");
     }
 
     #[test]

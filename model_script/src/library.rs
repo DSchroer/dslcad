@@ -97,8 +97,8 @@ macro_rules! invoke {
             .to_line()
             .ok_or(RuntimeError::UnexpectedType(value.clone()))?
     }};
-    ($func: path[$($name: ident=$value: ident), *]) => {&|a|{
-        $(let $name = invoke!(a, $name=$value);)*
+    ($func: path[$($name: ident=$value: ident), *]) => {&|_a|{
+        $(let $name = invoke!(_a, $name=$value);)*
         $func($($name),*)
     }};
 }
@@ -135,6 +135,7 @@ impl Library {
             bind!(divide, math::divide[left=number, right=number], Category::Math, "division"),
             bind!(modulo, math::modulo[left=number, right=number], Category::Math, "modulo"),
             bind!(power, math::power[left=number, right=number], Category::Math, "exponentiation"),
+            bind!(pi, math::pi[], Category::Math, "constant pi"),
             bind!(less, math::less[left=number, right=number], Category::Math, "less than"),
             bind!(less_or_equal, math::less_or_equal[left=number, right=number], Category::Math, "less than or equal"),
             bind!(equals, math::equals[left=number, right=number], Category::Math, "equal"),
@@ -151,8 +152,15 @@ impl Library {
                 "logical not"
             ),
             // 2D
-            bind!(point, faces::point[x=option_number, y=option_number, z=option_number], Category::TwoD, "create a new 2D point"),
+            bind!(point, faces::point[x=option_number, y=option_number], Category::TwoD, "create a new 2D point"),
             bind!(line, faces::line[start=point, end=point], Category::TwoD, "create a line between two points"),
+            bind!(square, faces::square[x=option_number, y=option_number], Category::TwoD, "create a square"),
+            bind!(
+                circle,
+                faces::circle[radius = option_number],
+                Category::TwoD,
+                "create a circle"
+            ),
             bind!(arc, faces::arc[start=point, center=point, end=point], Category::TwoD, "create an arcing line between three points"),
             bind!(union, faces::union_edge[left=edge, right=edge], Category::TwoD, "combine two edges"),
             // 3D
@@ -181,6 +189,13 @@ impl Library {
         if let Some(indices) = self.lookup.get(name) {
             'index: for index in indices {
                 let signature = &self.signatures[*index];
+
+                for name in arguments.keys() {
+                    if !signature.arguments.contains_key(name) {
+                        continue 'index;
+                    }
+                }
+
                 for (name, access) in signature.arguments.iter() {
                     match access {
                         Access::Required(t) => {
@@ -301,6 +316,22 @@ pub mod tests {
             &HashMap::from([("a", Type::Number), ("b", Type::Number)]),
         )
         .expect("couldnt find method");
+    }
+
+    #[test]
+    fn it_rejects_extra_arguments() {
+        let lib = Library::from_signatures(vec![
+            bind!(test, one[a=number, b=number], Category::Math, ""),
+        ]);
+        let res = lib.find(
+            "test",
+            &HashMap::from([
+                ("a", Type::Number),
+                ("b", Type::Number),
+                ("c", Type::Number),
+            ]),
+        );
+        assert!(matches!(res, None))
     }
 
     #[test]
