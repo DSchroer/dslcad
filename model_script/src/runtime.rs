@@ -167,11 +167,9 @@ pub enum RuntimeError {
     #[error("Could not find property {0}")]
     MissingProperty(String),
     #[error("Mismatched types between {0}")]
-    UnexpectedType(Value),
+    UnexpectedType(Type),
     #[error("Script did not return a value")]
     NoReturnValue(),
     #[error("Cant Write")]
     CantWrite(),
-    #[error("Mismatched types between {0} and {1}")]
-    MismatchedTypes(Value, Value),
 }

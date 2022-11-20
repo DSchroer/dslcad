@@ -4,7 +4,7 @@ mod types;
 
 use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Formatter};
 use std::io;
 use std::rc::Rc;
 
@@ -51,20 +51,14 @@ pub enum Value {
 impl Debug for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Number(n) => Display::fmt(n, f),
-            Value::Bool(n) => Display::fmt(n, f),
-            Value::Text(n) => Display::fmt(n, f),
-            Value::Script(_) => Display::fmt("INSTANCE", f),
-            Value::Shape(_) => Display::fmt("SHAPE", f),
-            Value::Point(_) => Display::fmt("POINT", f),
-            Value::Line(_) => Display::fmt("LINE", f),
+            Value::Number(n) => f.debug_tuple("Number").field(n).finish(),
+            Value::Bool(n) => f.debug_tuple("Bool").field(n).finish(),
+            Value::Text(n) => f.debug_tuple("Text").field(n).finish(),
+            Value::Script(_) => f.debug_tuple("Script").finish(),
+            Value::Shape(_) => f.debug_tuple("Shape").finish(),
+            Value::Point(_) => f.debug_tuple("Point").finish(),
+            Value::Line(_) => f.debug_tuple("Line").finish(),
         }
-    }
-}
-
-impl Display for Value {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(self, f)
     }
 }
 

@@ -55,13 +55,13 @@ macro_rules! invoke {
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
             .to_number()
-            .ok_or(RuntimeError::UnexpectedType(value.clone()))?
+            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
     }};
     ($map: ident, $name: ident=option_number) => {{
         match $map.get(stringify!($name)) {
             Some(value) => Some(value
                 .to_number()
-                .ok_or(RuntimeError::UnexpectedType(value.clone()))?),
+                .ok_or(RuntimeError::UnexpectedType(value.get_type()))?),
             None => None,
         }
     }};
@@ -71,7 +71,7 @@ macro_rules! invoke {
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
             .to_bool()
-            .ok_or(RuntimeError::UnexpectedType(value.clone()))?
+            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
     }};
     ($map: ident, $name: ident=point) => {{
         let value = $map
@@ -79,7 +79,7 @@ macro_rules! invoke {
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
             .to_point()
-            .ok_or(RuntimeError::UnexpectedType(value.clone()))?
+            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
     }};
     ($map: ident, $name: ident=shape) => {{
         let value = $map
@@ -87,7 +87,7 @@ macro_rules! invoke {
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
             .to_shape()
-            .ok_or(RuntimeError::UnexpectedType(value.clone()))?
+            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
     }};
     ($map: ident, $name: ident=edge) => {{
         let value = $map
@@ -95,7 +95,7 @@ macro_rules! invoke {
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
             .to_line()
-            .ok_or(RuntimeError::UnexpectedType(value.clone()))?
+            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
     }};
     ($func: path[$($name: ident=$value: ident), *]) => {&|_a|{
         $(let $name = invoke!(_a, $name=$value);)*
