@@ -7,6 +7,7 @@ use crate::syntax::Accessible;
 use crate::syntax::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::rc::Rc;
 use thiserror::Error;
@@ -34,6 +35,15 @@ impl ScriptInstance {
 
     pub fn value(&self) -> &Value {
         &self.value
+    }
+}
+
+impl Display for ScriptInstance {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.value
+            .to_output()
+            .map_err(|_| std::fmt::Error::default())?
+            .fmt(f)
     }
 }
 

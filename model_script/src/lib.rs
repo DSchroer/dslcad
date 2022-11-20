@@ -73,6 +73,21 @@ mod tests {
     }
 
     #[test]
+    fn it_has_boolean_algebra() {
+        assert_eq!("true", &run("true;").to_string());
+        assert_eq!("false", &run("false;").to_string());
+
+        assert_eq!("false", &run("true and false;").to_string());
+        assert_eq!("true", &run("true and true;").to_string());
+
+        assert_eq!("true", &run("true or false;").to_string());
+        assert_eq!("true", &run("true or true;").to_string());
+
+        assert_eq!("true", &run("not false;").to_string());
+        assert_eq!("true", &run("not false or false;").to_string());
+    }
+
+    #[test]
     fn it_has_math() {
         run("less_or_equal(left=10,right=10);");
         run("pi();");
