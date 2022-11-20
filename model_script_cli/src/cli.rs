@@ -1,5 +1,5 @@
 use clap::Parser;
-use model_script::{eval, parse, Output};
+use model_script::{Output, DSLCAD};
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::path::Path;
@@ -19,8 +19,8 @@ struct Args {
 
 pub(crate) fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-    let ast = parse(&args.source)?;
-    let model = eval(ast)?;
+    let mut cad = DSLCAD::default();
+    let model = cad.render_file(&args.source)?;
     match model {
         Output::Value(v) => println!("{}", v),
         Output::Figure(_) => todo!(),

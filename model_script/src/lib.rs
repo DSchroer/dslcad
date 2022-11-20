@@ -4,37 +4,79 @@ mod parser;
 mod runtime;
 mod syntax;
 
-use crate::parser::{Ast, ParseError};
+use crate::parser::ParseError;
 use crate::runtime::{EvalContext, RuntimeError};
 use parser::Reader;
 use path_absolutize::Absolutize;
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
 pub use crate::library::Library;
 pub use crate::syntax::Output;
 
-pub fn parse(path: &str) -> Result<Ast, ParseError> {
-    let parser = parser::Parser::new(path, &FileReader);
-    parser.parse()
+#[derive(Error, Debug)]
+pub enum Error {
+    Parse(ParseError),
+    Runtime(RuntimeError),
 }
 
-pub fn eval(ast: Ast) -> Result<Output, RuntimeError> {
-    let ctx = EvalContext {
-        documents: ast.documents(),
-        library: Library::new(),
-    };
-    let main = ast.root_document();
-
-    let output = runtime::eval(main, HashMap::new(), &ctx)?
-        .value()
-        .to_output()
-        .map_err(|_| RuntimeError::CantWrite())?;
-    Ok(output)
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Parse(p) => Display::fmt(p, f),
+            Error::Runtime(r) => Display::fmt(r, f),
+        }
+    }
 }
 
-struct FileReader;
+pub struct DSLCAD<R: Reader> {
+    reader: R,
+    paths: Vec<String>,
+}
+
+impl Default for DSLCAD<FileReader> {
+    fn default() -> Self {
+        DSLCAD::<FileReader>::with_reader(FileReader)
+    }
+}
+
+impl<R: Reader> DSLCAD<R> {
+    pub fn with_reader(reader: R) -> Self {
+        DSLCAD {
+            reader,
+            paths: Vec::new(),
+        }
+    }
+
+    pub fn render_file(&mut self, path: &str) -> Result<Output, Error> {
+        let parser = parser::Parser::new(path, &self.reader);
+        let ast = parser.parse().map_err(Error::Parse)?;
+
+        self.paths = ast.documents().keys().cloned().collect();
+
+        let ctx = EvalContext {
+            documents: ast.documents(),
+            library: Library::new(),
+        };
+        let main = ast.root_document();
+
+        let output = runtime::eval(main, HashMap::new(), &ctx)
+            .map_err(Error::Runtime)?
+            .value()
+            .to_output()
+            .map_err(|_| Error::Runtime(RuntimeError::CantWrite()))?;
+        Ok(output)
+    }
+
+    pub fn documents(&self) -> impl Iterator<Item = &str> {
+        self.paths.iter().map(|p| p.as_str())
+    }
+}
+
+pub struct FileReader;
 impl Reader for FileReader {
     fn read(&self, name: &Path) -> Result<String, std::io::Error> {
         fs::read_to_string(name)

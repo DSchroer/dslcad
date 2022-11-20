@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use bevy_polyline::prelude::*;
 use file_watcher::{FileWatcher, FileWatcherPlugin};
 use gui::UiEvent;
-use model_script::{eval, parse, Output};
+use model_script::{Output, DSLCAD};
 use rfd::FileDialog;
 use std::env;
 use std::error::Error;
@@ -203,69 +203,64 @@ fn display_file(
     let mut files = None;
 
     if let Some(file) = &state.file {
-        match parse(file.to_str().unwrap()) {
-            Err(e) => state.output = e.to_string(),
-            Ok(ast) => {
-                files = Some(ast.documents().keys().map(PathBuf::from).collect());
+        let mut cad = DSLCAD::default();
+        let model = cad.render_file(file.to_str().unwrap());
+        files = Some(cad.documents().map(PathBuf::from).collect());
 
-                match eval(ast) {
-                    Ok(model) => match model {
-                        Output::Value(s) => state.output = s,
-                        Output::Figure(lines) => {
-                            let mut model = commands.spawn(SpatialBundle::default());
-                            model.add_children(|builder| {
-                                for line in lines {
-                                    builder.spawn(PolylineBundle {
-                                        polyline: polylines.add(Polyline {
-                                            vertices: line
-                                                .iter()
-                                                .map(|p| {
-                                                    Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32)
-                                                })
-                                                .collect(),
-                                        }),
-                                        material: polyline_materials.add(PolylineMaterial {
-                                            width: 2.0,
-                                            color: Blueprint::white(),
-                                            perspective: false,
-                                            ..Default::default()
-                                        }),
-                                        transform: Transform::from_rotation(Quat::from_euler(
-                                            EulerRot::XYZ,
-                                            -std::f32::consts::PI / 2.,
-                                            0.0,
-                                            -std::f32::consts::PI / 2.,
-                                        )),
-                                        ..Default::default()
-                                    });
-                                }
-                            });
-                            state.model = Some(model.id());
-                            state.output.clear();
-                        }
-                        Output::Shape(mesh) => {
-                            let mesh = stl_to_triangle_mesh(&mesh);
-
-                            let model = commands
-                                .spawn(PbrBundle {
-                                    mesh: meshes.add(mesh),
-                                    material: materials.add(Blueprint::white().into()),
-                                    transform: Transform::from_rotation(Quat::from_euler(
-                                        EulerRot::XYZ,
-                                        -std::f32::consts::PI / 2.,
-                                        0.0,
-                                        -std::f32::consts::PI / 2.,
-                                    )),
+        match model {
+            Ok(model) => match model {
+                Output::Value(s) => state.output = s,
+                Output::Figure(lines) => {
+                    let mut model = commands.spawn(SpatialBundle::default());
+                    model.add_children(|builder| {
+                        for line in lines {
+                            builder.spawn(PolylineBundle {
+                                polyline: polylines.add(Polyline {
+                                    vertices: line
+                                        .iter()
+                                        .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))
+                                        .collect(),
+                                }),
+                                material: polyline_materials.add(PolylineMaterial {
+                                    width: 2.0,
+                                    color: Blueprint::white(),
+                                    perspective: false,
                                     ..Default::default()
-                                })
-                                .id();
-                            state.model = Some(model);
-                            state.output.clear();
+                                }),
+                                transform: Transform::from_rotation(Quat::from_euler(
+                                    EulerRot::XYZ,
+                                    -std::f32::consts::PI / 2.,
+                                    0.0,
+                                    -std::f32::consts::PI / 2.,
+                                )),
+                                ..Default::default()
+                            });
                         }
-                    },
-                    Err(e) => state.output = format!("{:?}", e),
+                    });
+                    state.model = Some(model.id());
+                    state.output.clear();
                 }
-            }
+                Output::Shape(mesh) => {
+                    let mesh = stl_to_triangle_mesh(&mesh);
+
+                    let model = commands
+                        .spawn(PbrBundle {
+                            mesh: meshes.add(mesh),
+                            material: materials.add(Blueprint::white().into()),
+                            transform: Transform::from_rotation(Quat::from_euler(
+                                EulerRot::XYZ,
+                                -std::f32::consts::PI / 2.,
+                                0.0,
+                                -std::f32::consts::PI / 2.,
+                            )),
+                            ..Default::default()
+                        })
+                        .id();
+                    state.model = Some(model);
+                    state.output.clear();
+                }
+            },
+            Err(e) => state.output = format!("{:?}", e),
         }
     }
 
