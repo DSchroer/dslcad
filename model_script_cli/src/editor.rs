@@ -1,9 +1,11 @@
 mod camera;
 mod file_watcher;
 mod gui;
+mod point_render;
 mod stl;
 mod xyz;
 
+use crate::editor::point_render::PointMaterial;
 use bevy::prelude::*;
 use bevy_polyline::prelude::*;
 use file_watcher::{FileWatcher, FileWatcherPlugin};
@@ -48,6 +50,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .add_plugin(gui::GuiPlugin)
         .add_plugin(xyz::XYZPlugin)
         .add_plugin(FileWatcherPlugin)
+        .add_plugin(point_render::PointRenderPlugin)
         .add_system(controller)
         .run();
     Ok(())
@@ -74,6 +77,7 @@ impl State {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn controller(
     mut events: EventReader<UiEvent>,
     mut commands: Commands,
@@ -82,6 +86,7 @@ fn controller(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
     mut polylines: ResMut<Assets<Polyline>>,
+    mut point_materials: ResMut<Assets<PointMaterial>>,
 ) {
     for event in events.iter() {
         match event {
@@ -99,6 +104,7 @@ fn controller(
                         &mut materials,
                         &mut polyline_materials,
                         &mut polylines,
+                        &mut point_materials,
                         file,
                     );
                 }
@@ -113,6 +119,7 @@ fn controller(
                         &mut materials,
                         &mut polyline_materials,
                         &mut polylines,
+                        &mut point_materials,
                         file,
                     );
                 }
@@ -126,12 +133,14 @@ fn controller(
                     &mut materials,
                     &mut polyline_materials,
                     &mut polylines,
+                    &mut point_materials,
                 );
             }
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn load_file(
     commands: &mut Commands,
     state: &mut ResMut<State>,
@@ -139,6 +148,7 @@ fn load_file(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     polyline_materials: &mut ResMut<Assets<PolylineMaterial>>,
     polylines: &mut ResMut<Assets<Polyline>>,
+    point_materials: &mut ResMut<Assets<PointMaterial>>,
     file: PathBuf,
 ) {
     state
@@ -157,6 +167,7 @@ fn load_file(
         materials,
         polyline_materials,
         polylines,
+        point_materials,
     );
     if let Some(files) = files {
         for file in files {
@@ -199,6 +210,7 @@ fn display_file(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     polyline_materials: &mut ResMut<Assets<PolylineMaterial>>,
     polylines: &mut ResMut<Assets<Polyline>>,
+    point_materials: &mut ResMut<Assets<PointMaterial>>,
 ) -> Option<Vec<PathBuf>> {
     let mut files = None;
 
@@ -214,27 +226,54 @@ fn display_file(
                     let mut model = commands.spawn(SpatialBundle::default());
                     model.add_children(|builder| {
                         for line in lines {
-                            builder.spawn(PolylineBundle {
-                                polyline: polylines.add(Polyline {
-                                    vertices: line
-                                        .iter()
-                                        .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))
-                                        .collect(),
-                                }),
-                                material: polyline_materials.add(PolylineMaterial {
-                                    width: 2.0,
-                                    color: Blueprint::white(),
-                                    perspective: false,
-                                    ..Default::default()
-                                }),
-                                transform: Transform::from_rotation(Quat::from_euler(
-                                    EulerRot::XYZ,
-                                    -std::f32::consts::PI / 2.,
-                                    0.0,
-                                    -std::f32::consts::PI / 2.,
-                                )),
-                                ..Default::default()
-                            });
+                            match line.len() {
+                                1 => {
+                                    builder.spawn(MaterialMeshBundle {
+                                        mesh: meshes.add(
+                                            shape::UVSphere {
+                                                radius: 1.0,
+                                                sectors: 12,
+                                                stacks: 12,
+                                            }
+                                            .into(),
+                                        ),
+                                        material: point_materials.add(PointMaterial {
+                                            color: Blueprint::white(),
+                                        }),
+                                        transform: Transform::from_translation(Vec3::new(
+                                            line[0][1] as f32, // couldnt get the transform to work so I just transposed the vectors
+                                            line[0][2] as f32,
+                                            line[0][0] as f32,
+                                        )),
+                                        ..Default::default()
+                                    });
+                                }
+                                _ => {
+                                    builder.spawn(PolylineBundle {
+                                        polyline: polylines.add(Polyline {
+                                            vertices: line
+                                                .iter()
+                                                .map(|p| {
+                                                    Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32)
+                                                })
+                                                .collect(),
+                                        }),
+                                        material: polyline_materials.add(PolylineMaterial {
+                                            width: 2.0,
+                                            color: Blueprint::white(),
+                                            perspective: false,
+                                            ..Default::default()
+                                        }),
+                                        transform: Transform::from_rotation(Quat::from_euler(
+                                            EulerRot::XYZ,
+                                            -std::f32::consts::PI / 2.,
+                                            0.0,
+                                            -std::f32::consts::PI / 2.,
+                                        )),
+                                        ..Default::default()
+                                    });
+                                }
+                            }
                         }
                     });
                     state.model = Some(model.id());
