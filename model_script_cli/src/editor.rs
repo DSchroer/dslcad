@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use bevy_polyline::prelude::*;
 use file_watcher::{FileWatcher, FileWatcherPlugin};
 use gui::UiEvent;
-use model_script::{Output, DSLCAD};
+use model_script::DSLCAD;
 use rfd::FileDialog;
 use std::env;
 use std::error::Error;
@@ -220,85 +220,68 @@ fn display_file(
         files = Some(cad.documents().map(PathBuf::from).collect());
 
         match model {
-            Ok(model) => match model {
-                Output::Value(s) => state.output = s,
-                Output::Figure(lines) => {
-                    let mut model = commands.spawn(SpatialBundle::default());
-                    model.add_children(|builder| {
-                        for line in lines {
-                            match line.len() {
-                                1 => {
-                                    builder.spawn(MaterialMeshBundle {
-                                        mesh: meshes.add(
-                                            shape::UVSphere {
-                                                radius: 1.0,
-                                                sectors: 12,
-                                                stacks: 12,
-                                            }
-                                            .into(),
-                                        ),
-                                        material: point_materials.add(PointMaterial {
-                                            color: Blueprint::white(),
-                                        }),
-                                        transform: Transform::from_translation(Vec3::new(
-                                            line[0][1] as f32, // couldnt get the transform to work so I just transposed the vectors
-                                            line[0][2] as f32,
-                                            line[0][0] as f32,
-                                        )),
-                                        ..Default::default()
-                                    });
-                                }
-                                _ => {
-                                    builder.spawn(PolylineBundle {
-                                        polyline: polylines.add(Polyline {
-                                            vertices: line
-                                                .iter()
-                                                .map(|p| {
-                                                    Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32)
-                                                })
-                                                .collect(),
-                                        }),
-                                        material: polyline_materials.add(PolylineMaterial {
-                                            width: 2.0,
-                                            color: Blueprint::white(),
-                                            perspective: false,
-                                            ..Default::default()
-                                        }),
-                                        transform: Transform::from_rotation(Quat::from_euler(
-                                            EulerRot::XYZ,
-                                            -std::f32::consts::PI / 2.,
-                                            0.0,
-                                            -std::f32::consts::PI / 2.,
-                                        )),
-                                        ..Default::default()
-                                    });
-                                }
-                            }
-                        }
-                    });
-                    state.model = Some(model.id());
-                    state.output.clear();
-                }
-                Output::Shape(mesh) => {
-                    let mesh = stl_to_triangle_mesh(&mesh);
+            Ok(model) => {
+                state.output = model.text().to_string();
 
-                    let model = commands
-                        .spawn(PbrBundle {
-                            mesh: meshes.add(mesh),
-                            material: materials.add(Blueprint::white().into()),
-                            transform: Transform::from_rotation(Quat::from_euler(
-                                EulerRot::XYZ,
-                                -std::f32::consts::PI / 2.,
-                                0.0,
-                                -std::f32::consts::PI / 2.,
+                let mut bundle = commands.spawn(SpatialBundle {
+                    transform: Transform::from_rotation(Quat::from_euler(
+                        EulerRot::XYZ,
+                        -std::f32::consts::FRAC_PI_2,
+                        0.0,
+                        -std::f32::consts::FRAC_PI_2,
+                    )),
+                    ..Default::default()
+                });
+                bundle.add_children(|builder| {
+                    for point in model.points() {
+                        builder.spawn(MaterialMeshBundle {
+                            mesh: meshes.add(
+                                shape::UVSphere {
+                                    radius: 1.0,
+                                    sectors: 12,
+                                    stacks: 12,
+                                }
+                                .into(),
+                            ),
+                            material: point_materials.add(PointMaterial {
+                                color: Blueprint::white(),
+                            }),
+                            transform: Transform::from_translation(Vec3::new(
+                                point[0] as f32,
+                                point[1] as f32,
+                                point[2] as f32,
                             )),
                             ..Default::default()
-                        })
-                        .id();
-                    state.model = Some(model);
-                    state.output.clear();
-                }
-            },
+                        });
+                    }
+
+                    for line in model.lines() {
+                        builder.spawn(PolylineBundle {
+                            polyline: polylines.add(Polyline {
+                                vertices: line
+                                    .iter()
+                                    .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))
+                                    .collect(),
+                            }),
+                            material: polyline_materials.add(PolylineMaterial {
+                                width: 2.0,
+                                color: Blueprint::white(),
+                                perspective: false,
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        });
+                    }
+
+                    let mesh = stl_to_triangle_mesh(model.mesh());
+
+                    builder.spawn(PbrBundle {
+                        mesh: meshes.add(mesh),
+                        material: materials.add(Blueprint::white().into()),
+                        ..Default::default()
+                    });
+                });
+            }
             Err(e) => state.output = format!("{:?}", e),
         }
     }

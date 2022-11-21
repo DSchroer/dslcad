@@ -1,5 +1,5 @@
 use clap::Parser;
-use model_script::{Output, DSLCAD};
+use model_script::DSLCAD;
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::path::Path;
@@ -21,30 +21,26 @@ pub(crate) fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let mut cad = DSLCAD::default();
     let model = cad.render_file(&args.source)?;
-    match model {
-        Output::Value(v) => println!("{}", v),
-        Output::Figure(_) => todo!(),
-        Output::Shape(mesh) => {
-            let mut triangles = Vec::new();
+    println!("{}", &model);
 
-            for face in &mesh.faces {
-                triangles.push(Triangle {
-                    normal: face.normal,
-                    vertices: [
-                        mesh.vertices[face.vertices[0]],
-                        mesh.vertices[face.vertices[1]],
-                        mesh.vertices[face.vertices[2]],
-                    ],
-                })
-            }
-
-            let outpath = Path::new(&args.out).with_extension("stl");
-            let mut file = OpenOptions::new()
-                .create_new(true)
-                .write(true)
-                .open(outpath)?;
-            stl_io::write_stl(&mut file, triangles.iter())?
-        }
+    let mut triangles = Vec::new();
+    let mesh = model.mesh();
+    for face in &mesh.faces {
+        triangles.push(Triangle {
+            normal: face.normal,
+            vertices: [
+                mesh.vertices[face.vertices[0]],
+                mesh.vertices[face.vertices[1]],
+                mesh.vertices[face.vertices[2]],
+            ],
+        })
     }
+
+    let outpath = Path::new(&args.out).with_extension("stl");
+    let mut file = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(outpath)?;
+    stl_io::write_stl(&mut file, triangles.iter())?;
     Ok(())
 }

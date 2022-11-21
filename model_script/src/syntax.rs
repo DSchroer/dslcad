@@ -65,18 +65,15 @@ impl Debug for Value {
 impl Value {
     pub fn to_output(&self) -> Result<Output, io::Error> {
         Ok(match self {
-            Value::Number(v) => Output::Value(v.to_string()),
-            Value::Bool(v) => Output::Value(v.to_string()),
-            Value::Text(v) => Output::Value(v.to_string()),
+            Value::Number(v) => v.into(),
+            Value::Bool(v) => v.into(),
+            Value::Text(v) => v.into(),
 
             Value::Script(s) => s.borrow().value().to_output()?,
 
-            Value::Point(p) => {
-                Output::Figure(vec![vec![[p.borrow().x(), p.borrow().y(), p.borrow().z()]]])
-            }
-            Value::Line(l) => Output::Figure(l.borrow_mut().points()),
-
-            Value::Shape(s) => Output::Shape(s.borrow_mut().mesh()?),
+            Value::Point(p) => p.borrow().into(),
+            Value::Line(l) => l.borrow_mut().into(),
+            Value::Shape(s) => s.borrow_mut().try_into()?,
         })
     }
 
