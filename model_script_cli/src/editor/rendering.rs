@@ -43,18 +43,18 @@ fn render_controller(
                     commands.entity(id).despawn_recursive();
                     render_state.model = None;
                 }
+                let mut bundle = commands.spawn(SpatialBundle {
+                    transform: Transform::from_rotation(Quat::from_euler(
+                        EulerRot::XYZ,
+                        -std::f32::consts::FRAC_PI_2,
+                        0.0,
+                        -std::f32::consts::FRAC_PI_2,
+                    )),
+                    ..Default::default()
+                });
+                render_state.model = Some(bundle.id());
 
                 if let Some(Ok(model)) = &state.output {
-                    let mut bundle = commands.spawn(SpatialBundle {
-                        transform: Transform::from_rotation(Quat::from_euler(
-                            EulerRot::XYZ,
-                            -std::f32::consts::FRAC_PI_2,
-                            0.0,
-                            -std::f32::consts::FRAC_PI_2,
-                        )),
-                        ..Default::default()
-                    });
-                    render_state.model = Some(bundle.id());
                     bundle.add_children(|builder| {
                         if state.show_points {
                             for point in model.points() {
