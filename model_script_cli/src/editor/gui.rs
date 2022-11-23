@@ -1,3 +1,4 @@
+use crate::editor::rendering::RenderCommand;
 use crate::editor::State;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
@@ -37,6 +38,7 @@ fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
 fn ui_example(
     mut egui_context: ResMut<EguiContext>,
     mut events: EventWriter<UiEvent>,
+    mut render_events: EventWriter<RenderCommand>,
     mut state: ResMut<State>,
 ) {
     egui::TopBottomPanel::top("Tools").show(egui_context.ctx_mut(), |ui| {
@@ -51,12 +53,25 @@ fn ui_example(
                     ui.close_menu();
                 }
             });
-            ui.separator();
-            if ui.button("Render (F5)").clicked() {
-                events.send(UiEvent::Render());
-            }
-
-            ui.checkbox(&mut state.autowatch, "Auto Render");
+            ui.menu_button("View", |ui| {
+                if ui.checkbox(&mut state.show_points, "Points").clicked() {
+                    render_events.send(RenderCommand::Redraw);
+                }
+                if ui.checkbox(&mut state.show_lines, "Lines").clicked() {
+                    render_events.send(RenderCommand::Redraw);
+                }
+                if ui.checkbox(&mut state.show_mesh, "Mesh").clicked() {
+                    render_events.send(RenderCommand::Redraw);
+                }
+            });
+            ui.menu_button("Rendering", |ui| {
+                if ui.button("Render (F5)").clicked() {
+                    events.send(UiEvent::Render());
+                    ui.close_menu();
+                }
+                ui.separator();
+                ui.checkbox(&mut state.autowatch, "Auto Render");
+            });
         });
     });
 }
@@ -67,8 +82,14 @@ fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {
         ui.separator();
         egui::ScrollArea::vertical()
             .max_height(256.)
-            .show(ui, |ui| {
-                ui.monospace(&state.output);
+            .show(ui, |ui| match &state.output {
+                None => {}
+                Some(output) => {
+                    match output {
+                        Ok(o) => ui.monospace(o.text()),
+                        Err(e) => ui.monospace(&e.to_string()),
+                    };
+                }
             });
     });
 }

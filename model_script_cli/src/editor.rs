@@ -2,21 +2,21 @@ mod camera;
 mod file_watcher;
 mod gui;
 mod point_render;
+mod rendering;
 mod stl;
 mod xyz;
 
-use crate::editor::point_render::PointMaterial;
+use crate::editor::rendering::RenderCommand;
 use bevy::prelude::*;
 use bevy_polyline::prelude::*;
 use file_watcher::{FileWatcher, FileWatcherPlugin};
 use gui::UiEvent;
-use model_script::DSLCAD;
+use model_script::{Output, DSLCAD};
 use rfd::FileDialog;
 use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
-use stl::stl_to_triangle_mesh;
 
 struct Blueprint;
 impl Blueprint {
@@ -51,6 +51,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .add_plugin(xyz::XYZPlugin)
         .add_plugin(FileWatcherPlugin)
         .add_plugin(point_render::PointRenderPlugin)
+        .add_plugin(rendering::ModelRenderingPlugin)
         .add_system(controller)
         .run();
     Ok(())
@@ -59,98 +60,61 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 #[derive(Resource)]
 struct State {
     file: Option<PathBuf>,
-    model: Option<Entity>,
-    output: String,
+    output: Option<Result<Output, model_script::Error>>,
     autowatch: bool,
     watcher: Option<FileWatcher>,
+
+    show_points: bool,
+    show_lines: bool,
+    show_mesh: bool,
 }
 
 impl State {
     pub fn new() -> Self {
         State {
             file: None,
-            model: None,
-            output: String::new(),
+            output: None,
             autowatch: true,
             watcher: None,
+            show_points: true,
+            show_lines: true,
+            show_mesh: true,
         }
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn controller(
     mut events: EventReader<UiEvent>,
-    mut commands: Commands,
+    mut render: EventWriter<RenderCommand>,
     mut state: ResMut<State>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
-    mut polylines: ResMut<Assets<Polyline>>,
-    mut point_materials: ResMut<Assets<PointMaterial>>,
 ) {
     for event in events.iter() {
         match event {
             UiEvent::CreateFile() => {
-                let file = file_dialog(&state).save_file();
-
-                if let Some(file) = file {
+                if let Some(file) = file_dialog(&state).save_file() {
                     let file = file.with_extension(model_script::constants::FILE_EXTENSION);
                     File::create(&file).unwrap();
 
-                    load_file(
-                        &mut commands,
-                        &mut state,
-                        &mut meshes,
-                        &mut materials,
-                        &mut polyline_materials,
-                        &mut polylines,
-                        &mut point_materials,
-                        file,
-                    );
+                    load_file(&mut state, file);
+                    render.send(RenderCommand::Redraw);
                 }
             }
             UiEvent::OpenFile() => {
                 let file = file_dialog(&state).pick_file();
                 if let Some(file) = file {
-                    load_file(
-                        &mut commands,
-                        &mut state,
-                        &mut meshes,
-                        &mut materials,
-                        &mut polyline_materials,
-                        &mut polylines,
-                        &mut point_materials,
-                        file,
-                    );
+                    load_file(&mut state, file);
+                    render.send(RenderCommand::Redraw);
                 }
             }
             UiEvent::Render() => {
-                clear_model(&mut commands, &mut state);
-                display_file(
-                    &mut commands,
-                    &mut state,
-                    &mut meshes,
-                    &mut materials,
-                    &mut polyline_materials,
-                    &mut polylines,
-                    &mut point_materials,
-                );
+                render_file(&mut state);
+                render.send(RenderCommand::Redraw);
             }
         }
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn load_file(
-    commands: &mut Commands,
-    state: &mut ResMut<State>,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    polyline_materials: &mut ResMut<Assets<PolylineMaterial>>,
-    polylines: &mut ResMut<Assets<Polyline>>,
-    point_materials: &mut ResMut<Assets<PointMaterial>>,
-    file: PathBuf,
-) {
+fn load_file(state: &mut ResMut<State>, file: PathBuf) {
     state
         .watcher
         .as_mut()
@@ -159,16 +123,7 @@ fn load_file(
         .expect("failed to clear watcher");
     state.file = Some(file);
 
-    clear_model(commands, state);
-    let files = display_file(
-        commands,
-        state,
-        meshes,
-        materials,
-        polyline_materials,
-        polylines,
-        point_materials,
-    );
+    let files = render_file(state);
     if let Some(files) = files {
         for file in files {
             state
@@ -196,96 +151,14 @@ fn file_dialog(state: &State) -> FileDialog {
         .set_directory(dir)
 }
 
-fn clear_model(commands: &mut Commands, state: &mut ResMut<State>) {
-    if let Some(id) = state.model {
-        commands.entity(id).despawn_recursive();
-        state.model = None;
-    }
-}
-
-fn display_file(
-    commands: &mut Commands,
-    state: &mut ResMut<State>,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    polyline_materials: &mut ResMut<Assets<PolylineMaterial>>,
-    polylines: &mut ResMut<Assets<Polyline>>,
-    point_materials: &mut ResMut<Assets<PointMaterial>>,
-) -> Option<Vec<PathBuf>> {
+fn render_file(state: &mut ResMut<State>) -> Option<Vec<PathBuf>> {
     let mut files = None;
 
     if let Some(file) = &state.file {
         let mut cad = DSLCAD::default();
         let model = cad.render_file(file.to_str().unwrap());
         files = Some(cad.documents().map(PathBuf::from).collect());
-
-        match model {
-            Ok(model) => {
-                state.output = model.text().to_string();
-
-                let mut bundle = commands.spawn(SpatialBundle {
-                    transform: Transform::from_rotation(Quat::from_euler(
-                        EulerRot::XYZ,
-                        -std::f32::consts::FRAC_PI_2,
-                        0.0,
-                        -std::f32::consts::FRAC_PI_2,
-                    )),
-                    ..Default::default()
-                });
-                bundle.add_children(|builder| {
-                    for point in model.points() {
-                        builder.spawn(MaterialMeshBundle {
-                            mesh: meshes.add(
-                                shape::UVSphere {
-                                    radius: 1.0,
-                                    sectors: 3,
-                                    stacks: 3,
-                                }
-                                .into(),
-                            ),
-                            material: point_materials.add(PointMaterial {
-                                color: Blueprint::black(),
-                            }),
-                            transform: Transform::from_translation(Vec3::new(
-                                point[0] as f32,
-                                point[1] as f32,
-                                point[2] as f32,
-                            )),
-                            ..Default::default()
-                        });
-                    }
-
-                    for line in model.lines() {
-                        builder.spawn(PolylineBundle {
-                            polyline: polylines.add(Polyline {
-                                vertices: line
-                                    .iter()
-                                    .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))
-                                    .collect(),
-                            }),
-                            material: polyline_materials.add(PolylineMaterial {
-                                width: 2.0,
-                                color: Blueprint::white(),
-                                perspective: false,
-                                ..Default::default()
-                            }),
-                            ..Default::default()
-                        });
-                    }
-
-                    let mesh = stl_to_triangle_mesh(model.mesh());
-
-                    builder.spawn(PbrBundle {
-                        mesh: meshes.add(mesh),
-                        material: materials.add(Blueprint::white().into()),
-                        ..Default::default()
-                    });
-                });
-
-                state.model = Some(bundle.id());
-            }
-            Err(e) => state.output = format!("{:?}", e),
-        }
+        state.output = Some(model);
     }
 
     files
