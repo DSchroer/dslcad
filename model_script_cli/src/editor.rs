@@ -238,13 +238,13 @@ fn display_file(
                             mesh: meshes.add(
                                 shape::UVSphere {
                                     radius: 1.0,
-                                    sectors: 12,
-                                    stacks: 12,
+                                    sectors: 3,
+                                    stacks: 3,
                                 }
                                 .into(),
                             ),
                             material: point_materials.add(PointMaterial {
-                                color: Blueprint::white(),
+                                color: Blueprint::black(),
                             }),
                             transform: Transform::from_translation(Vec3::new(
                                 point[0] as f32,
@@ -281,6 +281,8 @@ fn display_file(
                         ..Default::default()
                     });
                 });
+
+                state.model = Some(bundle.id());
             }
             Err(e) => state.output = format!("{:?}", e),
         }

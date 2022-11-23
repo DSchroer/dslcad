@@ -25,7 +25,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     let w = (view.view_proj * mesh.model * vec4<f32>(0.0, 0.0, 0.0, 1.0)).w;
 
     var out: VertexOutput;
-    out.clip_position = mesh_position_local_to_clip(mesh.model, vec4<f32>(vertex.position * w * 0.005, 1.0));
+    out.clip_position = mesh_position_local_to_clip(mesh.model, vec4<f32>(vertex.position * w * 0.002, 1.0));
     return out;
 }
 

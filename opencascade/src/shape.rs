@@ -8,8 +8,9 @@ use opencascade_sys::ffi::{
     BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
     BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
     BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
-    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, StlAPI_Writer_ctor, TopAbs_ShapeEnum,
-    TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge,
+    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt, StlAPI_Writer_ctor,
+    TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge,
+    TopoDS_cast_to_vertex,
 };
 use std::env;
 use std::fs::File;
@@ -178,6 +179,20 @@ impl Shape {
 
         let stl = stl_io::read_stl(&mut file).unwrap();
         Ok(stl)
+    }
+
+    pub fn points(&mut self) -> Vec<[f64; 3]> {
+        let mut points = Vec::new();
+
+        let mut edge_explorer = TopExp_Explorer_ctor(self.shape(), TopAbs_ShapeEnum::TopAbs_VERTEX);
+        while edge_explorer.More() {
+            let vertex = TopoDS_cast_to_vertex(edge_explorer.Current());
+            let point: Point = BRep_Tool_Pnt(vertex).into();
+            points.push(point.into());
+            edge_explorer.pin_mut().Next();
+        }
+
+        points
     }
 
     fn shape(&mut self) -> &TopoDS_Shape {

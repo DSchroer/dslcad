@@ -5,13 +5,16 @@ var baseRadius = 72/2;
 var topHeight = 50;
 var topRadius = (89/2) + thickness;
 
-var base = cylinder(radius=baseRadius, height=baseHeight);
+var base = cylinder(radius=baseRadius, height=baseHeight)
+            ->shape translate(x=-baseRadius, y=-baseRadius);
 var top = cylinder(radius=topRadius, height=topHeight)
+            ->shape translate(x=-topRadius, y=-topRadius)
             ->shape translate(z=baseHeight);
 
 var cutout = cube(y=baseRadius, z=topHeight, x=topRadius)
             ->shape translate(y=-baseRadius/2)
             ->left union(right=cylinder(radius=baseRadius/2, height=topRadius)
+                ->shape translate(x=-baseRadius/2, y=-baseRadius/2)
                 ->shape rotate(y=90))
             ->shape translate(z=baseHeight + (topHeight * 0.7));
 
@@ -27,9 +30,10 @@ var face = line(start=a, end=b)
 
 var core = base
     ->left union(right=top)
-    ->left difference(right=cylinder(radius=baseRadius - thickness, height=topHeight + baseHeight))
+    ->left difference(right=cylinder(radius=baseRadius - thickness, height=topHeight + baseHeight)
+        ->shape translate(x=-(baseRadius - thickness), y=-(baseRadius - thickness)))
     ->left difference(right=cylinder(radius=topRadius - thickness, height=topHeight - thickness)
-        ->shape translate(z=baseHeight + thickness))
+        ->shape translate(x=-(topRadius - thickness), y=-(topRadius - thickness), z=baseHeight + thickness))
     ->left difference(right=cutout)
     ->left difference(right=cutout ->shape rotate(z=90))
     ->left difference(right=cutout ->shape rotate(z=180))
