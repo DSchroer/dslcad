@@ -52,6 +52,18 @@ pub fn difference(
     )))))
 }
 
+pub fn intersect(
+    left: Rc<RefCell<Shape>>,
+    right: Rc<RefCell<Shape>>,
+) -> Result<Value, RuntimeError> {
+    let mut left = left.borrow_mut();
+    let mut right = right.borrow_mut();
+
+    Ok(Value::Shape(Rc::new(RefCell::new(Shape::intersect(
+        &mut left, &mut right,
+    )))))
+}
+
 pub fn chamfer(shape: Rc<RefCell<Shape>>, radius: f64) -> Result<Value, RuntimeError> {
     let mut shape = shape.borrow_mut();
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::chamfer(

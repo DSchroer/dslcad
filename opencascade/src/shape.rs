@@ -1,17 +1,6 @@
 use crate::{Edge, Point};
 use cxx::UniquePtr;
-use opencascade_sys::ffi::{
-    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, write_stl, BRepAlgoAPI_Cut,
-    BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_MakeFace_wire,
-    BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer,
-    BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor,
-    BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
-    BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
-    BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
-    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt, StlAPI_Writer_ctor,
-    TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge,
-    TopoDS_cast_to_vertex,
-};
+use opencascade_sys::ffi::{BRepAlgoAPI_Common, gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, write_stl, BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt, StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge, TopoDS_cast_to_vertex, BRepAlgoAPI_Common_ctor};
 use std::env;
 use std::fs::File;
 use std::io::ErrorKind;
@@ -24,6 +13,7 @@ pub enum Shape {
     Sphere(UniquePtr<BRepPrimAPI_MakeSphere>),
     Fuse(UniquePtr<BRepAlgoAPI_Fuse>),
     Cut(UniquePtr<BRepAlgoAPI_Cut>),
+    Intersect(UniquePtr<BRepAlgoAPI_Common>),
     Fillet(UniquePtr<BRepFilletAPI_MakeFillet>),
     Chamfer(UniquePtr<BRepFilletAPI_MakeChamfer>),
     Transformed(UniquePtr<BRepBuilderAPI_Transform>),
@@ -59,6 +49,10 @@ impl Shape {
 
     pub fn cut(left: &mut Shape, right: &mut Shape) -> Shape {
         Shape::Cut(BRepAlgoAPI_Cut_ctor(left.shape(), right.shape()))
+    }
+
+    pub fn intersect(left: &mut Shape, right: &mut Shape) -> Shape {
+        Shape::Intersect(BRepAlgoAPI_Common_ctor(left.shape(), right.shape()))
     }
 
     pub fn extrude(wire: &mut Edge, x: f64, y: f64, z: f64) -> Shape {
@@ -202,6 +196,7 @@ impl Shape {
             Shape::Cylinder(c) => c.pin_mut().Shape(),
             Shape::Fuse(f) => f.pin_mut().Shape(),
             Shape::Cut(f) => f.pin_mut().Shape(),
+            Shape::Intersect(f) => f.pin_mut().Shape(),
             Shape::Fillet(f) => f.pin_mut().Shape(),
             Shape::Chamfer(f) => f.pin_mut().Shape(),
             Shape::Transformed(f) => f.pin_mut().Shape(),
@@ -310,6 +305,14 @@ mod tests {
         let mut b = Shape::cube(15., 15., 1.);
         let mut c = Shape::cylinder(10., 100.);
         let mut shape = Shape::cut(&mut b, &mut c);
+        shape.write_stl("./demo.stl").unwrap();
+    }
+
+    #[test]
+    fn it_can_write_intersect_stl() {
+        let mut b = Shape::cube(15., 15., 1.);
+        let mut c = Shape::cylinder(10., 100.);
+        let mut shape = Shape::intersect(&mut b, &mut c);
         shape.write_stl("./demo.stl").unwrap();
     }
 }
