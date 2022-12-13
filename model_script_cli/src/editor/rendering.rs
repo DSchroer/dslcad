@@ -150,7 +150,7 @@ fn line_renderer(
                             }),
                             material: polyline_materials.add(PolylineMaterial {
                                 width: 2.0,
-                                color: Blueprint::white(),
+                                color: Blueprint::black(),
                                 perspective: false,
                                 ..Default::default()
                             }),

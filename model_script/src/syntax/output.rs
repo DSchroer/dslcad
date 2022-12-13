@@ -79,6 +79,7 @@ impl TryFrom<RefMut<'_, Shape>> for Output {
     fn try_from(mut value: RefMut<'_, Shape>) -> Result<Self, Self::Error> {
         Ok(Output {
             points: value.points(),
+            lines: value.lines(),
             mesh: value.mesh()?,
             ..Default::default()
         })

@@ -9,8 +9,9 @@ use opencascade_sys::ffi::{
     BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder,
     BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
     BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
-    BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt, StlAPI_Writer_ctor, TopAbs_ShapeEnum,
-    TopExp_Explorer_ctor, TopoDS_Shape, TopoDS_cast_to_edge, TopoDS_cast_to_vertex,
+    BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt, HandleGeomCurve_Value,
+    StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Shape,
+    TopoDS_cast_to_edge, TopoDS_cast_to_vertex,
 };
 use std::env;
 use std::fs::File;
@@ -184,6 +185,40 @@ impl Shape {
 
         let stl = stl_io::read_stl(&mut file).unwrap();
         Ok(stl)
+    }
+
+    pub fn lines(&mut self) -> Vec<Vec<[f64; 3]>> {
+        let mut lines = Vec::new();
+
+        let mut edge_explorer = TopExp_Explorer_ctor(self.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+        while edge_explorer.More() {
+            let edge = TopoDS_cast_to_edge(edge_explorer.Current());
+
+            lines.push(Self::extract_line(edge));
+            edge_explorer.pin_mut().Next();
+
+            edge_explorer.pin_mut().Next();
+        }
+
+        lines
+    }
+
+    fn extract_line(edge: &TopoDS_Edge) -> Vec<[f64; 3]> {
+        let mut first = 0.;
+        let mut last = 0.;
+        let curve = BRep_Tool_Curve(edge, &mut first, &mut last);
+
+        let mut points = Vec::new();
+        let cuts = 50;
+        for u in 0..=cuts {
+            let point: Point = HandleGeomCurve_Value(
+                &curve,
+                first + (((last - first) / (cuts as f64)) * u as f64),
+            )
+            .into();
+            points.push(point.into())
+        }
+        points
     }
 
     pub fn points(&mut self) -> Vec<[f64; 3]> {
