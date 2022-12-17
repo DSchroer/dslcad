@@ -20,3 +20,4 @@ model-script = { path = "../model_script" }
 stl_io = "0.6.0"
 notify = "5.0.0-pre.15"
 bevy_polyline = "0.4.0"
+bevy_points = "0.1.1"

@@ -1,7 +1,6 @@
 mod camera;
 mod file_watcher;
 mod gui;
-mod point_render;
 mod rendering;
 mod stl;
 mod xyz;
@@ -50,7 +49,6 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .add_plugin(gui::GuiPlugin)
         .add_plugin(xyz::XYZPlugin)
         .add_plugin(FileWatcherPlugin)
-        .add_plugin(point_render::PointRenderPlugin)
         .add_plugin(rendering::ModelRenderingPlugin)
         .add_system(controller)
         .run();

@@ -623,6 +623,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_points"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9368ae005c1667827e498224ebc21b8c3a61cfd7dd8e1ef2c2ca3b02c55e67be"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_polyline"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2438,6 +2447,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_egui",
+ "bevy_points",
  "bevy_polyline",
  "clap",
  "model-script",

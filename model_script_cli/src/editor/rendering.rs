@@ -1,7 +1,8 @@
-use crate::editor::point_render::PointMaterial;
 use crate::editor::stl::stl_to_triangle_mesh;
 use crate::editor::Blueprint;
 use bevy::prelude::*;
+use bevy_points::prelude::*;
+use bevy::render::mesh::{PrimitiveTopology, VertexAttributeValues};
 use bevy_polyline::material::PolylineMaterial;
 use bevy_polyline::polyline::{Polyline, PolylineBundle};
 
@@ -9,7 +10,9 @@ pub struct ModelRenderingPlugin;
 
 impl Plugin for ModelRenderingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<RenderCommand>()
+        app
+            .add_plugin(PointsPlugin)
+            .add_event::<RenderCommand>()
             .add_event::<RenderEvents>()
             .insert_resource(RenderState { model: None })
             .add_system(render_controller)
@@ -75,7 +78,7 @@ fn point_renderer(
     render_state: Res<RenderState>,
     mut events: EventReader<RenderEvents>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut point_materials: ResMut<Assets<PointMaterial>>,
+    mut point_materials: ResMut<Assets<PointsMaterial>>,
 ) {
     for event in events.iter() {
         if let RenderEvents::Points = event {
@@ -91,27 +94,17 @@ fn point_renderer(
 
             if let Some(Ok(model)) = &state.output {
                 entity.add_children(|builder| {
-                    for point in model.points() {
-                        builder.spawn(MaterialMeshBundle {
-                            mesh: meshes.add(
-                                shape::UVSphere {
-                                    radius: 1.0,
-                                    sectors: 3,
-                                    stacks: 3,
-                                }
-                                .into(),
-                            ),
-                            material: point_materials.add(PointMaterial {
-                                color: Blueprint::black(),
-                            }),
-                            transform: Transform::from_translation(Vec3::new(
-                                point[0] as f32,
-                                point[1] as f32,
-                                point[2] as f32,
-                            )),
+                    builder.spawn(MaterialMeshBundle {
+                        mesh: meshes.add(PointsMesh::from_iter(model.points().iter().map(|p|Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))).into()),
+                        material: point_materials.add(PointsMaterial {
+                            point_size: 10.0,
+                            perspective: false,
+                            circle: true,
+                            color: Blueprint::black(),
                             ..Default::default()
-                        });
-                    }
+                        }),
+                        ..Default::default()
+                    });
                 });
             }
         }
