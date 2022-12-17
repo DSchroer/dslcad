@@ -9,9 +9,9 @@ use opencascade_sys::ffi::{
     BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder,
     BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
     BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
-    BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt, HandleGeomCurve_Value,
-    StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Shape,
-    TopoDS_cast_to_edge, TopoDS_cast_to_vertex,
+    BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt, HandleGeomCurve,
+    HandleGeomCurve_Value, StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge,
+    TopoDS_Shape, TopoDS_cast_to_edge, TopoDS_cast_to_vertex,
 };
 use std::env;
 use std::fs::File;
@@ -194,19 +194,23 @@ impl Shape {
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
 
-            lines.push(Self::extract_line(edge));
-            edge_explorer.pin_mut().Next();
-
+            if let Some(line) = Self::extract_line(edge) {
+                lines.push(line);
+            }
             edge_explorer.pin_mut().Next();
         }
 
         lines
     }
 
-    fn extract_line(edge: &TopoDS_Edge) -> Vec<[f64; 3]> {
+    fn extract_line(edge: &TopoDS_Edge) -> Option<Vec<[f64; 3]>> {
         let mut first = 0.;
         let mut last = 0.;
-        let curve = BRep_Tool_Curve(edge, &mut first, &mut last);
+        let (is_null, curve) =
+            unsafe { is_null_internal(BRep_Tool_Curve(edge, &mut first, &mut last)) };
+        if is_null {
+            return None;
+        }
 
         let mut points = Vec::new();
         let cuts = 50;
@@ -218,7 +222,7 @@ impl Shape {
             .into();
             points.push(point.into())
         }
-        points
+        Some(points)
     }
 
     pub fn points(&mut self) -> Vec<[f64; 3]> {
@@ -266,6 +270,19 @@ impl Shape {
             false => Err(std::io::Error::from(ErrorKind::Other)),
         }
     }
+}
+
+unsafe fn is_null_internal<T: cxx::memory::UniquePtrTarget>(
+    handle: UniquePtr<T>,
+) -> (bool, UniquePtr<T>) {
+    let mut is_null = false;
+
+    let handle_ptr = handle.into_raw();
+    let internal_addr: *const *const usize = handle_ptr.cast();
+    if (*internal_addr).is_null() {
+        is_null = true;
+    }
+    (is_null, UniquePtr::<T>::from_raw(handle_ptr))
 }
 
 #[cfg(test)]
