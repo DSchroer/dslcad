@@ -2,7 +2,7 @@ use crate::editor::stl::stl_to_triangle_mesh;
 use crate::editor::Blueprint;
 use bevy::prelude::*;
 use bevy_points::prelude::*;
-use bevy::render::mesh::{PrimitiveTopology, VertexAttributeValues};
+
 use bevy_polyline::material::PolylineMaterial;
 use bevy_polyline::polyline::{Polyline, PolylineBundle};
 
@@ -10,8 +10,7 @@ pub struct ModelRenderingPlugin;
 
 impl Plugin for ModelRenderingPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugin(PointsPlugin)
+        app.add_plugin(PointsPlugin)
             .add_event::<RenderCommand>()
             .add_event::<RenderEvents>()
             .insert_resource(RenderState { model: None })
@@ -95,7 +94,15 @@ fn point_renderer(
             if let Some(Ok(model)) = &state.output {
                 entity.add_children(|builder| {
                     builder.spawn(MaterialMeshBundle {
-                        mesh: meshes.add(PointsMesh::from_iter(model.points().iter().map(|p|Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))).into()),
+                        mesh: meshes.add(
+                            PointsMesh::from_iter(
+                                model
+                                    .points()
+                                    .iter()
+                                    .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32)),
+                            )
+                            .into(),
+                        ),
                         material: point_materials.add(PointsMaterial {
                             point_size: 10.0,
                             perspective: false,
