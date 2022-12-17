@@ -1,11 +1,11 @@
-# DSLCAD - DieselCAD
+# DSLCAD (Pronounced DieselCAD)
 
 DSLCAD is a programming language & interpreter for building 3D models.
-Inspired by OpenSCAD, it has a simple language and 3D viewer to 
-simplify the 3D modeling experience. 
 
-**WARNING!!!** DSLCAD is in very early stages. Documentation and usability is a work 
-in progress. There will be breaking changes. 
+Inspired by OpenSCAD, it has a simple language and 3D viewer to
+simplify the modeling experience.
+
+![screenshot](docs/screenshot.png)
 
 ## Installation
 
@@ -16,12 +16,12 @@ You can find pre-built binaries for:
 - MacOS
 - Linux
 
-Check out the cheatsheet.md file of the release for the latest command reference. 
+Check out the cheatsheet.md file of the release for the latest command reference.
 
+Check out the [examples](examples) folder for examples of how to model objects.
 
 ## Usage
 
 For basic editing, run DSLCAD and use the GUI.
 
 For automated usage, list the CLI options with `dslcad --help`.
-
