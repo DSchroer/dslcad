@@ -3325,7 +3325,8 @@ dependencies = [
 [[package]]
 name = "smooth-bevy-cameras"
 version = "0.6.0"
-source = "git+https://github.com/bonsairobo/smooth-bevy-cameras#1388352469519b1451cd85482c46c8a4252440e7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3f5ed8b01ccbe9b560d4f579d76a28f513b816dadf4e6ad7c2ee26e5686b1dc"
 dependencies = [
  "approx",
  "bevy",

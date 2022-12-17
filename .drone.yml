@@ -30,6 +30,7 @@ steps:
       - name: cache
         path: /drone/src/target
     commands:
+      - ./scripts/use-env.sh ci
       - ./scripts/release.sh
     when:
       event:
