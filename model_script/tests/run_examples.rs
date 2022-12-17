@@ -1,7 +1,7 @@
 use model_script::DSLCAD;
 use std::fs::{self, DirEntry};
 use std::io;
-use std::io::Write;
+
 use std::path::Path;
 
 #[test]
@@ -15,7 +15,7 @@ fn test_can_run_examples() {
 
         let mut cad = DSLCAD::default();
         cad.render_file(example.path().to_str().unwrap())
-            .expect(&format!("cant render {:?}", example));
+            .unwrap_or_else(|_| panic!("cant render {:?}", example));
     }
 }
 
