@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "model_script",
-    "model_script_cli",
-    "opencascade"
+    "crates/dslcad",
+    "crates/dslcad_app",
+    "crates/opencascade"
 ]

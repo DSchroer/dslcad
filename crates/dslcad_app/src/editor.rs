@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use bevy_polyline::prelude::*;
 use file_watcher::{FileWatcher, FileWatcherPlugin};
 use gui::UiEvent;
-use model_script::{Output, DSLCAD};
+use dslcad::{Output, DSLCAD};
 use rfd::FileDialog;
 use std::env;
 use std::error::Error;
@@ -39,7 +39,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .insert_resource(State::new())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
-                title: model_script::constants::FULL_NAME.to_string(),
+                title: dslcad::constants::FULL_NAME.to_string(),
                 ..default()
             },
             ..default()
@@ -58,7 +58,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 #[derive(Resource)]
 struct State {
     file: Option<PathBuf>,
-    output: Option<Result<Output, model_script::Error>>,
+    output: Option<Result<Output, dslcad::Error>>,
     autowatch: bool,
     watcher: Option<FileWatcher>,
 
@@ -90,7 +90,7 @@ fn controller(
         match event {
             UiEvent::CreateFile() => {
                 if let Some(file) = file_dialog(&state).save_file() {
-                    let file = file.with_extension(model_script::constants::FILE_EXTENSION);
+                    let file = file.with_extension(dslcad::constants::FILE_EXTENSION);
                     File::create(&file).unwrap();
 
                     load_file(&mut state, file);
@@ -143,8 +143,8 @@ fn file_dialog(state: &State) -> FileDialog {
 
     FileDialog::new()
         .add_filter(
-            &(model_script::constants::NAME.to_owned() + " Script"),
-            &[model_script::constants::FILE_EXTENSION],
+            &(dslcad::constants::NAME.to_owned() + " Script"),
+            &[dslcad::constants::FILE_EXTENSION],
         )
         .set_directory(dir)
 }

@@ -1,5 +1,5 @@
 use clap::Parser;
-use model_script::DSLCAD;
+use dslcad::DSLCAD;
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::path::Path;
