@@ -17,7 +17,7 @@ smooth-bevy-cameras = "0.6.0"
 path-absolutize = "3.0.14"
 rfd = "0.10.0"
 dslcad = { path = "../dslcad" }
-stl_io = "0.6.0"
+stl_io = "0.7.0"
 notify = "5.0.0-pre.15"
 bevy_polyline = "0.4.0"
 bevy_points = "0.1.1"

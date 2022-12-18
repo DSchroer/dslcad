@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 cxx = "1"
 opencascade-sys = { git = "https://github.com/bschwind/opencascade-rs" }
-stl_io = "0.6.0"
+stl_io = "0.7.0"
