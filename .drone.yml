@@ -37,7 +37,7 @@ steps:
         - tag
 
   - template: github-mirror
-    repo: git@github.com:DSchroer/model-script.git
+    repo: git@github.com:DSchroer/dslcad.git
 
   - name: publish release
     image: maniator/gh
@@ -45,7 +45,7 @@ steps:
       GITHUB_TOKEN:
         from_secret: github_api_key
     commands:
-      - git remote add github https://github.com/DSchroer/model-script.git
+      - git remote add github https://github.com/DSchroer/dslcad.git
       - gh release create --prerelease $DRONE_TAG cheatsheet.md examples.zip linux.zip windows.zip macosx.zip
     when:
       event:
