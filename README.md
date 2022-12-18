@@ -2,8 +2,7 @@
 
 DSLCAD is a programming language & interpreter for building 3D models.
 
-Inspired by OpenSCAD, it has a simple language and 3D viewer to
-simplify the modeling experience.
+Inspired by OpenSCAD, it has a language and 3D viewer to simplify the modeling experience.
 
 ![screenshot](docs/screenshot.png)
 
