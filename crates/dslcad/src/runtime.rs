@@ -1,60 +1,22 @@
+mod runtime_error;
 mod scope;
+mod script_instance;
 
 use crate::library::Library;
 use crate::parser::Document;
 use crate::runtime::scope::Scope;
-use crate::syntax::Accessible;
 use crate::syntax::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::rc::Rc;
-use thiserror::Error;
+
+pub use runtime_error::RuntimeError;
+pub use script_instance::ScriptInstance;
 
 pub struct EvalContext<'a> {
     pub library: &'a Library,
     pub documents: &'a HashMap<String, Document>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ScriptInstance {
-    arguments: HashMap<String, Box<Value>>,
-    variables: HashMap<String, Box<Value>>,
-    value: Box<Value>,
-}
-
-impl ScriptInstance {
-    pub fn from_scope(value: Value, scope: Scope) -> Self {
-        ScriptInstance {
-            arguments: scope.arguments,
-            variables: scope.variables,
-            value: Box::new(value),
-        }
-    }
-
-    pub fn value(&self) -> &Value {
-        &self.value
-    }
-}
-
-impl Display for ScriptInstance {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.value
-            .to_output()
-            .map_err(|_| std::fmt::Error::default())?
-            .fmt(f)
-    }
-}
-
-impl Accessible for ScriptInstance {
-    fn get(&self, identifier: &str) -> Option<Value> {
-        let val = self
-            .arguments
-            .get(identifier)
-            .or_else(|| self.variables.get(identifier))?;
-        Some(*val.clone())
-    }
 }
 
 pub fn eval(
@@ -154,22 +116,4 @@ fn access(
     } else {
         Err(RuntimeError::MissingProperty(String::from(name)))
     }
-}
-
-#[derive(Error, Debug)]
-pub enum RuntimeError {
-    #[error("Argument does not exist {1} in {0}")]
-    ArgumentDoesNotExist(String, String),
-    #[error("Unknown identifier {0}")]
-    UnknownIdentifier(String),
-    #[error("Unset parameter {0}")]
-    UnsetParameter(String),
-    #[error("Could not find property {0}")]
-    MissingProperty(String),
-    #[error("Mismatched types between {0}")]
-    UnexpectedType(Type),
-    #[error("Script did not return a value")]
-    NoReturnValue(),
-    #[error("Cant Write")]
-    CantWrite(),
 }
