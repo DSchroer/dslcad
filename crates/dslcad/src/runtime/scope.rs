@@ -1,4 +1,4 @@
-use crate::syntax::Value;
+use super::Value;
 use std::collections::HashMap;
 
 #[derive(Debug)]

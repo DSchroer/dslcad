@@ -1,7 +1,3 @@
-mod accessible;
-mod output;
-mod types;
-
 use std::cell::{Ref, RefCell};
 
 use std::fmt::{Debug, Formatter};
@@ -9,11 +5,10 @@ use std::io;
 use std::rc::Rc;
 
 use crate::runtime::ScriptInstance;
-pub use accessible::Accessible;
+use super::Accessible;
 use opencascade::{Edge, Point, Shape};
-pub use types::Type;
-
-pub use output::Output;
+use super::Type;
+use super::Output;
 
 #[derive(Clone)]
 pub enum Value {

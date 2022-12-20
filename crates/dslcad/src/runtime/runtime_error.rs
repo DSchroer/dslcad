@@ -1,4 +1,4 @@
-use crate::syntax::Type;
+use super::Type;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

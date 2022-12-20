@@ -1,5 +1,5 @@
-use crate::syntax::Value;
 use opencascade::{Point, Shape};
+use super::value::Value;
 
 pub trait Accessible {
     fn get(&self, identifier: &str) -> Option<Value>;

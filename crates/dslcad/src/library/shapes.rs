@@ -1,5 +1,4 @@
-use crate::runtime::RuntimeError;
-use crate::syntax::Value;
+use crate::runtime::{RuntimeError, Value};
 
 use std::cell::RefCell;
 use std::rc::Rc;

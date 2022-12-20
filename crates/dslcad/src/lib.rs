@@ -4,7 +4,6 @@ pub mod constants;
 mod library;
 mod parser;
 mod runtime;
-mod syntax;
 
 use crate::parser::ParseError;
 use crate::runtime::{EvalContext, RuntimeError};
@@ -17,7 +16,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
-pub use crate::syntax::Output;
+pub use runtime::Output;
 
 #[derive(Error, Debug)]
 pub enum Error {

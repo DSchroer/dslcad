@@ -1,5 +1,5 @@
 use crate::runtime::scope::Scope;
-use crate::syntax::{Accessible, Value};
+use super::{Accessible, Value};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 

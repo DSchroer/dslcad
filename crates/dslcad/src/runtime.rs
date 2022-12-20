@@ -1,16 +1,24 @@
 mod runtime_error;
 mod scope;
 mod script_instance;
+mod value;
+mod output;
+mod accessible;
+mod types;
 
 use crate::library::Library;
 use crate::parser::Document;
 use crate::runtime::scope::Scope;
-use crate::syntax::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
 use crate::parser::{Statement, Expression, Literal};
+
+pub use output::Output;
+pub use accessible::Accessible;
+pub use value::Value;
+pub use types::Type;
 
 pub use runtime_error::RuntimeError;
 pub use script_instance::ScriptInstance;

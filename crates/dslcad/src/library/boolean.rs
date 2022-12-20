@@ -1,5 +1,4 @@
-use crate::runtime::RuntimeError;
-use crate::syntax::Value;
+use crate::runtime::{RuntimeError, Value};
 
 pub fn and(left: bool, right: bool) -> Result<Value, RuntimeError> {
     Ok(Value::Bool(left && right))

@@ -3,8 +3,7 @@ mod faces;
 mod math;
 mod shapes;
 
-use crate::runtime::RuntimeError;
-use crate::syntax::{Type, Value};
+use crate::runtime::{RuntimeError, Type, Value};
 use indexmap::IndexMap;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};

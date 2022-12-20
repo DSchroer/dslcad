@@ -1,4 +1,4 @@
-use crate::syntax::Value;
+use super::Value;
 use opencascade::{Edge, IndexedMesh, Point, Shape};
 use std::cell::{Ref, RefMut};
 use std::fmt::{Display, Formatter};
