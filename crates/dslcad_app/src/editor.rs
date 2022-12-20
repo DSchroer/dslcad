@@ -65,6 +65,9 @@ struct State {
     show_points: bool,
     show_lines: bool,
     show_mesh: bool,
+
+    about_window: bool,
+    cheatsheet_window: bool,
 }
 
 impl State {
@@ -77,6 +80,8 @@ impl State {
             show_points: true,
             show_lines: true,
             show_mesh: true,
+            about_window: false,
+            cheatsheet_window: false,
         }
     }
 }

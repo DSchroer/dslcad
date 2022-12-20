@@ -1,14 +1,20 @@
 use crate::editor::rendering::RenderCommand;
 use crate::editor::State;
+use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
+use dslcad::DSLCAD;
+use std::fmt::format;
+use std::os::linux::raw::stat;
 
 pub struct GuiPlugin;
 impl Plugin for GuiPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<UiEvent>()
             .add_plugin(EguiPlugin)
-            .add_system(ui_example)
+            .add_system(main_ui)
+            .add_system(about)
+            .add_system(cheatsheet)
             .add_system(console_panel)
             .add_system(update_ui_scale_factor)
             .add_system(keybindings);
@@ -35,11 +41,12 @@ fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
     }
 }
 
-fn ui_example(
+fn main_ui(
     mut egui_context: ResMut<EguiContext>,
     mut events: EventWriter<UiEvent>,
     mut render_events: EventWriter<RenderCommand>,
     mut state: ResMut<State>,
+    mut exit: EventWriter<AppExit>,
 ) {
     egui::TopBottomPanel::top("Tools").show(egui_context.ctx_mut(), |ui| {
         egui::menu::bar(ui, |ui| {
@@ -50,6 +57,11 @@ fn ui_example(
                 }
                 if ui.button("Open (o)").clicked() {
                     events.send(UiEvent::OpenFile());
+                    ui.close_menu();
+                }
+                ui.separator();
+                if ui.button("Exit").clicked() {
+                    exit.send(AppExit);
                     ui.close_menu();
                 }
             });
@@ -74,16 +86,37 @@ fn ui_example(
             });
             ui.menu_button("Help", |ui| {
                 if ui.button("Cheat Sheet").clicked() {
-                    events.send(UiEvent::Render());
+                    state.cheatsheet_window = true;
                     ui.close_menu();
                 }
                 if ui.button("About").clicked() {
-                    events.send(UiEvent::Render());
+                    state.about_window = true;
                     ui.close_menu();
                 }
             });
         });
     });
+}
+
+fn about(mut egui_context: ResMut<EguiContext>, mut state: ResMut<State>) {
+    egui::Window::new("About")
+        .open(&mut state.about_window)
+        .show(egui_context.ctx_mut(), |ui| {
+            ui.label(dslcad::constants::FULL_NAME);
+            ui.separator();
+            ui.label(format!("Version: {}", env!("CARGO_PKG_VERSION")));
+            ui.label("Copyright: Dominick Schroer 2022");
+        });
+}
+
+fn cheatsheet(mut egui_context: ResMut<EguiContext>, mut state: ResMut<State>) {
+    egui::Window::new("Cheat Sheet")
+        .open(&mut state.cheatsheet_window)
+        .show(egui_context.ctx_mut(), |ui| {
+            egui::ScrollArea::vertical()
+                .max_height(512.)
+                .show(ui, |ui| ui.monospace(DSLCAD::default().cheat_sheet()));
+        });
 }
 
 fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {

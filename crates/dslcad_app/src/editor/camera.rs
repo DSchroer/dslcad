@@ -1,6 +1,7 @@
 use crate::editor::Blueprint;
 use bevy::input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
+use bevy_egui::EguiContext;
 use smooth_bevy_cameras::controllers::orbit::{
     ControlEvent, OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
 };
@@ -62,6 +63,7 @@ pub fn input_map(
     mut events: EventWriter<ControlEvent>,
     mut mouse_wheel_reader: EventReader<MouseWheel>,
     mut mouse_motion_events: EventReader<MouseMotion>,
+    mut egui_context: ResMut<EguiContext>,
     keyboard: Res<Input<KeyCode>>,
     mouse_buttons: Res<Input<MouseButton>>,
     controllers: Query<&OrbitCameraController>,
@@ -79,6 +81,13 @@ pub fn input_map(
         pixels_per_line,
         ..
     } = *controller;
+
+    let ctx = egui_context.ctx_mut();
+    if ctx.is_using_pointer() || ctx.is_pointer_over_area() {
+        mouse_wheel_reader.clear();
+        mouse_motion_events.clear();
+        return;
+    }
 
     let mut cursor_delta = Vec2::ZERO;
     for event in mouse_motion_events.iter() {
