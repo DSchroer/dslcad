@@ -1,24 +1,24 @@
+mod accessible;
+mod output;
 mod runtime_error;
 mod scope;
 mod script_instance;
-mod value;
-mod output;
-mod accessible;
 mod types;
+mod value;
 
 use crate::library::Library;
 use crate::parser::Document;
+use crate::parser::{Expression, Literal, Statement};
 use crate::runtime::scope::Scope;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::parser::{Statement, Expression, Literal};
 
-pub use output::Output;
 pub use accessible::Accessible;
-pub use value::Value;
+pub use output::Output;
 pub use types::Type;
+pub use value::Value;
 
 pub use runtime_error::RuntimeError;
 pub use script_instance::ScriptInstance;
@@ -104,20 +104,18 @@ fn eval_expression(
             }
         }
         Expression::Access(l, name) => access(instance, ctx, l, name),
-        Expression::Literal(literal) => {
-            Ok(match literal {
-                Literal::Number(n) => Value::Number(*n),
-                Literal::Bool(b) => Value::Bool(*b),
-                Literal::Text(t) => Value::Text(t.clone()),
-                Literal::List(items) => {
-                    let mut values = Vec::new();
-                    for item in items {
-                        values.push(eval_expression(instance, item, ctx)?);
-                    }
-                    Value::List(values)
+        Expression::Literal(literal) => Ok(match literal {
+            Literal::Number(n) => Value::Number(*n),
+            Literal::Bool(b) => Value::Bool(*b),
+            Literal::Text(t) => Value::Text(t.clone()),
+            Literal::List(items) => {
+                let mut values = Vec::new();
+                for item in items {
+                    values.push(eval_expression(instance, item, ctx)?);
                 }
-            })
-        }
+                Value::List(values)
+            }
+        }),
     }
 }
 

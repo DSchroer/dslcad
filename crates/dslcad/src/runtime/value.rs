@@ -4,11 +4,11 @@ use std::fmt::{Debug, Formatter};
 use std::io;
 use std::rc::Rc;
 
-use crate::runtime::ScriptInstance;
 use super::Accessible;
-use opencascade::{Edge, Point, Shape};
-use super::Type;
 use super::Output;
+use super::Type;
+use crate::runtime::ScriptInstance;
+use opencascade::{Edge, Point, Shape};
 
 #[derive(Clone)]
 pub enum Value {

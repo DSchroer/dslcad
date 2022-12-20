@@ -11,10 +11,10 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-pub use syntax_tree::{Statement, Expression, Literal};
 pub use document::Document;
 pub use parse_error::ParseError;
 pub use reader::Reader;
+pub use syntax_tree::{Expression, Literal, Statement};
 
 pub struct Parser<'a, T> {
     reader: &'a T,
