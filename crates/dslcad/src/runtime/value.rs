@@ -104,6 +104,14 @@ impl Value {
         }
     }
 
+    pub fn to_list(&self) -> Option<Vec<Value>> {
+        match self {
+            Value::List(s) => Some(s.clone()),
+            Value::Script(i) => i.borrow().value().to_list(),
+            _ => None,
+        }
+    }
+
     pub fn get_type(&self) -> Type {
         match self {
             Value::Number(_) => Type::Number,

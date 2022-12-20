@@ -1,4 +1,4 @@
-use crate::runtime::{RuntimeError, Value};
+use crate::runtime::{RuntimeError, Type, Value};
 use opencascade::{Axis, Edge, Point, Shape};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -106,4 +106,36 @@ pub fn union_edge(
     let mut edge = Edge::new();
     edge.join(&mut left, &mut right);
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
+}
+
+pub fn face(parts: Vec<Value>) -> Result<Value, RuntimeError> {
+    if parts.len() == 0 {
+        return point(None, None);
+    }
+
+    if parts.len() == 1 {
+        if parts[0].get_type() != Type::Point {
+            return Err(RuntimeError::UnexpectedType(parts[0].get_type()));
+        }
+        return Ok(parts[0].clone());
+    }
+
+    let mut edge = Edge::new();
+    for (i, point) in parts[1..].iter().enumerate() {
+        if point.get_type() != Type::Point {
+            return Err(RuntimeError::UnexpectedType(point.get_type()));
+        }
+
+        edge.add_line(
+            &parts[i].to_point().unwrap().borrow(),
+            &point.to_point().unwrap().borrow(),
+        );
+    }
+
+    edge.add_line(
+        &parts[0].to_point().unwrap().borrow(),
+        &parts[parts.len() - 1].to_point().unwrap().borrow(),
+    );
+
+    return Ok(Value::Line(Rc::new(RefCell::new(edge))));
 }

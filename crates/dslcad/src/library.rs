@@ -44,6 +44,7 @@ macro_rules! arguments {
     (point) => {Access::Required(Type::Point)};
     (edge) => {Access::Required(Type::Edge)};
     (shape) => {Access::Required(Type::Shape)};
+    (list) => {Access::Required(Type::List)};
     ($($name: ident=$value: ident), *) => {vec![$((stringify!($name),arguments!($value))), *]};
 }
 
@@ -94,6 +95,14 @@ macro_rules! invoke {
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
             .to_line()
+            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
+    }};
+    ($map: ident, $name: ident=list) => {{
+        let value = $map
+            .get(stringify!($name))
+            .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
+        value
+            .to_list()
             .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
     }};
     ($func: path[$($name: ident=$value: ident), *]) => {&|_a|{
@@ -164,6 +173,12 @@ impl Library {
             ),
             bind!(arc, faces::arc[start=point, center=point, end=point], Category::TwoD, "create an arcing line between three points"),
             bind!(union, faces::union_edge[left=edge, right=edge], Category::TwoD, "combine two edges"),
+            bind!(
+                face,
+                faces::face[parts = list],
+                Category::TwoD,
+                "make a closed face from a list of points, lines and arcs"
+            ),
             // 3D
             bind!(extrude, faces::extrude[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),
