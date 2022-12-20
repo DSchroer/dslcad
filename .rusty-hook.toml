@@ -1,0 +1,5 @@
+[hooks]
+pre-commit = "scripts/pre-commit.sh"
+
+[logging]
+verbose = true
