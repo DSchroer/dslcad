@@ -7,7 +7,7 @@ use std::path::Path;
 #[test]
 fn test_can_run_examples() {
     let mut examples = Vec::new();
-    visit_dirs(Path::new("../examples"), &mut examples).expect("cant read examples");
+    visit_dirs(Path::new("../../examples"), &mut examples).expect("cant read examples");
 
     assert_ne!(0, examples.len());
     for example in examples {
