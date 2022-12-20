@@ -15,27 +15,6 @@ pub use types::Type;
 
 pub use output::Output;
 
-#[derive(Debug, Clone)]
-pub enum Statement {
-    Variable {
-        name: String,
-        value: Option<Expression>,
-    },
-    Return(Expression),
-}
-
-#[derive(Debug, Clone)]
-pub enum Expression {
-    Literal(Value),
-    List(Vec<Expression>),
-    Reference(String),
-    Invocation {
-        path: String,
-        arguments: HashMap<String, Box<Expression>>,
-    },
-    Access(Box<Expression>, String),
-}
-
 #[derive(Clone)]
 pub enum Value {
     Number(f64),

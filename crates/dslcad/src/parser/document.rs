@@ -1,4 +1,4 @@
-use crate::syntax::Statement;
+use super::syntax_tree::Statement;
 use std::collections::HashSet;
 use std::slice::Iter;
 

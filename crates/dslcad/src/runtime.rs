@@ -10,6 +10,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
+use crate::parser::{Statement, Expression, Literal};
 
 pub use runtime_error::RuntimeError;
 pub use script_instance::ScriptInstance;
@@ -55,7 +56,6 @@ fn eval_expression(
     ctx: &EvalContext,
 ) -> Result<Value, RuntimeError> {
     match expression {
-        Expression::Literal(v) => Ok(v.clone()),
         Expression::Invocation { path, arguments } => {
             let mut argument_values = HashMap::new();
             for (name, argument) in arguments.clone().into_iter() {
@@ -96,12 +96,19 @@ fn eval_expression(
             }
         }
         Expression::Access(l, name) => access(instance, ctx, l, name),
-        Expression::List(items) => {
-            let mut values = Vec::new();
-            for item in items {
-                values.push(eval_expression(instance, item, ctx)?);
-            }
-            Ok(Value::List(values))
+        Expression::Literal(literal) => {
+            Ok(match literal {
+                Literal::Number(n) => Value::Number(*n),
+                Literal::Bool(b) => Value::Bool(*b),
+                Literal::Text(t) => Value::Text(t.clone()),
+                Literal::List(items) => {
+                    let mut values = Vec::new();
+                    for item in items {
+                        values.push(eval_expression(instance, item, ctx)?);
+                    }
+                    Value::List(values)
+                }
+            })
         }
     }
 }

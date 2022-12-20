@@ -2,8 +2,8 @@ mod document;
 mod lexer;
 mod parse_error;
 mod reader;
+mod syntax_tree;
 
-use crate::syntax::*;
 use lexer::{Lexer, Token};
 use logos::Logos;
 
@@ -11,6 +11,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+pub use syntax_tree::{Statement, Expression, Literal};
 pub use document::Document;
 pub use parse_error::ParseError;
 pub use reader::Reader;
@@ -251,7 +252,7 @@ impl<'a, T: Reader> Parser<'a, T> {
 
         take!(self, lexer, Token::CloseList = "]");
 
-        Ok(Expression::List(items))
+        Ok(Expression::Literal(Literal::List(items)))
     }
 
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
@@ -270,7 +271,7 @@ impl<'a, T: Reader> Parser<'a, T> {
                     arguments: HashMap::from([
                         (
                             "left".to_string(),
-                            Box::new(Expression::Literal(Value::Number(0.0))),
+                            Box::new(Expression::Literal(Literal::Number(0.0))),
                         ),
                         ("right".to_string(), Box::new(expr)),
                     ]),
@@ -289,17 +290,17 @@ impl<'a, T: Reader> Parser<'a, T> {
             Token::Number = "number" => {
                 lexer.next();
                 let value = f64::from_str(lexer.slice()).unwrap();
-                Expression::Literal(Value::Number(value))
+                Expression::Literal(Literal::Number(value))
             },
             Token::Bool = "boolean" => {
                 lexer.next();
                 let value = lexer.slice() == "true";
-                Expression::Literal(Value::Bool(value))
+                Expression::Literal(Literal::Bool(value))
             },
             Token::String = "string" => {
                 lexer.next();
                 let value = lexer.slice();
-                Expression::Literal(Value::Text(value[1..value.len()-1].to_string()))
+                Expression::Literal(Literal::Text(value[1..value.len()-1].to_string()))
             },
             Token::Path = "path" => self.parse_call(lexer)?,
             Token::Identifier = "identifier" => {
