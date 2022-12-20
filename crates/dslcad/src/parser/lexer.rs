@@ -10,6 +10,10 @@ pub enum Token {
     OpenBracket,
     #[token(")")]
     CloseBracket,
+    #[token("[")]
+    OpenList,
+    #[token("]")]
+    CloseList,
     #[token(",")]
     Comma,
     #[token(";")]
@@ -120,6 +124,11 @@ mod tests {
     #[test]
     fn it_can_lex_ref_div() {
         assert_eq!(vec![Identifier, Divide, Number], tokens("test/4"));
+    }
+
+    #[test]
+    fn it_can_lex_lists() {
+        assert_eq!(vec![OpenList, Identifier, CloseList], tokens("[test]"));
     }
 
     fn tokens(input: &str) -> Vec<Token> {

@@ -96,6 +96,13 @@ fn eval_expression(
             }
         }
         Expression::Access(l, name) => access(instance, ctx, l, name),
+        Expression::List(items) => {
+            let mut values = Vec::new();
+            for item in items {
+                values.push(eval_expression(instance, item, ctx)?);
+            }
+            Ok(Value::List(values))
+        }
     }
 }
 

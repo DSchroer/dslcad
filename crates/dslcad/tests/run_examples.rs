@@ -1,4 +1,4 @@
-use model_script::DSLCAD;
+use dslcad::DSLCAD;
 use std::fs::{self, DirEntry};
 use std::io;
 

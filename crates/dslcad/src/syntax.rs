@@ -27,6 +27,7 @@ pub enum Statement {
 #[derive(Debug, Clone)]
 pub enum Expression {
     Literal(Value),
+    List(Vec<Expression>),
     Reference(String),
     Invocation {
         path: String,
@@ -40,6 +41,7 @@ pub enum Value {
     Number(f64),
     Bool(bool),
     Text(String),
+    List(Vec<Value>),
 
     Script(Rc<RefCell<ScriptInstance>>),
 
@@ -54,6 +56,7 @@ impl Debug for Value {
             Value::Number(n) => f.debug_tuple("Number").field(n).finish(),
             Value::Bool(n) => f.debug_tuple("Bool").field(n).finish(),
             Value::Text(n) => f.debug_tuple("Text").field(n).finish(),
+            Value::List(_) => f.debug_tuple("List").finish(),
             Value::Script(_) => f.debug_tuple("Script").finish(),
             Value::Shape(_) => f.debug_tuple("Shape").finish(),
             Value::Point(_) => f.debug_tuple("Point").finish(),
@@ -68,6 +71,7 @@ impl Value {
             Value::Number(v) => v.into(),
             Value::Bool(v) => v.into(),
             Value::Text(v) => v.into(),
+            Value::List(v) => v.into(),
 
             Value::Script(s) => s.borrow().value().to_output()?,
 
@@ -131,6 +135,7 @@ impl Value {
             Value::Number(_) => Type::Number,
             Value::Bool(_) => Type::Bool,
             Value::Text(_) => Type::Text,
+            Value::List(_) => Type::List,
             Value::Script(i) => i.borrow().value().get_type(),
             Value::Point(_) => Type::Point,
             Value::Line(_) => Type::Edge,

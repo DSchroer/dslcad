@@ -163,4 +163,9 @@ line(start=point(x=0,y=0), end=point(x=1,y=1))
     ->left union(right=line(start=point(x=0,y=0), end=point(x=1,y=1)));
         ");
     }
+
+    #[test]
+    fn it_has_lists() {
+        run("[1,2,3];");
+    }
 }

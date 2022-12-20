@@ -233,6 +233,25 @@ impl<'a, T: Reader> Parser<'a, T> {
         Ok(Expression::Reference(name))
     }
 
+    fn parse_list(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+        take!(self, lexer, Token::OpenList = "[");
+
+        let mut items = Vec::new();
+        loop {
+            let mut peek = lexer.clone();
+            match peek.next() {
+                Some(Token::Comma) => { lexer.next(); }
+                Some(Token::CloseList) => break,
+                Some(_) => items.push(self.parse_expression(lexer)?),
+                None => break
+            }
+        }
+
+        take!(self, lexer, Token::CloseList = "]");
+
+        return Ok(Expression::List(items))
+    }
+
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
         let first = self.parse_expression_lhs(lexer)?;
         self.parse_expression_rhs(first, lexer)
@@ -291,6 +310,9 @@ impl<'a, T: Reader> Parser<'a, T> {
                 lexer.next();
                 let expr = self.parse_expression(lexer)?;
                 take!(self, lexer, Token::CloseBracket = ")" => expr)
+            },
+            Token::OpenList = "[" => {
+                self.parse_list(lexer)?
             }
         ))
     }
@@ -479,6 +501,21 @@ pub mod tests {
     #[test]
     fn it_can_parse_access() {
         Parser::new("test", &TestReader("var foo; foo.bar;"))
+            .parse()
+            .unwrap();
+    }
+
+    #[test]
+    fn it_can_parse_list_literal() {
+        Parser::new("test", &TestReader("var foo = [];"))
+            .parse()
+            .unwrap();
+
+        Parser::new("test", &TestReader("var foo = [1];"))
+            .parse()
+            .unwrap();
+
+        Parser::new("test", &TestReader("var foo = [test(), 2];"))
             .parse()
             .unwrap();
     }

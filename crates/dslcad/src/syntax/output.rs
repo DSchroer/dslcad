@@ -1,6 +1,7 @@
 use opencascade::{Edge, IndexedMesh, Point, Shape};
 use std::cell::{Ref, RefMut};
 use std::fmt::{Display, Formatter};
+use crate::syntax::Value;
 
 #[derive(Clone)]
 pub struct Output {
@@ -50,6 +51,15 @@ impl From<&String> for Output {
     fn from(value: &String) -> Self {
         Output {
             text: value.to_string(),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&Vec<Value>> for Output {
+    fn from(value: &Vec<Value>) -> Self {
+        Output {
+            text: format!("[{}]", value.len()),
             ..Default::default()
         }
     }
