@@ -15,20 +15,15 @@ steps:
   - name: build and test
     image: modelscriptci
     pull: never
-    volumes:
-      - name: cache
-        path: /drone/src/target
     commands:
       - cargo +nightly fmt --check
       - cargo clippy -- -Dwarnings
       - cargo test
 
+
   - name: build releases
     image: modelscriptci
     pull: never
-    volumes:
-      - name: cache
-        path: /drone/src/target
     commands:
       - ./scripts/use-env.sh ci
       - ./scripts/release.sh
@@ -52,9 +47,6 @@ steps:
         - tag
 
 volumes:
-  - name: cache
-    host:
-      path: /tmp/drone/cache/target
   - name: dockersock
     host:
       path: /var/run/docker.sock

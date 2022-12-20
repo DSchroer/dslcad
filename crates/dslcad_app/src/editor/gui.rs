@@ -72,6 +72,16 @@ fn ui_example(
                 ui.separator();
                 ui.checkbox(&mut state.autowatch, "Auto Render");
             });
+            ui.menu_button("Help", |ui| {
+                if ui.button("Cheat Sheet").clicked() {
+                    events.send(UiEvent::Render());
+                    ui.close_menu();
+                }
+                if ui.button("About").clicked() {
+                    events.send(UiEvent::Render());
+                    ui.close_menu();
+                }
+            });
         });
     });
 }
