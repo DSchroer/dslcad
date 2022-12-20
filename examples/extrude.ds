@@ -1,8 +1,10 @@
-var start = point(x=0, y=0);
-var arc = point(x=5, y=5);
-var end = point(x=0, y=10);
+face(parts=[
 
-var face = line(start=start, end=end)
-    ->left union(right=arc(start=start, center=arc, end=end));
+    arc(
+            start=point(x=1, y=1),
+            center=point(x=1, y=2),
+            end=point(x=2, y=2)
+        ),
+            point(x=5,y=2),
 
-face ->shape extrude(z=2);
+]) ->shape extrude(z=1);

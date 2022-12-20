@@ -108,34 +108,56 @@ pub fn union_edge(
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
-pub fn face(parts: Vec<Value>) -> Result<Value, RuntimeError> {
+pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
     if parts.is_empty() {
         return point(None, None);
     }
+    let parts_len = parts.len();
 
-    if parts.len() == 1 {
-        if parts[0].get_type() != Type::Point {
-            return Err(RuntimeError::UnexpectedType(parts[0].get_type()));
-        }
+    if parts_len == 1 {
         return Ok(parts[0].clone());
     }
 
     let mut edge = Edge::new();
-    for (i, point) in parts[1..].iter().enumerate() {
-        if point.get_type() != Type::Point {
-            return Err(RuntimeError::UnexpectedType(point.get_type()));
+    for i in 1..parts_len {
+        let last_end = end_point(&mut parts[i - 1])?;
+        let current_start = start_point(&mut parts[i])?;
+        let point = &parts[i];
+
+        if last_end != current_start {
+            edge.add_line(&last_end.borrow(), &current_start.borrow());
         }
 
-        edge.add_line(
-            &parts[i].to_point().unwrap().borrow(),
-            &point.to_point().unwrap().borrow(),
-        );
+        if point.get_type() == Type::Edge {
+            edge.add_edge(&mut point.to_line().unwrap().borrow_mut())
+        }
     }
 
-    edge.add_line(
-        &parts[0].to_point().unwrap().borrow(),
-        &parts[parts.len() - 1].to_point().unwrap().borrow(),
-    );
+    let start = start_point(&mut parts[0])?;
+    let end = end_point(&mut parts[parts_len - 1])?;
+    if start != end {
+        edge.add_line(&start.borrow(), &end.borrow());
+    }
 
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
+}
+
+fn start_point(value: &mut Value) -> Result<Rc<RefCell<Point>>, RuntimeError> {
+    match value.get_type() {
+        Type::Point => Ok(value.to_point().unwrap()),
+        Type::Edge => Ok(Rc::new(RefCell::new(
+            value.to_line().unwrap().borrow_mut().start().unwrap(),
+        ))),
+        other => Err(RuntimeError::UnexpectedType(other)),
+    }
+}
+
+fn end_point(value: &mut Value) -> Result<Rc<RefCell<Point>>, RuntimeError> {
+    match value.get_type() {
+        Type::Point => Ok(value.to_point().unwrap()),
+        Type::Edge => Ok(Rc::new(RefCell::new(
+            value.to_line().unwrap().borrow_mut().end().unwrap(),
+        ))),
+        other => Err(RuntimeError::UnexpectedType(other)),
+    }
 }

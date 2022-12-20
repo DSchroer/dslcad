@@ -32,9 +32,37 @@ impl Edge {
         self.0.pin_mut().add_edge(edge_1.pin_mut().Edge());
     }
 
+    pub fn add_edge(&mut self, left: &mut Edge) {
+        self.0.pin_mut().add_wire(left.0.pin_mut().Wire());
+    }
+
     pub fn join(&mut self, left: &mut Edge, right: &mut Edge) {
         self.0.pin_mut().add_wire(left.0.pin_mut().Wire());
         self.0.pin_mut().add_wire(right.0.pin_mut().Wire());
+    }
+
+    pub fn start(&mut self) -> Option<Point> {
+        let edge_explorer =
+            TopExp_Explorer_ctor(self.0.pin_mut().Shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+        if edge_explorer.More() {
+            let edge = TopoDS_cast_to_edge(edge_explorer.Current());
+            let (start, _) = Self::extract_start_end(edge);
+            return Some(start);
+        }
+        None
+    }
+
+    pub fn end(&mut self) -> Option<Point> {
+        let mut edge_explorer =
+            TopExp_Explorer_ctor(self.0.pin_mut().Shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+        let mut last_end = None;
+        while edge_explorer.More() {
+            let edge = TopoDS_cast_to_edge(edge_explorer.Current());
+            let (_, end) = Self::extract_start_end(edge);
+            last_end = Some(end);
+            edge_explorer.pin_mut().Next();
+        }
+        last_end
     }
 
     pub fn points(&mut self) -> Vec<Vec<[f64; 3]>> {
@@ -64,6 +92,17 @@ impl Edge {
             points.push(point.into())
         }
         points
+    }
+
+    fn extract_start_end(edge: &TopoDS_Edge) -> (Point, Point) {
+        let mut first = 0.;
+        let mut last = 0.;
+        let curve = BRep_Tool_Curve(edge, &mut first, &mut last);
+
+        let start = HandleGeomCurve_Value(&curve, first).into();
+        let end = HandleGeomCurve_Value(&curve, last).into();
+
+        return (start, end);
     }
 }
 
