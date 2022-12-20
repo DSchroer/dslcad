@@ -109,7 +109,7 @@ pub fn union_edge(
 }
 
 pub fn face(parts: Vec<Value>) -> Result<Value, RuntimeError> {
-    if parts.len() == 0 {
+    if parts.is_empty() {
         return point(None, None);
     }
 
@@ -137,5 +137,5 @@ pub fn face(parts: Vec<Value>) -> Result<Value, RuntimeError> {
         &parts[parts.len() - 1].to_point().unwrap().borrow(),
     );
 
-    return Ok(Value::Line(Rc::new(RefCell::new(edge))));
+    Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
