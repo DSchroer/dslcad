@@ -251,7 +251,7 @@ impl<'a, T: Reader> Parser<'a, T> {
 
         take!(self, lexer, Token::CloseList = "]");
 
-        return Ok(Expression::List(items));
+        Ok(Expression::List(items))
     }
 
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
