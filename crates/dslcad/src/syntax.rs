@@ -3,7 +3,7 @@ mod output;
 mod types;
 
 use std::cell::{Ref, RefCell};
-use std::collections::HashMap;
+
 use std::fmt::{Debug, Formatter};
 use std::io;
 use std::rc::Rc;
