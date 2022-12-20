@@ -59,6 +59,7 @@ fn camera_system(mut commands: Commands) {
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn input_map(
     mut events: EventWriter<ControlEvent>,
     mut mouse_wheel_reader: EventReader<MouseWheel>,
