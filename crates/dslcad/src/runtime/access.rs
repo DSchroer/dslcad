@@ -1,17 +1,17 @@
 use super::value::Value;
 use opencascade::{Point, Shape};
 
-pub trait Accessible {
+pub trait Access {
     fn get(&self, identifier: &str) -> Option<Value>;
 }
 
-impl Accessible for Shape {
+impl Access for Shape {
     fn get(&self, _: &str) -> Option<Value> {
         None
     }
 }
 
-impl Accessible for Point {
+impl Access for Point {
     fn get(&self, identifier: &str) -> Option<Value> {
         match identifier {
             "x" => Some(Value::Number(self.x())),

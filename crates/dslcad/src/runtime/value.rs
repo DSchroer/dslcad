@@ -4,7 +4,7 @@ use std::fmt::{Debug, Formatter};
 use std::io;
 use std::rc::Rc;
 
-use super::Accessible;
+use super::Access;
 use super::Output;
 use super::Type;
 use crate::runtime::ScriptInstance;
@@ -71,7 +71,7 @@ impl Value {
         }
     }
 
-    pub fn to_accessible(&self) -> Option<Ref<dyn Accessible>> {
+    pub fn to_accessible(&self) -> Option<Ref<dyn Access>> {
         match self {
             Value::Script(i) => Some(i.borrow()),
             Value::Shape(s) => Some(s.borrow()),

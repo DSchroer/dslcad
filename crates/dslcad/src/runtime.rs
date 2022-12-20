@@ -1,4 +1,4 @@
-mod accessible;
+mod access;
 mod output;
 mod runtime_error;
 mod scope;
@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
 
-pub use accessible::Accessible;
+pub use access::Access;
 pub use output::Output;
 pub use types::Type;
 pub use value::Value;

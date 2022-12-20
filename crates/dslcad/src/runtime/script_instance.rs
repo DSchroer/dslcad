@@ -1,4 +1,4 @@
-use super::{Accessible, Value};
+use super::{Access, Value};
 use crate::runtime::scope::Scope;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
@@ -33,7 +33,7 @@ impl Display for ScriptInstance {
     }
 }
 
-impl Accessible for ScriptInstance {
+impl Access for ScriptInstance {
     fn get(&self, identifier: &str) -> Option<Value> {
         let val = self
             .arguments
