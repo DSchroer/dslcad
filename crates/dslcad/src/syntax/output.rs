@@ -1,7 +1,7 @@
+use crate::syntax::Value;
 use opencascade::{Edge, IndexedMesh, Point, Shape};
 use std::cell::{Ref, RefMut};
 use std::fmt::{Display, Formatter};
-use crate::syntax::Value;
 
 #[derive(Clone)]
 pub struct Output {

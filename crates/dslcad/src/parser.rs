@@ -240,16 +240,18 @@ impl<'a, T: Reader> Parser<'a, T> {
         loop {
             let mut peek = lexer.clone();
             match peek.next() {
-                Some(Token::Comma) => { lexer.next(); }
+                Some(Token::Comma) => {
+                    lexer.next();
+                }
                 Some(Token::CloseList) => break,
                 Some(_) => items.push(self.parse_expression(lexer)?),
-                None => break
+                None => break,
             }
         }
 
         take!(self, lexer, Token::CloseList = "]");
 
-        return Ok(Expression::List(items))
+        return Ok(Expression::List(items));
     }
 
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
