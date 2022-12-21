@@ -1,0 +1,32 @@
+var size = 5;
+
+var base = cube(x=5, y=5, z=5) ->shape fillet(radius=0.5);
+var nub = sphere(radius=0.5) ->shape translate(z=-0.5, x=-0.5, y=-0.5);
+var hole = sphere(radius=size/4) ->shape translate(z=-size/4, x=-size/4, y=-size/4);
+var coin = cylinder(radius=size/8, height=0.5) ->shape translate(z=-0.25, x=-size/8, y=-size/8) ->shape rotate(y=90) ->shape chamfer(radius=0.1);
+var slice = cube(x=0.5, y=0.5, z=size/2) ->shape translate(z=-size/4, x=-0.25, y=-0.25) ->shape chamfer(radius=0.1);
+
+base
+
+->left union(right=nub ->shape translate(z=size/2, y=size/2))
+->left union(right=nub ->shape translate(z=size/3, y=size/3))
+->left union(right=nub ->shape translate(z=size/3, y=size - size/3))
+->left union(right=nub ->shape translate(z=size - size/3, y=size/3))
+->left union(right=nub ->shape translate(z=size - size/3, y=size - size/3))
+
+->left difference(right=hole ->shape translate(x=size/2, y=size, z=size/2))
+
+->left difference(right=nub ->shape translate(z=size/2, y=size/2, x=size))
+->left difference(right=nub ->shape translate(z=size/3, y=size/3, x=size))
+->left difference(right=nub ->shape translate(z=size/3, y=size - size/3, x=size))
+->left difference(right=nub ->shape translate(z=size - size/3, y=size/3, x=size))
+->left difference(right=nub ->shape translate(z=size - size/3, y=size - size/3, x=size))
+
+->left union(right=coin ->shape translate(z=size, y=size/2, x=(size/6) * 2))
+->left union(right=coin ->shape translate(z=size, y=size/2, x=(size/6) * 3))
+->left union(right=coin ->shape translate(z=size, y=size/2, x=(size/6) * 4))
+
+->left difference(right=slice ->shape translate(z=size/2, x=(size/6) * 2))
+->left difference(right=slice ->shape translate(z=size/2, x=(size/6) * 4))
+;
+
