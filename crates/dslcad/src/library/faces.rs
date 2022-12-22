@@ -1,3 +1,4 @@
+use super::from_cascade;
 use crate::runtime::{RuntimeError, Type, Value};
 use opencascade::{Axis, Edge, Point, Shape};
 use std::cell::RefCell;
@@ -66,12 +67,14 @@ pub fn extrude(
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
     let mut shape = shape.borrow_mut();
-    Ok(Value::Shape(Rc::new(RefCell::new(Shape::extrude(
-        &mut shape,
-        x.unwrap_or(0.0),
-        y.unwrap_or(0.0),
-        z.unwrap_or(0.0),
-    )))))
+    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
+        Shape::extrude(
+            &mut shape,
+            x.unwrap_or(0.0),
+            y.unwrap_or(0.0),
+            z.unwrap_or(0.0),
+        )
+    )?))))
 }
 
 pub fn revolve(
@@ -91,9 +94,9 @@ pub fn revolve(
     };
 
     let mut shape = shape.borrow_mut();
-    Ok(Value::Shape(Rc::new(RefCell::new(Shape::extrude_rotate(
-        &mut shape, axis, angle,
-    )))))
+    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
+        Shape::extrude_rotate(&mut shape, axis, angle,)
+    )?))))
 }
 
 pub fn union_edge(

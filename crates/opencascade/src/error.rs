@@ -1,9 +1,15 @@
 use std::fmt::{Debug, Display, Formatter};
 
-pub struct Error(&'static str);
+pub struct Error(String);
 
 impl From<&'static str> for Error {
     fn from(value: &'static str) -> Self {
+        Error(value.to_owned())
+    }
+}
+
+impl From<String> for Error {
+    fn from(value: String) -> Self {
         Error(value)
     }
 }
@@ -16,7 +22,7 @@ impl Debug for Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.0)
+        f.write_str(&self.0)
     }
 }
 

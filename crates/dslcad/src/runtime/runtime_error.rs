@@ -17,4 +17,6 @@ pub enum RuntimeError {
     NoReturnValue(),
     #[error("Cant Write")]
     CantWrite(),
+    #[error("{0}")]
+    Opencascade(opencascade::Error),
 }

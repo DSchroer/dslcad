@@ -10,9 +10,9 @@ use opencascade_sys::ffi::{
     BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
     BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
     BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt, BRep_Tool_Triangulation,
-    HandleGeomCurve_Value, Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum,
-    TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_cast_to_edge,
-    TopoDS_cast_to_face, TopoDS_cast_to_vertex,
+    HandleGeomCurve_Value, Message_ProgressRange_ctor, Poly_Triangulation_Node, TopAbs_Orientation,
+    TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape,
+    TopoDS_cast_to_edge, TopoDS_cast_to_face, TopoDS_cast_to_vertex,
 };
 
 pub enum Shape {
@@ -36,43 +36,59 @@ pub enum Axis {
 }
 
 impl Shape {
-    pub fn cube(dx: f64, dy: f64, dz: f64) -> Self {
+    pub fn cube(dx: f64, dy: f64, dz: f64) -> Result<Self, Error> {
         let origin = Point::new(0., 0., 0.);
-        Shape::Box(BRepPrimAPI_MakeBox_ctor(&origin.point, dx, dy, dz))
+        Ok(Shape::Box(BRepPrimAPI_MakeBox_ctor(
+            &origin.point,
+            dx,
+            dy,
+            dz,
+        )))
     }
 
-    pub fn sphere(r: f64) -> Self {
-        Shape::Sphere(BRepPrimAPI_MakeSphere_ctor(r))
+    pub fn sphere(r: f64) -> Result<Self, Error> {
+        Ok(Shape::Sphere(BRepPrimAPI_MakeSphere_ctor(r)))
     }
 
-    pub fn cylinder(radius: f64, height: f64) -> Self {
+    pub fn cylinder(radius: f64, height: f64) -> Result<Self, Error> {
         let origin = Point::new(radius, radius, 0.);
         let axis = gp_Ax2_ctor(&origin.point, gp_DZ());
-        Shape::Cylinder(BRepPrimAPI_MakeCylinder_ctor(&axis, radius, height))
+        Ok(Shape::Cylinder(BRepPrimAPI_MakeCylinder_ctor(
+            &axis, radius, height,
+        )))
     }
 
-    pub fn fuse(left: &mut Shape, right: &mut Shape) -> Shape {
-        Shape::Fuse(BRepAlgoAPI_Fuse_ctor(left.shape(), right.shape()))
+    pub fn fuse(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
+        Ok(Shape::Fuse(BRepAlgoAPI_Fuse_ctor(
+            left.shape()?,
+            right.shape()?,
+        )))
     }
 
-    pub fn cut(left: &mut Shape, right: &mut Shape) -> Shape {
-        Shape::Cut(BRepAlgoAPI_Cut_ctor(left.shape(), right.shape()))
+    pub fn cut(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
+        Ok(Shape::Cut(BRepAlgoAPI_Cut_ctor(
+            left.shape()?,
+            right.shape()?,
+        )))
     }
 
-    pub fn intersect(left: &mut Shape, right: &mut Shape) -> Shape {
-        Shape::Intersect(BRepAlgoAPI_Common_ctor(left.shape(), right.shape()))
+    pub fn intersect(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
+        Ok(Shape::Intersect(BRepAlgoAPI_Common_ctor(
+            left.shape()?,
+            right.shape()?,
+        )))
     }
 
-    pub fn extrude(wire: &mut Edge, x: f64, y: f64, z: f64) -> Shape {
+    pub fn extrude(wire: &mut Edge, x: f64, y: f64, z: f64) -> Result<Self, Error> {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.0.pin_mut().Wire(), false);
         let prism_vec = new_vec(x, y, z);
         // We're calling Shape here instead of Face(), hope that's also okay.
         let body =
             BRepPrimAPI_MakePrism_ctor(face_profile.pin_mut().Shape(), &prism_vec, true, true);
-        Shape::Prism(body)
+        Ok(Shape::Prism(body))
     }
 
-    pub fn extrude_rotate(wire: &mut Edge, axis: Axis, degrees: f64) -> Shape {
+    pub fn extrude_rotate(wire: &mut Edge, axis: Axis, degrees: f64) -> Result<Self, Error> {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.0.pin_mut().Wire(), false);
 
         let radians = degrees * (std::f64::consts::PI / 180.);
@@ -84,23 +100,23 @@ impl Shape {
 
         let body =
             BRepPrimAPI_MakeRevol_ctor(face_profile.pin_mut().Shape(), gp_axis, radians, true);
-        Shape::Revol(body)
+        Ok(Shape::Revol(body))
     }
 
-    pub fn translate(left: &mut Shape, point: &Point) -> Shape {
+    pub fn translate(left: &mut Shape, point: &Point) -> Result<Self, Error> {
         let mut transform = new_transform();
         transform
             .pin_mut()
             .SetTranslation(&Point::new(0., 0., 0.).point, &point.point);
 
-        Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.shape(),
+        Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
+            left.shape()?,
             &transform,
             true,
-        ))
+        )))
     }
 
-    pub fn rotate(left: &mut Shape, axis: Axis, degrees: f64) -> Shape {
+    pub fn rotate(left: &mut Shape, axis: Axis, degrees: f64) -> Result<Self, Error> {
         let mut transform = new_transform();
         let gp_axis = match axis {
             Axis::X => gp_OX(),
@@ -110,27 +126,27 @@ impl Shape {
         let radians = degrees * (std::f64::consts::PI / 180.);
         transform.pin_mut().SetRotation(gp_axis, radians);
 
-        Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.shape(),
+        Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
+            left.shape()?,
             &transform,
             true,
-        ))
+        )))
     }
 
-    pub fn scale(left: &mut Shape, scale: f64) -> Shape {
+    pub fn scale(left: &mut Shape, scale: f64) -> Result<Self, Error> {
         let mut transform = new_transform();
         transform
             .pin_mut()
             .SetScale(&Point::new(0., 0., 0.).point, scale);
 
-        Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.shape(),
+        Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
+            left.shape()?,
             &transform,
             true,
-        ))
+        )))
     }
 
-    pub fn mirror(left: &mut Shape, axis: Axis) -> Shape {
+    pub fn mirror(left: &mut Shape, axis: Axis) -> Result<Self, Error> {
         let mut transform = new_transform();
         let gp_axis = match axis {
             Axis::X => gp_OX(),
@@ -139,41 +155,43 @@ impl Shape {
         };
         transform.pin_mut().set_mirror_axis(gp_axis);
 
-        Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.shape(),
+        Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
+            left.shape()?,
             &transform,
             true,
-        ))
+        )))
     }
 
-    pub fn fillet(target: &mut Shape, thickness: f64) -> Shape {
-        let mut fillet = BRepFilletAPI_MakeFillet_ctor(target.shape());
+    pub fn fillet(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
+        let mut fillet = BRepFilletAPI_MakeFillet_ctor(target.shape()?);
 
-        let mut edge_explorer = TopExp_Explorer_ctor(target.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+        let mut edge_explorer =
+            TopExp_Explorer_ctor(target.shape()?, TopAbs_ShapeEnum::TopAbs_EDGE);
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
             fillet.pin_mut().add_edge(thickness, edge);
             edge_explorer.pin_mut().Next();
         }
 
-        Shape::Fillet(fillet)
+        Ok(Shape::Fillet(fillet))
     }
 
-    pub fn chamfer(target: &mut Shape, thickness: f64) -> Shape {
-        let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(target.shape());
+    pub fn chamfer(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
+        let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(target.shape()?);
 
-        let mut edge_explorer = TopExp_Explorer_ctor(target.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+        let mut edge_explorer =
+            TopExp_Explorer_ctor(target.shape()?, TopAbs_ShapeEnum::TopAbs_EDGE);
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
             chamfer.pin_mut().add_edge(thickness, edge);
             edge_explorer.pin_mut().Next();
         }
 
-        Shape::Chamfer(chamfer)
+        Ok(Shape::Chamfer(chamfer))
     }
 
     pub fn mesh(&mut self) -> Result<Mesh, Error> {
-        let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(self.shape(), 0.01);
+        let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(self.shape()?, 0.01);
         if !incremental_mesh.IsDone() {
             return Err("unable to build incremental mesh".into());
         }
@@ -222,10 +240,10 @@ impl Shape {
         Ok(mesh)
     }
 
-    pub fn lines(&mut self) -> Vec<Vec<[f64; 3]>> {
+    pub fn lines(&mut self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
-        let mut edge_explorer = TopExp_Explorer_ctor(self.shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+        let mut edge_explorer = TopExp_Explorer_ctor(self.shape()?, TopAbs_ShapeEnum::TopAbs_EDGE);
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
 
@@ -235,7 +253,7 @@ impl Shape {
             edge_explorer.pin_mut().Next();
         }
 
-        lines
+        Ok(lines)
     }
 
     fn extract_line(edge: &TopoDS_Edge) -> Option<Vec<[f64; 3]>> {
@@ -260,10 +278,11 @@ impl Shape {
         Some(points)
     }
 
-    pub fn points(&mut self) -> Vec<[f64; 3]> {
+    pub fn points(&mut self) -> Result<Vec<[f64; 3]>, Error> {
         let mut points = Vec::new();
 
-        let mut edge_explorer = TopExp_Explorer_ctor(self.shape(), TopAbs_ShapeEnum::TopAbs_VERTEX);
+        let mut edge_explorer =
+            TopExp_Explorer_ctor(self.shape()?, TopAbs_ShapeEnum::TopAbs_VERTEX);
         while edge_explorer.More() {
             let vertex = TopoDS_cast_to_vertex(edge_explorer.Current());
             let point: Point = BRep_Tool_Pnt(vertex).into();
@@ -271,11 +290,53 @@ impl Shape {
             edge_explorer.pin_mut().Next();
         }
 
-        points
+        Ok(points)
     }
 
-    fn shape(&mut self) -> &TopoDS_Shape {
+    fn is_done(&mut self) -> bool {
         match self {
+            Shape::Box(b) => b.IsDone(),
+            Shape::Sphere(b) => b.IsDone(),
+            Shape::Cylinder(c) => c.IsDone(),
+            Shape::Fuse(f) => f.IsDone(),
+            Shape::Cut(f) => f.IsDone(),
+            Shape::Intersect(f) => f.IsDone(),
+            Shape::Fillet(f) => f.IsDone(),
+            Shape::Chamfer(f) => f.IsDone(),
+            Shape::Transformed(f) => f.IsDone(),
+            Shape::Prism(p) => p.IsDone(),
+            Shape::Revol(p) => p.IsDone(),
+        }
+    }
+
+    fn build(&mut self) {
+        let progress = Message_ProgressRange_ctor();
+
+        match self {
+            Shape::Box(b) => b.pin_mut().Build(&progress),
+            Shape::Sphere(b) => b.pin_mut().Build(&progress),
+            Shape::Cylinder(c) => c.pin_mut().Build(&progress),
+            Shape::Fuse(f) => f.pin_mut().Build(&progress),
+            Shape::Cut(f) => f.pin_mut().Build(&progress),
+            Shape::Intersect(f) => f.pin_mut().Build(&progress),
+            Shape::Fillet(f) => f.pin_mut().Build(&progress),
+            Shape::Chamfer(f) => f.pin_mut().Build(&progress),
+            Shape::Transformed(f) => f.pin_mut().Build(&progress),
+            Shape::Prism(p) => p.pin_mut().Build(&progress),
+            Shape::Revol(p) => p.pin_mut().Build(&progress),
+        }
+    }
+
+    fn shape(&mut self) -> Result<&TopoDS_Shape, Error> {
+        if !self.is_done() {
+            self.build();
+
+            if !self.is_done() {
+                return Err("unable to compute shape".to_string().into());
+            }
+        }
+
+        Ok(match self {
             Shape::Box(b) => b.pin_mut().Shape(),
             Shape::Sphere(b) => b.pin_mut().Shape(),
             Shape::Cylinder(c) => c.pin_mut().Shape(),
@@ -287,7 +348,7 @@ impl Shape {
             Shape::Transformed(f) => f.pin_mut().Shape(),
             Shape::Prism(p) => p.pin_mut().Shape(),
             Shape::Revol(p) => p.pin_mut().Shape(),
-        }
+        })
     }
 }
 
@@ -310,91 +371,91 @@ mod tests {
 
     #[test]
     fn it_can_write_box_stl() {
-        let mut shape = Shape::cube(1., 10., 1.);
+        let mut shape = Shape::cube(1., 10., 1.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_sphere_stl() {
-        let mut shape = Shape::sphere(1.);
+        let mut shape = Shape::sphere(1.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_mesh_box_stl() {
-        let mut shape = Shape::cube(1., 10., 1.);
+        let mut shape = Shape::cube(1., 10., 1.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_fillet_box_stl() {
-        let mut b = Shape::cube(10., 10., 10.);
-        let mut shape = Shape::fillet(&mut b, 0.5);
+        let mut b = Shape::cube(10., 10., 10.).unwrap();
+        let mut shape = Shape::fillet(&mut b, 0.5).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_chamfer_box_stl() {
-        let mut b = Shape::cube(10., 10., 10.);
-        let mut shape = Shape::chamfer(&mut b, 0.5);
+        let mut b = Shape::cube(10., 10., 10.).unwrap();
+        let mut shape = Shape::chamfer(&mut b, 0.5).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_cylinder_stl() {
-        let mut shape = Shape::cylinder(10., 100.);
+        let mut shape = Shape::cylinder(10., 100.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_translated_stl() {
-        let mut b = Shape::cube(10., 10., 10.);
-        let mut shape = Shape::translate(&mut b, &Point::new(10., 0., 0.));
+        let mut b = Shape::cube(10., 10., 10.).unwrap();
+        let mut shape = Shape::translate(&mut b, &Point::new(10., 0., 0.)).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_rotated_stl() {
-        let mut b = Shape::cube(10., 10., 10.);
-        let mut shape = Shape::rotate(&mut b, Axis::X, 45.);
+        let mut b = Shape::cube(10., 10., 10.).unwrap();
+        let mut shape = Shape::rotate(&mut b, Axis::X, 45.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_scaled_stl() {
-        let mut b = Shape::cube(1., 1., 1.);
-        let mut shape = Shape::scale(&mut b, 10.);
+        let mut b = Shape::cube(1., 1., 1.).unwrap();
+        let mut shape = Shape::scale(&mut b, 10.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_mirrored_stl() {
-        let mut b = Shape::cube(1., 1., 1.);
-        let mut shape = Shape::mirror(&mut b, Axis::X);
+        let mut b = Shape::cube(1., 1., 1.).unwrap();
+        let mut shape = Shape::mirror(&mut b, Axis::X).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_fuse_stl() {
-        let mut b = Shape::cube(15., 15., 1.);
-        let mut c = Shape::cylinder(10., 100.);
-        let mut shape = Shape::fuse(&mut b, &mut c);
+        let mut b = Shape::cube(15., 15., 1.).unwrap();
+        let mut c = Shape::cylinder(10., 100.).unwrap();
+        let mut shape = Shape::fuse(&mut b, &mut c).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_cut_stl() {
-        let mut b = Shape::cube(15., 15., 1.);
-        let mut c = Shape::cylinder(10., 100.);
-        let mut shape = Shape::cut(&mut b, &mut c);
+        let mut b = Shape::cube(15., 15., 1.).unwrap();
+        let mut c = Shape::cylinder(10., 100.).unwrap();
+        let mut shape = Shape::cut(&mut b, &mut c).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_intersect_stl() {
-        let mut b = Shape::cube(15., 15., 1.);
-        let mut c = Shape::cylinder(10., 100.);
-        let mut shape = Shape::intersect(&mut b, &mut c);
+        let mut b = Shape::cube(15., 15., 1.).unwrap();
+        let mut c = Shape::cylinder(10., 100.).unwrap();
+        let mut shape = Shape::intersect(&mut b, &mut c).unwrap();
         shape.mesh().unwrap();
     }
 }

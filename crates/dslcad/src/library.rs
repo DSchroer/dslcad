@@ -25,6 +25,13 @@ enum Access {
     Optional(Type),
 }
 
+macro_rules! from_cascade {
+    ($source: expr) => {
+        $source.map_err(|e| RuntimeError::Opencascade(e))
+    };
+}
+pub(crate) use from_cascade;
+
 macro_rules! bind {
     ($name: ident, $func: path[$($arg_name:ident=$arg_value:ident), *], $cat: expr, $desc: literal) => {{
         Signature{
