@@ -11,8 +11,8 @@ pub fn stl_to_triangle_mesh(stl: &dslcad::Mesh) -> Mesh {
     let mut indices = Vec::with_capacity(vertex_count);
 
     for (i, (triangle, normal)) in stl.triangles_with_normals().enumerate() {
-        for j in 0..3 {
-            let vertex = stl.vertices[triangle[j]];
+        for (j, vertex_index) in triangle.iter().enumerate().take(3) {
+            let vertex = stl.vertices[*vertex_index];
             positions.push([vertex[0] as f32, vertex[1] as f32, vertex[2] as f32]);
             normals.push([normal[0] as f32, normal[1] as f32, normal[2] as f32]);
             indices.push((i * 3 + j) as u32);
