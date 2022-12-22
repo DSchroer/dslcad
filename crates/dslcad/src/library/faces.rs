@@ -117,13 +117,17 @@ pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
     }
     let parts_len = parts.len();
 
-    if parts_len == 1 {
+    let start = start_point(&mut parts[0])?;
+    let end = end_point(&mut parts[parts_len - 1])?;
+
+    if parts_len == 1 && start == end {
         return Ok(parts[0].clone());
     }
 
     let mut edge = Edge::new();
-    for i in 1..parts_len {
-        let last_end = end_point(&mut parts[i - 1])?;
+    for i in 0..parts_len {
+        let last = if i == 0 { parts_len - 1 } else { i - 1 };
+        let last_end = end_point(&mut parts[last])?;
         let current_start = start_point(&mut parts[i])?;
         let point = &parts[i];
 
@@ -134,12 +138,6 @@ pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
         if point.get_type() == Type::Edge {
             edge.add_edge(&mut point.to_line().unwrap().borrow_mut())
         }
-    }
-
-    let start = start_point(&mut parts[0])?;
-    let end = end_point(&mut parts[parts_len - 1])?;
-    if start != end {
-        edge.add_line(&start.borrow(), &end.borrow());
     }
 
     Ok(Value::Line(Rc::new(RefCell::new(edge))))

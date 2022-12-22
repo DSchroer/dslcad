@@ -1,0 +1,20 @@
+face(parts=[
+    point(x=3,y=0),
+    arc(
+        start=point(x=1, y=0),
+        center=point(x=1, y=1),
+        end=point(x=2, y=1)
+    )
+])
+->shape extrude(z=1)
+->left union(right=
+    face(parts=[
+        point(x=3,y=0),
+        arc(
+            start=point(x=1, y=0),
+            center=point(x=1, y=-1),
+            end=point(x=2, y=-1)
+        )
+    ])
+    ->shape extrude(z=1))
+->shape fillet(radius=0.2);
