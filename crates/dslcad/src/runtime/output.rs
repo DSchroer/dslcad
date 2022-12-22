@@ -1,5 +1,5 @@
 use super::Value;
-use opencascade::{Edge, IndexedMesh, Point, Shape};
+use opencascade::{Edge, Mesh, Point, Shape};
 use std::cell::{Ref, RefMut};
 use std::fmt::{Display, Formatter};
 
@@ -8,7 +8,7 @@ pub struct Output {
     text: String,
     points: Vec<[f64; 3]>,
     lines: Vec<Vec<[f64; 3]>>,
-    mesh: IndexedMesh,
+    mesh: Mesh,
 }
 
 impl Output {
@@ -24,7 +24,7 @@ impl Output {
         &self.lines
     }
 
-    pub fn mesh(&self) -> &IndexedMesh {
+    pub fn mesh(&self) -> &Mesh {
         &self.mesh
     }
 }
@@ -84,7 +84,7 @@ impl From<RefMut<'_, Edge>> for Output {
 }
 
 impl TryFrom<RefMut<'_, Shape>> for Output {
-    type Error = std::io::Error;
+    type Error = opencascade::Error;
 
     fn try_from(mut value: RefMut<'_, Shape>) -> Result<Self, Self::Error> {
         Ok(Output {
@@ -102,8 +102,8 @@ impl Default for Output {
             text: String::new(),
             points: Vec::new(),
             lines: Vec::new(),
-            mesh: IndexedMesh {
-                faces: Vec::new(),
+            mesh: Mesh {
+                triangles: Vec::new(),
                 vertices: Vec::new(),
             },
         }

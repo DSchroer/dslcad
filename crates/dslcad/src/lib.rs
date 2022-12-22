@@ -16,6 +16,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+pub use opencascade::Mesh;
 pub use runtime::Output;
 
 #[derive(Error, Debug)]

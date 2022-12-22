@@ -1,20 +1,20 @@
 use bevy::prelude::Mesh;
 use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 
-pub fn stl_to_triangle_mesh(stl: &stl_io::IndexedMesh) -> Mesh {
+pub fn stl_to_triangle_mesh(stl: &dslcad::Mesh) -> Mesh {
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
 
-    let vertex_count = stl.faces.len() * 3;
+    let vertex_count = stl.triangles.len() * 3;
 
     let mut positions = Vec::with_capacity(vertex_count);
     let mut normals = Vec::with_capacity(vertex_count);
     let mut indices = Vec::with_capacity(vertex_count);
 
-    for (i, face) in stl.faces.iter().enumerate() {
+    for (i, (triangle, normal)) in stl.triangles_with_normals().enumerate() {
         for j in 0..3 {
-            let vertex = stl.vertices[face.vertices[j]];
-            positions.push([vertex[0], vertex[1], vertex[2]]);
-            normals.push([face.normal[0], face.normal[1], face.normal[2]]);
+            let vertex = stl.vertices[triangle[j]];
+            positions.push([vertex[0] as f32, vertex[1] as f32, vertex[2] as f32]);
+            normals.push([normal[0] as f32, normal[1] as f32, normal[2] as f32]);
             indices.push((i * 3 + j) as u32);
         }
     }

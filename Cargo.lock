@@ -2823,13 +2823,12 @@ version = "0.1.0"
 dependencies = [
  "cxx",
  "opencascade-sys",
- "stl_io",
 ]
 
 [[package]]
 name = "opencascade-sys"
 version = "0.1.0"
-source = "git+https://github.com/bschwind/opencascade-rs?rev=0e4696e1749c73354b1d13c2fad50cb08bfef83d#0e4696e1749c73354b1d13c2fad50cb08bfef83d"
+source = "git+https://github.com/dschroer/opencascade-rs?rev=aba1f5c#aba1f5cba126202a26eaa95b79543728ddc13616"
 dependencies = [
  "cmake",
  "cxx",

@@ -1,7 +1,7 @@
-use crate::{Edge, Point};
+use crate::{Edge, Error, Mesh, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
-    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, write_stl, BRepAlgoAPI_Common,
+    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, BRepAlgoAPI_Common,
     BRepAlgoAPI_Common_ctor, BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse,
     BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform,
     BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor,
@@ -9,15 +9,11 @@ use opencascade_sys::ffi::{
     BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder,
     BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
     BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
-    BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt, HandleGeomCurve_Value,
-    StlAPI_Writer_ctor, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Shape,
-    TopoDS_cast_to_edge, TopoDS_cast_to_vertex,
+    BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt, BRep_Tool_Triangulation,
+    HandleGeomCurve_Value, Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum,
+    TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_cast_to_edge,
+    TopoDS_cast_to_face, TopoDS_cast_to_vertex,
 };
-use std::env;
-use std::fs::File;
-use std::io::ErrorKind;
-
-pub use stl_io::IndexedMesh;
 
 pub enum Shape {
     Box(UniquePtr<BRepPrimAPI_MakeBox>),
@@ -176,15 +172,54 @@ impl Shape {
         Shape::Chamfer(chamfer)
     }
 
-    pub fn mesh(&mut self) -> Result<IndexedMesh, std::io::Error> {
-        let dir = env::temp_dir();
-        let file = dir.join("a.stl");
+    pub fn mesh(&mut self) -> Result<Mesh, Error> {
+        let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(self.shape(), 0.01);
+        if !incremental_mesh.IsDone() {
+            return Err("unable to build incremental mesh".into());
+        }
 
-        self.write_stl(file.to_str().unwrap())?;
-        let mut file = File::open(file)?;
+        let mut mesh = Mesh::default();
 
-        let stl = stl_io::read_stl(&mut file).unwrap();
-        Ok(stl)
+        let mut edge_explorer = TopExp_Explorer_ctor(
+            incremental_mesh.pin_mut().Shape(),
+            TopAbs_ShapeEnum::TopAbs_FACE,
+        );
+        while edge_explorer.More() {
+            let face = TopoDS_cast_to_face(edge_explorer.Current());
+            let mut location = TopLoc_Location_ctor();
+
+            let triangulation_handle = BRep_Tool_Triangulation(&face, location.pin_mut());
+            if !triangulation_handle.IsNull() {
+                let triangulation = unsafe { &*triangulation_handle.get() };
+
+                let index_offset = mesh.vertices.len();
+                for index in 1..=triangulation.NbNodes() {
+                    let node = Poly_Triangulation_Node(triangulation, index);
+                    mesh.vertices.push([node.X(), node.Y(), node.Z()]);
+                }
+
+                for index in 1..=triangulation.NbTriangles() {
+                    let triangle = triangulation.Triangle(index);
+                    if face.Orientation() == TopAbs_Orientation::TopAbs_FORWARD {
+                        mesh.triangles.push([
+                            index_offset + triangle.Value(1) as usize - 1,
+                            index_offset + triangle.Value(2) as usize - 1,
+                            index_offset + triangle.Value(3) as usize - 1,
+                        ]);
+                    } else {
+                        mesh.triangles.push([
+                            index_offset + triangle.Value(3) as usize - 1,
+                            index_offset + triangle.Value(2) as usize - 1,
+                            index_offset + triangle.Value(1) as usize - 1,
+                        ]);
+                    }
+                }
+            }
+
+            edge_explorer.pin_mut().Next();
+        }
+
+        Ok(mesh)
     }
 
     pub fn lines(&mut self) -> Vec<Vec<[f64; 3]>> {
@@ -254,22 +289,6 @@ impl Shape {
             Shape::Revol(p) => p.pin_mut().Shape(),
         }
     }
-
-    fn write_stl(&mut self, stl_path: &str) -> Result<(), std::io::Error> {
-        let mut writer = StlAPI_Writer_ctor();
-        let shape = self.shape();
-        let triangulation = BRepMesh_IncrementalMesh_ctor(shape, 0.01);
-        let res = write_stl(
-            writer.pin_mut(),
-            triangulation.Shape(),
-            stl_path.to_string(),
-        );
-
-        match res {
-            true => Ok(()),
-            false => Err(std::io::Error::from(ErrorKind::Other)),
-        }
-    }
 }
 
 unsafe fn is_null_internal<T: cxx::memory::UniquePtrTarget>(
@@ -292,67 +311,67 @@ mod tests {
     #[test]
     fn it_can_write_box_stl() {
         let mut shape = Shape::cube(1., 10., 1.);
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_sphere_stl() {
         let mut shape = Shape::sphere(1.);
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_mesh_box_stl() {
         let mut shape = Shape::cube(1., 10., 1.);
-        println!("{:?}", shape.mesh())
+        shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_fillet_box_stl() {
         let mut b = Shape::cube(10., 10., 10.);
         let mut shape = Shape::fillet(&mut b, 0.5);
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_chamfer_box_stl() {
         let mut b = Shape::cube(10., 10., 10.);
         let mut shape = Shape::chamfer(&mut b, 0.5);
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_cylinder_stl() {
         let mut shape = Shape::cylinder(10., 100.);
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_translated_stl() {
         let mut b = Shape::cube(10., 10., 10.);
         let mut shape = Shape::translate(&mut b, &Point::new(10., 0., 0.));
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_rotated_stl() {
         let mut b = Shape::cube(10., 10., 10.);
         let mut shape = Shape::rotate(&mut b, Axis::X, 45.);
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_scaled_stl() {
         let mut b = Shape::cube(1., 1., 1.);
         let mut shape = Shape::scale(&mut b, 10.);
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_mirrored_stl() {
         let mut b = Shape::cube(1., 1., 1.);
         let mut shape = Shape::mirror(&mut b, Axis::X);
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 
     #[test]
@@ -360,7 +379,7 @@ mod tests {
         let mut b = Shape::cube(15., 15., 1.);
         let mut c = Shape::cylinder(10., 100.);
         let mut shape = Shape::fuse(&mut b, &mut c);
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 
     #[test]
@@ -368,7 +387,7 @@ mod tests {
         let mut b = Shape::cube(15., 15., 1.);
         let mut c = Shape::cylinder(10., 100.);
         let mut shape = Shape::cut(&mut b, &mut c);
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 
     #[test]
@@ -376,6 +395,6 @@ mod tests {
         let mut b = Shape::cube(15., 15., 1.);
         let mut c = Shape::cylinder(10., 100.);
         let mut shape = Shape::intersect(&mut b, &mut c);
-        shape.write_stl("./demo.stl").unwrap();
+        shape.mesh().unwrap();
     }
 }

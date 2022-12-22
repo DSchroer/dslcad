@@ -102,7 +102,7 @@ impl Edge {
         let start = HandleGeomCurve_Value(&curve, first).into();
         let end = HandleGeomCurve_Value(&curve, last).into();
 
-        return (start, end);
+        (start, end)
     }
 }
 

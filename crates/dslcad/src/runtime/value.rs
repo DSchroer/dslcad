@@ -1,7 +1,6 @@
 use std::cell::{Ref, RefCell};
 
 use std::fmt::{Debug, Formatter};
-use std::io;
 use std::rc::Rc;
 
 use super::Access;
@@ -40,7 +39,7 @@ impl Debug for Value {
 }
 
 impl Value {
-    pub fn to_output(&self) -> Result<Output, io::Error> {
+    pub fn to_output(&self) -> Result<Output, opencascade::Error> {
         Ok(match self {
             Value::Number(v) => v.into(),
             Value::Bool(v) => v.into(),
