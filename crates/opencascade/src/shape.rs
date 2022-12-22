@@ -82,7 +82,15 @@ impl Shape {
     pub fn extrude(wire: &mut Edge, x: f64, y: f64, z: f64) -> Result<Self, Error> {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.0.pin_mut().Wire(), false);
         let prism_vec = new_vec(x, y, z);
-        // We're calling Shape here instead of Face(), hope that's also okay.
+
+        if !face_profile.IsDone() {
+            let progress = Message_ProgressRange_ctor();
+            face_profile.pin_mut().Build(&progress);
+
+            if !face_profile.IsDone() {
+                return Err("unable to compute shape".to_string().into());
+            }
+        }
         let body =
             BRepPrimAPI_MakePrism_ctor(face_profile.pin_mut().Shape(), &prism_vec, true, true);
         Ok(Shape::Prism(body))
@@ -98,6 +106,14 @@ impl Shape {
             Axis::Z => gp_OZ(),
         };
 
+        if !face_profile.IsDone() {
+            let progress = Message_ProgressRange_ctor();
+            face_profile.pin_mut().Build(&progress);
+
+            if !face_profile.IsDone() {
+                return Err("unable to compute shape".to_string().into());
+            }
+        }
         let body =
             BRepPrimAPI_MakeRevol_ctor(face_profile.pin_mut().Shape(), gp_axis, radians, true);
         Ok(Shape::Revol(body))
