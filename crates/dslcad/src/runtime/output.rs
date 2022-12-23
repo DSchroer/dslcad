@@ -77,6 +77,11 @@ impl From<Ref<'_, Point>> for Output {
 impl From<RefMut<'_, Edge>> for Output {
     fn from(mut value: RefMut<Edge>) -> Self {
         Output {
+            points: [value.start(), value.end()]
+                .into_iter()
+                .flatten()
+                .map(|p| p.into())
+                .collect(),
             lines: value.points(),
             ..Default::default()
         }
