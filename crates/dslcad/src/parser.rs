@@ -50,6 +50,7 @@ macro_rules! take {
     ($self: ident, $lexer: ident, $($token: pat = $name: literal => $case: expr), *) => {
         match $lexer.next() {
             $(Some($token) => $case,)*
+            #[allow(unreachable_patterns)]
             Some(_) => return Err(ParseError::ExpectedOneOf(vec![$($name,)*], $self.path.clone(), $lexer.span(), $self.source()?)),
             None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone(), $self.source()?)),
         }
@@ -240,17 +241,19 @@ impl<'a, T: Reader> Parser<'a, T> {
         let mut items = Vec::new();
         loop {
             let mut peek = lexer.clone();
-            match peek.next() {
-                Some(Token::Comma) => {
+            take!(self, peek,
+                Token::CloseList = "]" => {
                     lexer.next();
-                }
-                Some(Token::CloseList) => break,
-                Some(_) => items.push(self.parse_expression(lexer)?),
-                None => break,
-            }
-        }
+                    break;
+                },
+                _ = "expression" =>  items.push(self.parse_expression(lexer)?)
+            );
 
-        take!(self, lexer, Token::CloseList = "]");
+            take!(self, lexer,
+                Token::CloseList = "]" => break,
+                Token::Comma = "," => {}
+            );
+        }
 
         Ok(Expression::Literal(Literal::List(items)))
     }
@@ -517,6 +520,10 @@ pub mod tests {
         Parser::new("test", &TestReader("var foo = [1];"))
             .parse()
             .unwrap();
+
+        Parser::new("test", &TestReader("var foo = [1 2];"))
+            .parse()
+            .expect_err("should not parse lists without commas");
 
         Parser::new("test", &TestReader("var foo = [test(), 2];"))
             .parse()

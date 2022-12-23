@@ -1,0 +1,61 @@
+var tooth_depth = 3;
+var depth = 15;
+var height = 26;
+var radius = 25 / 2;
+
+var base = 
+	circle(radius=radius) 
+		->shape extrude(z=5)
+		->shape translate(z=-2)
+		->shape fillet(radius=1.5)
+		->left difference(
+			right=circle(radius=radius) 
+				->shape extrude(z=-2)
+			);
+
+var corner = radius - (15/2);
+var tooth = face(parts=[
+		point(x=0, y=corner),
+		point(x=0, y=corner+15),
+		arc(
+			start=point(x=25-(15/2), y=corner+15), 
+			center=point(x=25, y=corner+15/2), 
+			end=point(x=25-(15/2), y=corner)
+		)
+	]) 
+	->shape extrude(z=3)
+	->shape rotate(y=-90)
+	->shape rotate(z=-90)
+	->shape translate(y=-1.5);
+
+base
+	->left union(
+		right=tooth ->shape translate(y=radius)
+	)
+	->left union(
+		right=tooth ->shape translate(y=radius - 6)
+	)
+	->left union(
+		right=tooth ->shape translate(y=radius + 6)
+	)
+	->left difference(
+		right=
+			cylinder(height=radius*2, radius=5/2)
+			->shape rotate(x=90)
+			->shape translate(y=radius,x=-5/2,z=-5/2)
+			->shape translate(x=radius,z=25-(15/2),y=10)
+	)
+	->left union(
+		right=
+			cube(x=15,y=15,z=25-15)
+			->shape fillet(radius=3)
+			->shape translate(x=-15/2, y=-15/2)
+			->shape translate(x=radius,y=radius)
+	)
+	->left difference(
+		right=
+			cylinder(height=7, radius=6/2)
+			->shape fillet(radius=1)
+			->shape translate(x=-3, y=-3,z=-1)
+			->shape translate(x=radius,y=radius)
+	);
