@@ -49,7 +49,7 @@ impl Value {
             Value::Script(s) => s.borrow().value().to_output()?,
 
             Value::Point(p) => p.borrow().into(),
-            Value::Line(l) => l.borrow_mut().into(),
+            Value::Line(l) => l.borrow_mut().try_into()?,
             Value::Shape(s) => s.borrow_mut().try_into()?,
         })
     }

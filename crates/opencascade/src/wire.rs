@@ -1,18 +1,18 @@
-use crate::command::Builder;
+use crate::command::{Builder, Command};
 use crate::edge::Edge;
 use crate::{Error, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
     BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor, BRep_Tool_Curve, HandleGeomCurve_Value,
-    TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_cast_to_edge,
+    TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Wire,
+    TopoDS_cast_to_edge,
 };
 
 pub struct Wire(pub(crate) UniquePtr<BRepBuilderAPI_MakeWire>);
 
 impl Wire {
     pub fn new() -> Self {
-        let make_wire = BRepBuilderAPI_MakeWire_ctor();
-        Wire(make_wire)
+        Wire(BRepBuilderAPI_MakeWire_ctor())
     }
 
     pub fn add_edge(&mut self, left: &mut Edge) -> Result<(), Error> {
@@ -20,24 +20,24 @@ impl Wire {
         Ok(())
     }
 
-    pub fn join(&mut self, wire: &mut Wire) {
-        self.0.pin_mut().add_wire(wire.0.pin_mut().Wire());
+    pub fn join(&mut self, wire: &mut Wire) -> Result<(), Error> {
+        self.0.pin_mut().add_wire(wire.try_build()?);
+        Ok(())
     }
 
-    pub fn start(&mut self) -> Option<Point> {
-        let edge_explorer =
-            TopExp_Explorer_ctor(self.0.pin_mut().Shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+    pub fn start(&mut self) -> Result<Option<Point>, Error> {
+        let edge_explorer = TopExp_Explorer_ctor(self.try_build()?, TopAbs_ShapeEnum::TopAbs_EDGE);
         if edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
             let (start, _) = Self::extract_start_end(edge);
-            return Some(start);
+            return Ok(Some(start));
         }
-        None
+        Ok(None)
     }
 
-    pub fn end(&mut self) -> Option<Point> {
+    pub fn end(&mut self) -> Result<Option<Point>, Error> {
         let mut edge_explorer =
-            TopExp_Explorer_ctor(self.0.pin_mut().Shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+            TopExp_Explorer_ctor(self.try_build()?, TopAbs_ShapeEnum::TopAbs_EDGE);
         let mut last_end = None;
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
@@ -45,14 +45,14 @@ impl Wire {
             last_end = Some(end);
             edge_explorer.pin_mut().Next();
         }
-        last_end
+        Ok(last_end)
     }
 
-    pub fn points(&mut self) -> Vec<Vec<[f64; 3]>> {
+    pub fn points(&mut self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
         let mut edge_explorer =
-            TopExp_Explorer_ctor(self.0.pin_mut().Shape(), TopAbs_ShapeEnum::TopAbs_EDGE);
+            TopExp_Explorer_ctor(self.try_build()?, TopAbs_ShapeEnum::TopAbs_EDGE);
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
 
@@ -60,7 +60,7 @@ impl Wire {
             edge_explorer.pin_mut().Next();
         }
 
-        lines
+        Ok(lines)
     }
 
     fn extract_line(edge: &TopoDS_Edge) -> Vec<[f64; 3]> {
@@ -89,6 +89,28 @@ impl Wire {
     }
 }
 
+impl Command for Wire {
+    fn is_done(&self) -> bool {
+        self.0.IsDone()
+    }
+
+    fn build(&mut self, progress: &opencascade_sys::ffi::Message_ProgressRange) {
+        self.0.pin_mut().Build(progress)
+    }
+}
+
+impl Builder<TopoDS_Shape> for Wire {
+    unsafe fn value(&mut self) -> &TopoDS_Shape {
+        self.0.pin_mut().Shape()
+    }
+}
+
+impl Builder<TopoDS_Wire> for Wire {
+    unsafe fn value(&mut self) -> &TopoDS_Wire {
+        self.0.pin_mut().Wire()
+    }
+}
+
 impl Default for Wire {
     fn default() -> Self {
         Self::new()
@@ -108,6 +130,6 @@ mod tests {
         ))
         .unwrap();
 
-        assert!(!wire.points().is_empty());
+        assert!(!wire.points().unwrap().is_empty());
     }
 }

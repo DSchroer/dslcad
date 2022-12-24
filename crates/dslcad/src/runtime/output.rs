@@ -74,17 +74,19 @@ impl From<Ref<'_, Point>> for Output {
     }
 }
 
-impl From<RefMut<'_, Wire>> for Output {
-    fn from(mut value: RefMut<Wire>) -> Self {
-        Output {
-            points: [value.start(), value.end()]
+impl TryFrom<RefMut<'_, Wire>> for Output {
+    type Error = opencascade::Error;
+
+    fn try_from(mut value: RefMut<'_, Wire>) -> Result<Self, Self::Error> {
+        Ok(Output {
+            points: [value.start()?, value.end()?]
                 .into_iter()
                 .flatten()
                 .map(|p| p.into())
                 .collect(),
-            lines: value.points(),
+            lines: value.points()?,
             ..Default::default()
-        }
+        })
     }
 }
 

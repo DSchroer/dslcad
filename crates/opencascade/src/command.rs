@@ -15,7 +15,7 @@ pub trait Builder<T>: Command {
             self.build(&progress);
 
             if !self.is_done() {
-                return Err("unable to build".into());
+                return Err("opencascade command failed".into());
             }
         }
         // SAFETY: safe since is_done and build were checked
