@@ -1,4 +1,5 @@
 use crate::command::{Builder, Command};
+use crate::explorer::Explorer;
 use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
@@ -13,7 +14,7 @@ use opencascade_sys::ffi::{
     BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt, BRep_Tool_Triangulation,
     HandleGeomCurve_Value, Message_ProgressRange_ctor, Poly_Triangulation_Node, TopAbs_Orientation,
     TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape,
-    TopoDS_cast_to_edge, TopoDS_cast_to_face, TopoDS_cast_to_vertex,
+    TopoDS_cast_to_face, TopoDS_cast_to_vertex,
 };
 
 pub enum Shape {
@@ -81,7 +82,7 @@ impl Shape {
     }
 
     pub fn extrude(wire: &mut Wire, x: f64, y: f64, z: f64) -> Result<Self, Error> {
-        let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.0.pin_mut().Wire(), false);
+        let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.try_build()?, false);
         let prism_vec = new_vec(x, y, z);
 
         if !face_profile.IsDone() {
@@ -98,7 +99,7 @@ impl Shape {
     }
 
     pub fn extrude_rotate(wire: &mut Wire, axis: Axis, degrees: f64) -> Result<Self, Error> {
-        let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.0.pin_mut().Wire(), false);
+        let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.try_build()?, false);
 
         let radians = degrees * (std::f64::consts::PI / 180.);
         let gp_axis = match axis {
@@ -182,12 +183,9 @@ impl Shape {
     pub fn fillet(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
         let mut fillet = BRepFilletAPI_MakeFillet_ctor(target.try_build()?);
 
-        let mut edge_explorer =
-            TopExp_Explorer_ctor(target.try_build()?, TopAbs_ShapeEnum::TopAbs_EDGE);
-        while edge_explorer.More() {
-            let edge = TopoDS_cast_to_edge(edge_explorer.Current());
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(target)?;
+        while let Some(edge) = edge_explorer.next() {
             fillet.pin_mut().add_edge(thickness, edge);
-            edge_explorer.pin_mut().Next();
         }
 
         Ok(Shape::Fillet(fillet))
@@ -196,12 +194,9 @@ impl Shape {
     pub fn chamfer(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
         let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(target.try_build()?);
 
-        let mut edge_explorer =
-            TopExp_Explorer_ctor(target.try_build()?, TopAbs_ShapeEnum::TopAbs_EDGE);
-        while edge_explorer.More() {
-            let edge = TopoDS_cast_to_edge(edge_explorer.Current());
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(target)?;
+        while let Some(edge) = edge_explorer.next() {
             chamfer.pin_mut().add_edge(thickness, edge);
-            edge_explorer.pin_mut().Next();
         }
 
         Ok(Shape::Chamfer(chamfer))
@@ -260,15 +255,11 @@ impl Shape {
     pub fn lines(&mut self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
-        let mut edge_explorer =
-            TopExp_Explorer_ctor(self.try_build()?, TopAbs_ShapeEnum::TopAbs_EDGE);
-        while edge_explorer.More() {
-            let edge = TopoDS_cast_to_edge(edge_explorer.Current());
-
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(self)?;
+        while let Some(edge) = edge_explorer.next() {
             if let Some(line) = Self::extract_line(edge) {
                 lines.push(line);
             }
-            edge_explorer.pin_mut().Next();
         }
 
         Ok(lines)

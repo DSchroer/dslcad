@@ -1,6 +1,7 @@
 mod command;
 mod edge;
 mod error;
+mod explorer;
 mod mesh;
 mod point;
 mod shape;
