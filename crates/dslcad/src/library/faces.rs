@@ -1,6 +1,6 @@
 use super::from_cascade;
 use crate::runtime::{RuntimeError, Type, Value};
-use opencascade::{Axis, Edge, Point, Shape};
+use opencascade::{Axis, Edge, Point, Shape, Wire};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -13,8 +13,8 @@ pub fn point(x: Option<f64>, y: Option<f64>) -> Result<Value, RuntimeError> {
 }
 
 pub fn line(start: Rc<RefCell<Point>>, end: Rc<RefCell<Point>>) -> Result<Value, RuntimeError> {
-    let mut edge = Edge::new();
-    edge.add_line(&start.borrow(), &end.borrow());
+    let mut edge = Wire::new();
+    edge.add_edge(&mut Edge::new_line(&start.borrow(), &end.borrow()))?;
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
@@ -23,29 +23,33 @@ pub fn arc(
     center: Rc<RefCell<Point>>,
     end: Rc<RefCell<Point>>,
 ) -> Result<Value, RuntimeError> {
-    let mut edge = Edge::new();
-    edge.add_arc(&start.borrow(), &center.borrow(), &end.borrow());
+    let mut edge = Wire::new();
+    edge.add_edge(&mut Edge::new_arc(
+        &start.borrow(),
+        &center.borrow(),
+        &end.borrow(),
+    ))?;
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
 pub fn square(x: Option<f64>, y: Option<f64>) -> Result<Value, RuntimeError> {
-    let mut edge = Edge::new();
+    let mut edge = Wire::new();
 
     let a = Point::default();
     let b = Point::new(0.0, y.unwrap_or(1.0), 0.0);
     let c = Point::new(x.unwrap_or(1.0), y.unwrap_or(1.0), 0.0);
     let d = Point::new(x.unwrap_or(1.0), 0.0, 0.0);
 
-    edge.add_line(&a, &b);
-    edge.add_line(&b, &c);
-    edge.add_line(&c, &d);
-    edge.add_line(&d, &a);
+    edge.add_edge(&mut Edge::new_line(&a, &b))?;
+    edge.add_edge(&mut Edge::new_line(&b, &c))?;
+    edge.add_edge(&mut Edge::new_line(&c, &d))?;
+    edge.add_edge(&mut Edge::new_line(&d, &a))?;
 
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
 pub fn circle(radius: Option<f64>) -> Result<Value, RuntimeError> {
-    let mut edge = Edge::new();
+    let mut edge = Wire::new();
 
     let r = radius.unwrap_or(0.5);
 
@@ -54,14 +58,14 @@ pub fn circle(radius: Option<f64>) -> Result<Value, RuntimeError> {
     let c = Point::new_2d(r * 2.0, r);
     let d = Point::new_2d(r, 0.0);
 
-    edge.add_arc(&a, &b, &c);
-    edge.add_arc(&c, &d, &a);
+    edge.add_edge(&mut Edge::new_arc(&a, &b, &c))?;
+    edge.add_edge(&mut Edge::new_arc(&c, &d, &a))?;
 
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
 pub fn extrude(
-    shape: Rc<RefCell<Edge>>,
+    shape: Rc<RefCell<Wire>>,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
@@ -78,7 +82,7 @@ pub fn extrude(
 }
 
 pub fn revolve(
-    shape: Rc<RefCell<Edge>>,
+    shape: Rc<RefCell<Wire>>,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
@@ -100,14 +104,15 @@ pub fn revolve(
 }
 
 pub fn union_edge(
-    left: Rc<RefCell<Edge>>,
-    right: Rc<RefCell<Edge>>,
+    left: Rc<RefCell<Wire>>,
+    right: Rc<RefCell<Wire>>,
 ) -> Result<Value, RuntimeError> {
     let mut left = left.borrow_mut();
     let mut right = right.borrow_mut();
 
-    let mut edge = Edge::new();
-    edge.join(&mut left, &mut right);
+    let mut edge = Wire::new();
+    edge.join(&mut left);
+    edge.join(&mut right);
     Ok(Value::Line(Rc::new(RefCell::new(edge))))
 }
 
@@ -124,7 +129,7 @@ pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
         return Ok(parts[0].clone());
     }
 
-    let mut edge = Edge::new();
+    let mut edge = Wire::new();
     for i in 0..parts_len {
         let last = if i == 0 { parts_len - 1 } else { i - 1 };
         let last_end = end_point(&mut parts[last])?;
@@ -132,11 +137,14 @@ pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
         let point = &parts[i];
 
         if last_end != current_start {
-            edge.add_line(&last_end.borrow(), &current_start.borrow());
+            edge.add_edge(&mut Edge::new_line(
+                &last_end.borrow(),
+                &current_start.borrow(),
+            ))?;
         }
 
         if point.get_type() == Type::Edge {
-            edge.add_edge(&mut point.to_line().unwrap().borrow_mut())
+            edge.join(&mut point.to_line().unwrap().borrow_mut())
         }
     }
 

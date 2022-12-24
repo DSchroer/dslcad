@@ -1,4 +1,5 @@
 use super::Type;
+use opencascade::Error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -19,4 +20,10 @@ pub enum RuntimeError {
     CantWrite(),
     #[error("{0}")]
     Opencascade(opencascade::Error),
+}
+
+impl From<opencascade::Error> for RuntimeError {
+    fn from(value: Error) -> Self {
+        RuntimeError::Opencascade(value)
+    }
 }

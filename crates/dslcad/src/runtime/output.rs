@@ -1,5 +1,5 @@
 use super::Value;
-use opencascade::{Edge, Mesh, Point, Shape};
+use opencascade::{Mesh, Point, Shape, Wire};
 use std::cell::{Ref, RefMut};
 use std::fmt::{Display, Formatter};
 
@@ -74,8 +74,8 @@ impl From<Ref<'_, Point>> for Output {
     }
 }
 
-impl From<RefMut<'_, Edge>> for Output {
-    fn from(mut value: RefMut<Edge>) -> Self {
+impl From<RefMut<'_, Wire>> for Output {
+    fn from(mut value: RefMut<Wire>) -> Self {
         Output {
             points: [value.start(), value.end()]
                 .into_iter()

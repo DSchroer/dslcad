@@ -1,4 +1,4 @@
-use crate::{Edge, Error, Mesh, Point};
+use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
     gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, BRepAlgoAPI_Common,
@@ -79,7 +79,7 @@ impl Shape {
         )))
     }
 
-    pub fn extrude(wire: &mut Edge, x: f64, y: f64, z: f64) -> Result<Self, Error> {
+    pub fn extrude(wire: &mut Wire, x: f64, y: f64, z: f64) -> Result<Self, Error> {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.0.pin_mut().Wire(), false);
         let prism_vec = new_vec(x, y, z);
 
@@ -96,7 +96,7 @@ impl Shape {
         Ok(Shape::Prism(body))
     }
 
-    pub fn extrude_rotate(wire: &mut Edge, axis: Axis, degrees: f64) -> Result<Self, Error> {
+    pub fn extrude_rotate(wire: &mut Wire, axis: Axis, degrees: f64) -> Result<Self, Error> {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.0.pin_mut().Wire(), false);
 
         let radians = degrees * (std::f64::consts::PI / 180.);

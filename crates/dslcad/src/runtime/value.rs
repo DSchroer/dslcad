@@ -7,7 +7,7 @@ use super::Access;
 use super::Output;
 use super::Type;
 use crate::runtime::ScriptInstance;
-use opencascade::{Edge, Point, Shape};
+use opencascade::{Point, Shape, Wire};
 
 #[derive(Clone)]
 pub enum Value {
@@ -19,7 +19,7 @@ pub enum Value {
     Script(Rc<RefCell<ScriptInstance>>),
 
     Point(Rc<RefCell<Point>>),
-    Line(Rc<RefCell<Edge>>),
+    Line(Rc<RefCell<Wire>>),
     Shape(Rc<RefCell<Shape>>),
 }
 
@@ -87,7 +87,7 @@ impl Value {
         }
     }
 
-    pub fn to_line(&self) -> Option<Rc<RefCell<Edge>>> {
+    pub fn to_line(&self) -> Option<Rc<RefCell<Wire>>> {
         match self {
             Value::Line(s) => Some(s.clone()),
             Value::Script(i) => i.borrow().value().to_line(),
