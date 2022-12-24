@@ -1,3 +1,4 @@
+use crate::command::{Builder, Command};
 use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
@@ -60,22 +61,22 @@ impl Shape {
 
     pub fn fuse(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
         Ok(Shape::Fuse(BRepAlgoAPI_Fuse_ctor(
-            left.shape()?,
-            right.shape()?,
+            left.try_build()?,
+            right.try_build()?,
         )))
     }
 
     pub fn cut(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
         Ok(Shape::Cut(BRepAlgoAPI_Cut_ctor(
-            left.shape()?,
-            right.shape()?,
+            left.try_build()?,
+            right.try_build()?,
         )))
     }
 
     pub fn intersect(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
         Ok(Shape::Intersect(BRepAlgoAPI_Common_ctor(
-            left.shape()?,
-            right.shape()?,
+            left.try_build()?,
+            right.try_build()?,
         )))
     }
 
@@ -126,7 +127,7 @@ impl Shape {
             .SetTranslation(&Point::new(0., 0., 0.).point, &point.point);
 
         Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.shape()?,
+            left.try_build()?,
             &transform,
             true,
         )))
@@ -143,7 +144,7 @@ impl Shape {
         transform.pin_mut().SetRotation(gp_axis, radians);
 
         Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.shape()?,
+            left.try_build()?,
             &transform,
             true,
         )))
@@ -156,7 +157,7 @@ impl Shape {
             .SetScale(&Point::new(0., 0., 0.).point, scale);
 
         Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.shape()?,
+            left.try_build()?,
             &transform,
             true,
         )))
@@ -172,17 +173,17 @@ impl Shape {
         transform.pin_mut().set_mirror_axis(gp_axis);
 
         Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.shape()?,
+            left.try_build()?,
             &transform,
             true,
         )))
     }
 
     pub fn fillet(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
-        let mut fillet = BRepFilletAPI_MakeFillet_ctor(target.shape()?);
+        let mut fillet = BRepFilletAPI_MakeFillet_ctor(target.try_build()?);
 
         let mut edge_explorer =
-            TopExp_Explorer_ctor(target.shape()?, TopAbs_ShapeEnum::TopAbs_EDGE);
+            TopExp_Explorer_ctor(target.try_build()?, TopAbs_ShapeEnum::TopAbs_EDGE);
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
             fillet.pin_mut().add_edge(thickness, edge);
@@ -193,10 +194,10 @@ impl Shape {
     }
 
     pub fn chamfer(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
-        let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(target.shape()?);
+        let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(target.try_build()?);
 
         let mut edge_explorer =
-            TopExp_Explorer_ctor(target.shape()?, TopAbs_ShapeEnum::TopAbs_EDGE);
+            TopExp_Explorer_ctor(target.try_build()?, TopAbs_ShapeEnum::TopAbs_EDGE);
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
             chamfer.pin_mut().add_edge(thickness, edge);
@@ -207,7 +208,7 @@ impl Shape {
     }
 
     pub fn mesh(&mut self) -> Result<Mesh, Error> {
-        let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(self.shape()?, 0.01);
+        let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(self.try_build()?, 0.01);
         if !incremental_mesh.IsDone() {
             return Err("unable to build incremental mesh".into());
         }
@@ -259,7 +260,8 @@ impl Shape {
     pub fn lines(&mut self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
-        let mut edge_explorer = TopExp_Explorer_ctor(self.shape()?, TopAbs_ShapeEnum::TopAbs_EDGE);
+        let mut edge_explorer =
+            TopExp_Explorer_ctor(self.try_build()?, TopAbs_ShapeEnum::TopAbs_EDGE);
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
 
@@ -275,9 +277,8 @@ impl Shape {
     fn extract_line(edge: &TopoDS_Edge) -> Option<Vec<[f64; 3]>> {
         let mut first = 0.;
         let mut last = 0.;
-        let (is_null, curve) =
-            unsafe { is_null_internal(BRep_Tool_Curve(edge, &mut first, &mut last)) };
-        if is_null {
+        let curve = BRep_Tool_Curve(edge, &mut first, &mut last);
+        if curve.IsNull() {
             return None;
         }
 
@@ -298,7 +299,7 @@ impl Shape {
         let mut points = Vec::new();
 
         let mut edge_explorer =
-            TopExp_Explorer_ctor(self.shape()?, TopAbs_ShapeEnum::TopAbs_VERTEX);
+            TopExp_Explorer_ctor(self.try_build()?, TopAbs_ShapeEnum::TopAbs_VERTEX);
         while edge_explorer.More() {
             let vertex = TopoDS_cast_to_vertex(edge_explorer.Current());
             let point: Point = BRep_Tool_Pnt(vertex).into();
@@ -308,8 +309,10 @@ impl Shape {
 
         Ok(points)
     }
+}
 
-    fn is_done(&mut self) -> bool {
+impl Command for Shape {
+    fn is_done(&self) -> bool {
         match self {
             Shape::Box(b) => b.IsDone(),
             Shape::Sphere(b) => b.IsDone(),
@@ -325,34 +328,26 @@ impl Shape {
         }
     }
 
-    fn build(&mut self) {
-        let progress = Message_ProgressRange_ctor();
-
+    fn build(&mut self, progress: &opencascade_sys::ffi::Message_ProgressRange) {
         match self {
-            Shape::Box(b) => b.pin_mut().Build(&progress),
-            Shape::Sphere(b) => b.pin_mut().Build(&progress),
-            Shape::Cylinder(c) => c.pin_mut().Build(&progress),
-            Shape::Fuse(f) => f.pin_mut().Build(&progress),
-            Shape::Cut(f) => f.pin_mut().Build(&progress),
-            Shape::Intersect(f) => f.pin_mut().Build(&progress),
-            Shape::Fillet(f) => f.pin_mut().Build(&progress),
-            Shape::Chamfer(f) => f.pin_mut().Build(&progress),
-            Shape::Transformed(f) => f.pin_mut().Build(&progress),
-            Shape::Prism(p) => p.pin_mut().Build(&progress),
-            Shape::Revol(p) => p.pin_mut().Build(&progress),
+            Shape::Box(b) => b.pin_mut().Build(progress),
+            Shape::Sphere(b) => b.pin_mut().Build(progress),
+            Shape::Cylinder(c) => c.pin_mut().Build(progress),
+            Shape::Fuse(f) => f.pin_mut().Build(progress),
+            Shape::Cut(f) => f.pin_mut().Build(progress),
+            Shape::Intersect(f) => f.pin_mut().Build(progress),
+            Shape::Fillet(f) => f.pin_mut().Build(progress),
+            Shape::Chamfer(f) => f.pin_mut().Build(progress),
+            Shape::Transformed(f) => f.pin_mut().Build(progress),
+            Shape::Prism(p) => p.pin_mut().Build(progress),
+            Shape::Revol(p) => p.pin_mut().Build(progress),
         }
     }
+}
 
-    fn shape(&mut self) -> Result<&TopoDS_Shape, Error> {
-        if !self.is_done() {
-            self.build();
-
-            if !self.is_done() {
-                return Err("unable to compute shape".to_string().into());
-            }
-        }
-
-        Ok(match self {
+impl Builder<TopoDS_Shape> for Shape {
+    unsafe fn value(&mut self) -> &TopoDS_Shape {
+        match self {
             Shape::Box(b) => b.pin_mut().Shape(),
             Shape::Sphere(b) => b.pin_mut().Shape(),
             Shape::Cylinder(c) => c.pin_mut().Shape(),
@@ -364,21 +359,8 @@ impl Shape {
             Shape::Transformed(f) => f.pin_mut().Shape(),
             Shape::Prism(p) => p.pin_mut().Shape(),
             Shape::Revol(p) => p.pin_mut().Shape(),
-        })
+        }
     }
-}
-
-unsafe fn is_null_internal<T: cxx::memory::UniquePtrTarget>(
-    handle: UniquePtr<T>,
-) -> (bool, UniquePtr<T>) {
-    let mut is_null = false;
-
-    let handle_ptr = handle.into_raw();
-    let internal_addr: *const *const usize = handle_ptr.cast();
-    if (*internal_addr).is_null() {
-        is_null = true;
-    }
-    (is_null, UniquePtr::<T>::from_raw(handle_ptr))
 }
 
 #[cfg(test)]
