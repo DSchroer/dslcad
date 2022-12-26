@@ -23,7 +23,7 @@ pub enum UiEvent {
     CreateFile(),
     OpenFile(),
     Render(),
-    SaveStl()
+    SaveStl(),
 }
 
 fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {

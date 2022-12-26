@@ -116,7 +116,8 @@ fn controller(
             UiEvent::SaveStl() => {
                 if let Some(Ok(model)) = &state.output {
                     if let Some(path) = file_dialog_ext(&state, "stl").save_file() {
-                        crate::cli::write_stl_to_file(model, path.to_str().unwrap()).expect("unable to save stl");
+                        crate::cli::write_stl_to_file(model, path.to_str().unwrap())
+                            .expect("unable to save stl");
                     }
                 }
             }
@@ -158,10 +159,7 @@ fn file_dialog_ext(state: &State, ext: &str) -> FileDialog {
     };
 
     FileDialog::new()
-        .add_filter(
-            &(dslcad::constants::NAME.to_owned() + " Script"),
-            &[ext],
-        )
+        .add_filter(&(dslcad::constants::NAME.to_owned() + " Script"), &[ext])
         .set_directory(dir)
 }
 

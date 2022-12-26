@@ -1,5 +1,5 @@
 use clap::Parser;
-use dslcad::{DSLCAD, Output};
+use dslcad::{Output, DSLCAD};
 use std::error::Error;
 use std::fs;
 use std::fs::OpenOptions;
