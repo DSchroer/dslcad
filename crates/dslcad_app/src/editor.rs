@@ -113,6 +113,13 @@ fn controller(
                 render_file(&mut state);
                 render.send(RenderCommand::Redraw);
             }
+            UiEvent::SaveStl() => {
+                if let Some(Ok(model)) = &state.output {
+                    if let Some(path) = file_dialog_ext(&state, "stl").save_file() {
+                        crate::cli::write_stl_to_file(model, path.to_str().unwrap()).expect("unable to save stl");
+                    }
+                }
+            }
         }
     }
 }
@@ -140,6 +147,10 @@ fn load_file(state: &mut ResMut<State>, file: PathBuf) {
 }
 
 fn file_dialog(state: &State) -> FileDialog {
+    file_dialog_ext(state, dslcad::constants::FILE_EXTENSION)
+}
+
+fn file_dialog_ext(state: &State, ext: &str) -> FileDialog {
     let dir = if let Some(file) = &state.file {
         file.parent().unwrap().to_path_buf()
     } else {
@@ -149,7 +160,7 @@ fn file_dialog(state: &State) -> FileDialog {
     FileDialog::new()
         .add_filter(
             &(dslcad::constants::NAME.to_owned() + " Script"),
-            &[dslcad::constants::FILE_EXTENSION],
+            &[ext],
         )
         .set_directory(dir)
 }

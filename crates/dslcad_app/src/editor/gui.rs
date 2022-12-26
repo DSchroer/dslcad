@@ -23,6 +23,7 @@ pub enum UiEvent {
     CreateFile(),
     OpenFile(),
     Render(),
+    SaveStl()
 }
 
 fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
@@ -81,6 +82,12 @@ fn main_ui(
                 }
                 ui.separator();
                 ui.checkbox(&mut state.autowatch, "Auto Render");
+            });
+            ui.menu_button("Export", |ui| {
+                if ui.button("As STL").clicked() {
+                    events.send(UiEvent::SaveStl());
+                    ui.close_menu();
+                }
             });
             ui.menu_button("Help", |ui| {
                 if ui.button("Cheat Sheet").clicked() {

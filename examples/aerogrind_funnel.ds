@@ -1,0 +1,14 @@
+var diameter = 48;
+var thickness = 2;
+
+face(parts=[
+	point(x=diameter/2, y=-8),
+	point(x=(diameter/2) + 2, y=-8),
+	point(x=(diameter/2) + 2, y=4),
+	point(x=(diameter/2) + 20, y=30),
+	point(x=(diameter/2) + 20 - 2, y=30),
+	point(x=(diameter/2) - 2, y=2),
+	point(x=(diameter/2), y=2),
+])  
+	->shape revolve(y=360)
+	->shape rotate(x=270);

@@ -1,5 +1,5 @@
 use clap::Parser;
-use dslcad::DSLCAD;
+use dslcad::{DSLCAD, Output};
 use std::error::Error;
 use std::fs;
 use std::fs::OpenOptions;
@@ -23,8 +23,14 @@ pub(crate) fn main() -> Result<(), Box<dyn Error>> {
     let mut cad = DSLCAD::default();
     let model = cad.render_file(&args.source)?;
 
+    write_stl_to_file(&model, &args.out)?;
+
+    Ok(())
+}
+
+pub fn write_stl_to_file(output: &Output, path: &str) -> Result<(), Box<dyn Error>> {
     let mut triangles = Vec::new();
-    let mesh = model.mesh();
+    let mesh = output.mesh();
     for (face, normal) in mesh.triangles_with_normals() {
         triangles.push(Triangle {
             vertices: [
@@ -36,7 +42,7 @@ pub(crate) fn main() -> Result<(), Box<dyn Error>> {
         })
     }
 
-    let outpath = Path::new(&args.out).with_extension("stl");
+    let outpath = Path::new(path).with_extension("stl");
     if outpath.exists() {
         fs::remove_file(&outpath)?;
     }
