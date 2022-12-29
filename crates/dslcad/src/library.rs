@@ -265,9 +265,9 @@ impl Library {
                     .collect(),
             });
         } else {
-            return Err(RuntimeError::CouldNotFindFunction {
+            Err(RuntimeError::CouldNotFindFunction {
                 name: to_call.name.to_string(),
-            });
+            })
         }
     }
 
@@ -429,7 +429,7 @@ pub mod tests {
                 ("c", Type::Number),
             ]),
         ));
-        assert!(matches!(res, None))
+        assert!(matches!(res, Err(_)))
     }
 
     #[test]
