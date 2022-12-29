@@ -6,7 +6,7 @@ mod script_instance;
 mod types;
 mod value;
 
-use crate::library::Library;
+use crate::library::{CallSignature, Library};
 use crate::parser::Document;
 use crate::parser::{Expression, Literal, Statement};
 use crate::runtime::scope::Scope;
@@ -77,10 +77,12 @@ fn eval_expression(
 
             let doc = ctx.documents.get(path);
             match doc {
-                None => match ctx.library.find(path, &argument_types) {
-                    None => Err(RuntimeError::UnknownIdentifier(path.to_string())),
-                    Some(f) => Ok(f(&argument_values)?),
-                },
+                None => {
+                    let f = ctx
+                        .library
+                        .find(CallSignature::new(path, &argument_types))?;
+                    Ok(f(&argument_values)?)
+                }
                 Some(doc) => {
                     for name in arguments.keys() {
                         if !doc.has_identifier(name) {

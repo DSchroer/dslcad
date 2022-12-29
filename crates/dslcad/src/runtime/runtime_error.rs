@@ -20,6 +20,13 @@ pub enum RuntimeError {
     CantWrite(),
     #[error("{0}")]
     Opencascade(opencascade::Error),
+    #[error("Could not find function with name '{name}'")]
+    CouldNotFindFunction { name: String },
+    #[error("Could not find function {target} did you mean one of {options:?}?")]
+    CouldNotFindFunctionSignature {
+        target: String,
+        options: Vec<String>,
+    },
 }
 
 impl From<opencascade::Error> for RuntimeError {

@@ -6,9 +6,20 @@ mod shapes;
 use crate::runtime::{RuntimeError, Type, Value};
 use indexmap::IndexMap;
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 
 type Function = dyn Fn(&HashMap<String, Value>) -> Result<Value, RuntimeError>;
+
+pub struct CallSignature<'a> {
+    name: &'a str,
+    arguments: &'a HashMap<&'a str, Type>,
+}
+
+impl<'a> CallSignature<'a> {
+    pub fn new(name: &'a str, arguments: &'a HashMap<&'a str, Type>) -> Self {
+        CallSignature { name, arguments }
+    }
+}
 
 #[derive(Clone)]
 pub struct Signature {
@@ -215,12 +226,12 @@ impl Library {
         Library { signatures, lookup }
     }
 
-    pub fn find(&self, name: &str, arguments: &HashMap<&str, Type>) -> Option<&Function> {
-        if let Some(indices) = self.lookup.get(name) {
+    pub fn find(&self, to_call: CallSignature) -> Result<&Function, RuntimeError> {
+        if let Some(indices) = self.lookup.get(to_call.name) {
             'index: for index in indices {
                 let signature = &self.signatures[*index];
 
-                for name in arguments.keys() {
+                for name in to_call.arguments.keys() {
                     if !signature.arguments.contains_key(name) {
                         continue 'index;
                     }
@@ -229,22 +240,35 @@ impl Library {
                 for (name, access) in signature.arguments.iter() {
                     match access {
                         Access::Required(t) => {
-                            if !arguments.contains_key(name) || !arguments.get(name).unwrap().eq(t)
+                            if !to_call.arguments.contains_key(name)
+                                || !to_call.arguments.get(name).unwrap().eq(t)
                             {
                                 continue 'index;
                             }
                         }
                         Access::Optional(t) => {
-                            if arguments.contains_key(name) && !arguments.get(name).unwrap().eq(t) {
+                            if to_call.arguments.contains_key(name)
+                                && !to_call.arguments.get(name).unwrap().eq(t)
+                            {
                                 continue 'index;
                             }
                         }
                     }
                 }
-                return Some(signature.function);
+                return Ok(signature.function);
             }
+            return Err(RuntimeError::CouldNotFindFunctionSignature {
+                target: format!("{}", to_call),
+                options: indices
+                    .iter()
+                    .map(|i| format!("{}", self.signatures[*i]))
+                    .collect(),
+            });
+        } else {
+            return Err(RuntimeError::CouldNotFindFunction {
+                name: to_call.name.to_string(),
+            });
         }
-        None
     }
 
     fn build_lookup<'a>(signatures: &'a [Signature]) -> HashMap<&'static str, Vec<usize>> {
@@ -317,22 +341,48 @@ impl Display for Library {
                 writeln!(f, "## {}", signature.category)?;
             }
 
-            write!(f, "- `{}(", signature.name)?;
-            for (i, (name, access)) in signature.arguments.iter().enumerate() {
-                write!(f, "{}=", name)?;
-                match access {
-                    Access::Required(t) => write!(f, "{}", t)?,
-                    Access::Optional(t) => write!(f, "[{}]", t)?,
-                }
-                if i != signature.arguments.len() - 1 {
-                    write!(f, ", ")?;
-                }
-            }
-
-            writeln!(f, ")` {}", signature.description)?;
+            writeln!(f, "- `{}` {}", signature, signature.description)?;
         }
 
         Ok(())
+    }
+}
+
+impl<'a> Display for CallSignature<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}(", self.name)?;
+        for (i, (name, arg_type)) in self.arguments.iter().enumerate() {
+            write!(f, "{}={}", name, arg_type)?;
+            if i != self.arguments.len() - 1 {
+                write!(f, ", ")?;
+            }
+        }
+
+        write!(f, ")")
+    }
+}
+
+impl Display for Signature {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}(", self.name)?;
+        for (i, (name, access)) in self.arguments.iter().enumerate() {
+            write!(f, "{}=", name)?;
+            match access {
+                Access::Required(t) => write!(f, "{}", t)?,
+                Access::Optional(t) => write!(f, "[{}]", t)?,
+            }
+            if i != self.arguments.len() - 1 {
+                write!(f, ", ")?;
+            }
+        }
+
+        write!(f, ")")
+    }
+}
+
+impl Debug for Signature {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self, f)
     }
 }
 
@@ -359,10 +409,10 @@ pub mod tests {
         let lib = Library::from_signatures(vec![
             bind!(test, one[a=number, b=number], Category::Math, ""),
         ]);
-        lib.find(
+        lib.find(CallSignature::new(
             "test",
             &HashMap::from([("a", Type::Number), ("b", Type::Number)]),
-        )
+        ))
         .expect("couldnt find method");
     }
 
@@ -371,14 +421,14 @@ pub mod tests {
         let lib = Library::from_signatures(vec![
             bind!(test, one[a=number, b=number], Category::Math, ""),
         ]);
-        let res = lib.find(
+        let res = lib.find(CallSignature::new(
             "test",
             &HashMap::from([
                 ("a", Type::Number),
                 ("b", Type::Number),
                 ("c", Type::Number),
             ]),
-        );
+        ));
         assert!(matches!(res, None))
     }
 
@@ -389,10 +439,10 @@ pub mod tests {
             bind!(test, two[a=point, b=number], Category::Math, ""),
         ]);
         let call = lib
-            .find(
+            .find(CallSignature::new(
                 "test",
                 &HashMap::from([("a", Type::Point), ("b", Type::Number)]),
-            )
+            ))
             .expect("couldnt find method");
         call(&HashMap::from([
             (
