@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=DSLCAD
+GenericName=3D Design Software
+Comment=DSLCad is a programming language & interpreter for building 3D models. 
+Exec=dslcad
+Terminal=false
+Type=Application
+Categories=Graphics;
+Keywords=3D;CAD;

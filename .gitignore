@@ -4,3 +4,6 @@ target
 *.zip
 cheatsheet.md
 .cargo
+packages/arch/*
+!packages/arch/PKGBUILD
+!packages/arch/dslcad.desktop
