@@ -118,6 +118,46 @@ fn eval_expression(
                 Value::List(values)
             }
         }),
+        Expression::Map {
+            identifier,
+            action,
+            range,
+        } => {
+            let range_value = eval_expression(instance, range, ctx)?;
+            let range_value = range_value
+                .to_list()
+                .ok_or_else(|| RuntimeError::UnexpectedType(range_value.get_type()))?;
+
+            let mut loop_scope = instance.clone();
+            let mut results = Vec::new();
+            for v in range_value {
+                loop_scope.set(identifier.clone(), v);
+                results.push(eval_expression(&loop_scope, action, ctx)?);
+            }
+
+            Ok(Value::List(results))
+        }
+        Expression::Reduce {
+            left,
+            right,
+            action,
+            range,
+        } => {
+            let range_value = eval_expression(instance, range, ctx)?;
+            let mut range_value = range_value
+                .to_list()
+                .ok_or_else(|| RuntimeError::UnexpectedType(range_value.get_type()))?;
+
+            let mut loop_scope = instance.clone();
+            let mut result = range_value.pop().ok_or(RuntimeError::EmptyReduce())?;
+            for v in range_value {
+                loop_scope.set(left.clone(), result.clone());
+                loop_scope.set(right.clone(), v);
+                result = eval_expression(&loop_scope, action, ctx)?;
+            }
+
+            Ok(result)
+        }
     }
 }
 

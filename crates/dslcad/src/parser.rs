@@ -258,6 +258,47 @@ impl<'a, T: Reader> Parser<'a, T> {
         Ok(Expression::Literal(Literal::List(items)))
     }
 
+    fn parse_map(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+        take!(self, lexer, Token::Map = "map");
+        let range = self.parse_expression(lexer)?;
+        take!(self, lexer, Token::As = "as");
+        let ident = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
+        take!(self, lexer, Token::Colon = ":");
+
+        self.variables.insert(ident.to_string());
+        let action = self.parse_expression(lexer)?;
+        self.variables.remove(ident);
+
+        Ok(Expression::Map {
+            identifier: ident.to_string(),
+            range: Box::new(range),
+            action: Box::new(action),
+        })
+    }
+
+    fn parse_reduce(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+        take!(self, lexer, Token::Reduce = "reduce");
+        let range = self.parse_expression(lexer)?;
+        take!(self, lexer, Token::As = "as");
+        let left = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
+        take!(self, lexer, Token::Comma = ",");
+        let right = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
+        take!(self, lexer, Token::Colon = ":");
+
+        self.variables.insert(left.to_string());
+        self.variables.insert(right.to_string());
+        let action = self.parse_expression(lexer)?;
+        self.variables.remove(left);
+        self.variables.remove(right);
+
+        Ok(Expression::Reduce {
+            left: left.to_string(),
+            right: right.to_string(),
+            range: Box::new(range),
+            action: Box::new(action),
+        })
+    }
+
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
         let first = self.parse_expression_lhs(lexer)?;
         self.parse_expression_rhs(first, lexer)
@@ -319,6 +360,12 @@ impl<'a, T: Reader> Parser<'a, T> {
             },
             Token::OpenList = "[" => {
                 self.parse_list(lexer)?
+            },
+            Token::Map = "map" => {
+                self.parse_map(lexer)?
+            },
+            Token::Reduce = "reduce" => {
+                self.parse_reduce(lexer)?
             }
         ))
     }
@@ -507,6 +554,20 @@ pub mod tests {
     #[test]
     fn it_can_parse_access() {
         Parser::new("test", &TestReader("var foo; foo.bar;"))
+            .parse()
+            .unwrap();
+    }
+
+    #[test]
+    fn it_can_parse_map() {
+        Parser::new("test", &TestReader("var foo = map [] as x: x;"))
+            .parse()
+            .unwrap();
+    }
+
+    #[test]
+    fn it_can_parse_reduce() {
+        Parser::new("test", &TestReader("var foo = reduce [] as a,b: a;"))
             .parse()
             .unwrap();
     }

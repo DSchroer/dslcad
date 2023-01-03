@@ -19,6 +19,17 @@ pub enum Expression {
         arguments: HashMap<String, Box<Expression>>,
     },
     Access(Box<Expression>, String),
+    Map {
+        identifier: String,
+        range: Box<Expression>,
+        action: Box<Expression>,
+    },
+    Reduce {
+        left: String,
+        right: String,
+        range: Box<Expression>,
+        action: Box<Expression>,
+    },
 }
 
 #[derive(Debug, Clone)]

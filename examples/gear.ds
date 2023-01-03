@@ -1,0 +1,5 @@
+// https://www.engineersedge.com/gear_formula.htm
+
+var teeth = reduce [1, 2, 3, 4] as a, b: a + b;
+
+teeth;

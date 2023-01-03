@@ -16,6 +16,8 @@ pub enum RuntimeError {
     UnexpectedType(Type),
     #[error("Script did not return a value")]
     NoReturnValue(),
+    #[error("Reduce must have at least one value")]
+    EmptyReduce(),
     #[error("Cant Write")]
     CantWrite(),
     #[error("{0}")]

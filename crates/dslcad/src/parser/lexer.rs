@@ -16,6 +16,8 @@ pub enum Token {
     CloseList,
     #[token(",")]
     Comma,
+    #[token(":")]
+    Colon,
     #[token(";")]
     Semicolon,
     #[token(".")]
@@ -55,6 +57,13 @@ pub enum Token {
 
     #[token("->")]
     Inject,
+
+    #[token("map")]
+    Map,
+    #[token("reduce")]
+    Reduce,
+    #[token("as")]
+    As,
 
     #[regex(r"true|false")]
     Bool,
@@ -124,6 +133,22 @@ mod tests {
     #[test]
     fn it_can_lex_ref_div() {
         assert_eq!(vec![Identifier, Divide, Number], tokens("test/4"));
+    }
+
+    #[test]
+    fn it_can_lex_map() {
+        assert_eq!(
+            vec![Map, OpenList, CloseList, As, Identifier, Colon],
+            tokens("map [] as n:")
+        );
+    }
+
+    #[test]
+    fn it_can_lex_reduce() {
+        assert_eq!(
+            vec![Reduce, OpenList, CloseList, As, Identifier, Colon],
+            tokens("reduce [] as n:")
+        );
     }
 
     #[test]
