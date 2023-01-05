@@ -307,6 +307,29 @@ impl<'a, T: Reader> Parser<'a, T> {
         })
     }
 
+    fn parse_if(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+        take!(self, lexer, Token::If = "if");
+        let condition = self.parse_expression(lexer)?;
+        take!(self, lexer, Token::Colon = ":");
+        let if_true = self.parse_expression(lexer)?;
+        take!(self, lexer, Token::Else = "else");
+
+        let mut peek = lexer.clone();
+        let if_false = take!(self, peek,
+            Token::Colon = ":" => {
+                lexer.next();
+                self.parse_expression(lexer)?
+            },
+            Token::If = "if" => self.parse_if(lexer)?
+        );
+
+        Ok(Expression::If {
+            condition: condition.into(),
+            if_true: if_true.into(),
+            if_false: if_false.into(),
+        })
+    }
+
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
         let first = self.parse_expression_lhs(lexer)?;
         self.parse_expression_rhs(first, lexer)
@@ -374,6 +397,9 @@ impl<'a, T: Reader> Parser<'a, T> {
             },
             Token::Reduce = "reduce" => {
                 self.parse_reduce(lexer)?
+            },
+            Token::If = "if" => {
+                self.parse_if(lexer)?
             }
         ))
     }
@@ -549,6 +575,12 @@ pub mod tests {
     fn it_can_parse_reduce() {
         parse!("var foo = reduce [] as a,b: a;").unwrap();
         parse!("var foo = reduce [] from t() as a,b: a;").unwrap();
+    }
+
+    #[test]
+    fn it_can_parse_if() {
+        parse!("var foo = if true: 1 else: 0;").unwrap();
+        parse!("var foo = if true: 1 else if false: 2 else: 3;").unwrap();
     }
 
     #[test]

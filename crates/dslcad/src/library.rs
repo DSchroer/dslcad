@@ -303,6 +303,7 @@ impl Display for Library {
 - `b(name=a)` pass a into the name parameter of function b
 - `a ->name b()` pipe a into the name parameter of function b
 - `./file(name=a)` run a file as if it were a function
+- `if a: something() else: something_else();` test a and follow one branch depending on the value
 
 ## Lists
 - `[1,2,3]` make a list with three numbers

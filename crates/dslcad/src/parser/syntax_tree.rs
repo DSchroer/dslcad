@@ -31,6 +31,11 @@ pub enum Expression {
         range: Box<Expression>,
         action: Box<Expression>,
     },
+    If {
+        condition: Box<Expression>,
+        if_true: Box<Expression>,
+        if_false: Box<Expression>,
+    },
 }
 
 #[derive(Debug, Clone)]

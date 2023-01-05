@@ -164,6 +164,18 @@ fn eval_expression(
 
             Ok(result)
         }
+        Expression::If {
+            condition,
+            if_true,
+            if_false,
+        } => {
+            let condition_value = eval_expression(instance, condition, ctx)?;
+            match condition_value.to_bool() {
+                Some(true) => Ok(eval_expression(instance, if_true, ctx)?),
+                Some(false) => Ok(eval_expression(instance, if_false, ctx)?),
+                None => Err(RuntimeError::UnexpectedType(condition_value.get_type())),
+            }
+        }
     }
 }
 

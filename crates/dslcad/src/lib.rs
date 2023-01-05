@@ -157,6 +157,11 @@ mod tests {
     }
 
     #[test]
+    fn it_has_if_statements() {
+        assert_eq!("10", run("if true: 10 else: 0;").to_string());
+    }
+
+    #[test]
     fn it_can_join_lines() {
         run(r"
 line(start=point(x=0,y=0), end=point(x=1,y=1))

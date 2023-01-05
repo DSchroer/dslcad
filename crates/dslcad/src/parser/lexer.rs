@@ -67,6 +67,11 @@ pub enum Token {
     #[token("from")]
     From,
 
+    #[token("if")]
+    If,
+    #[token("else")]
+    Else,
+
     #[regex(r"true|false")]
     Bool,
     #[regex(r"\d+(\.\d*)?")]
@@ -150,6 +155,14 @@ mod tests {
         assert_eq!(
             vec![Reduce, OpenList, CloseList, As, Identifier, Colon],
             tokens("reduce [] as n:")
+        );
+    }
+
+    #[test]
+    fn it_can_lex_if() {
+        assert_eq!(
+            vec![If, Bool, Colon, Number, Else, Colon, Number],
+            tokens("if true: 1 else: 0")
         );
     }
 
