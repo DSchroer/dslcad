@@ -64,6 +64,8 @@ pub enum Token {
     Reduce,
     #[token("as")]
     As,
+    #[token("from")]
+    From,
 
     #[regex(r"true|false")]
     Bool,

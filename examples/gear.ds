@@ -1,5 +1,6 @@
 // https://www.engineersedge.com/gear_formula.htm
 
-var teeth = reduce [1, 2, 3, 4] as a, b: a + b;
+var teeth = reduce [0, 90, 180] from cube() as a, b:
+                a ->left union(right=cube() ->shape rotate(z=b));
 
 teeth;

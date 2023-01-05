@@ -279,7 +279,14 @@ impl<'a, T: Reader> Parser<'a, T> {
     fn parse_reduce(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
         take!(self, lexer, Token::Reduce = "reduce");
         let range = self.parse_expression(lexer)?;
-        take!(self, lexer, Token::As = "as");
+        let root = take!(self, lexer,
+            Token::As = "as" => None,
+            Token::From = "from" => {
+                let root = self.parse_expression(lexer)?;
+                take!(self, lexer, Token::As = "as");
+                Some(Box::new(root))
+            }
+        );
         let left = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
         take!(self, lexer, Token::Comma = ",");
         let right = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
@@ -294,6 +301,7 @@ impl<'a, T: Reader> Parser<'a, T> {
         Ok(Expression::Reduce {
             left: left.to_string(),
             right: right.to_string(),
+            root,
             range: Box::new(range),
             action: Box::new(action),
         })
@@ -570,6 +578,13 @@ pub mod tests {
         Parser::new("test", &TestReader("var foo = reduce [] as a,b: a;"))
             .parse()
             .unwrap();
+
+        Parser::new(
+            "test",
+            &TestReader("var foo = reduce [] from t() as a,b: a;"),
+        )
+        .parse()
+        .unwrap();
     }
 
     #[test]

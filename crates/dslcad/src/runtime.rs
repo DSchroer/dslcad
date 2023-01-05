@@ -142,15 +142,21 @@ fn eval_expression(
             right,
             action,
             range,
+            root,
         } => {
             let range_value = eval_expression(instance, range, ctx)?;
             let mut range_value = range_value
                 .to_list()
                 .ok_or_else(|| RuntimeError::UnexpectedType(range_value.get_type()))?;
+            range_value.reverse();
 
             let mut loop_scope = instance.clone();
-            let mut result = range_value.pop().ok_or(RuntimeError::EmptyReduce())?;
-            for v in range_value {
+            let mut result = if let Some(expr) = root {
+                eval_expression(instance, expr, ctx)?
+            } else {
+                range_value.pop().ok_or(RuntimeError::EmptyReduce())?
+            };
+            for v in range_value.into_iter().rev() {
                 loop_scope.set(left.clone(), result.clone());
                 loop_scope.set(right.clone(), v);
                 result = eval_expression(&loop_scope, action, ctx)?;

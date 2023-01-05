@@ -304,6 +304,12 @@ impl Display for Library {
 - `a ->name b()` pipe a into the name parameter of function b
 - `./file(name=a)` run a file as if it were a function
 
+## Lists
+- `[1,2,3]` make a list with three numbers
+- `map MY_LIST as NAME: OPERATION` loop over every entry in MY_LIST
+- `reduce MY_LIST as NAME1,NAME2: OPERATION` combine every item in MY_LIST
+- `reduce MY_LIST from BASE as NAME1,NAME2: OPERATION` combine every item in MY_LIST starting from BASE
+
 ## Operators
 - `a + b` addition
 - `a - b` subtraction

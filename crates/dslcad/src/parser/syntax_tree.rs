@@ -27,6 +27,7 @@ pub enum Expression {
     Reduce {
         left: String,
         right: String,
+        root: Option<Box<Expression>>,
         range: Box<Expression>,
         action: Box<Expression>,
     },
