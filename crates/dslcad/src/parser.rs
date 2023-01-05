@@ -465,55 +465,37 @@ pub mod tests {
 
     #[test]
     fn it_can_parse_variable() {
-        Parser::new("test", &TestReader("test();"))
-            .parse_variable_statement(&mut Token::lexer("var x = 5;"))
-            .unwrap();
-        Parser::new("test", &TestReader("test();"))
-            .parse_variable_statement(&mut Token::lexer("var x;"))
-            .unwrap();
-        Parser::new("test", &TestReader("test();"))
-            .parse_variable_statement(&mut Token::lexer("var x = true;"))
-            .unwrap();
+        parse!("var x = 5;").unwrap();
+        parse!("var x;").unwrap();
+        parse!("var x = true;").unwrap();
     }
 
     #[test]
     fn it_can_parse_calls() {
-        Parser::new("test", &TestReader("test();"))
-            .parse_call(&mut Token::lexer("cube()"))
-            .unwrap();
-        Parser::new("test", &TestReader("test();"))
-            .parse_call(&mut Token::lexer("cube(x=5)"))
-            .unwrap();
+        parse!("cube();").unwrap();
+        parse!("cube(x=5);").unwrap();
     }
 
     #[test]
     fn it_can_parse() {
-        Parser::new("test", &TestReader("test(x=10,y=10);"))
-            .parse()
-            .unwrap();
+        parse!("test(x=10,y=10);").unwrap();
     }
 
     #[test]
     fn it_can_parse_adds() {
-        Parser::new("test", &TestReader("2 + 2;")).parse().unwrap();
-        Parser::new("test", &TestReader("var test; test.area + 10;"))
-            .parse()
-            .unwrap();
+        parse!("2 + 2;").unwrap();
+        parse!("var test; test.area + 10;").unwrap();
     }
 
     #[test]
     fn it_can_parse_divide() {
-        Parser::new("test", &TestReader("var test; test(x=test / 2);"))
-            .parse()
-            .unwrap();
+        parse!("var test; test(x=test / 2);").unwrap();
     }
 
     #[test]
     fn it_can_parse_unary_minus() {
-        Parser::new("test", &TestReader("-2;")).parse().unwrap();
-        Parser::new("test", &TestReader("var foo; -foo;"))
-            .parse()
-            .unwrap();
+        parse!("-2;").unwrap();
+        parse!("var foo; -foo;").unwrap();
     }
 
     #[test]
@@ -524,9 +506,7 @@ pub mod tests {
 
     #[test]
     fn it_can_parse_inject() {
-        Parser::new("test", &TestReader("5 ->value cube();"))
-            .parse()
-            .unwrap();
+        parse!("5 ->value cube();").unwrap();
 
         let p = parse_statement!("5 ->value cube() ->test cube();");
         assert!(matches!(p, Statement::Return(
@@ -551,59 +531,32 @@ pub mod tests {
 
     #[test]
     fn it_can_parse_brackets() {
-        Parser::new("test", &TestReader("3 - (3 + 2);"))
-            .parse()
-            .unwrap();
-        Parser::new("test", &TestReader("(3 - 3) + 2;"))
-            .parse()
-            .unwrap();
+        parse!("3 - (3 + 2);").unwrap();
+        parse!("(3 - 3) + 2;").unwrap();
     }
 
     #[test]
     fn it_can_parse_access() {
-        Parser::new("test", &TestReader("var foo; foo.bar;"))
-            .parse()
-            .unwrap();
+        parse!("var foo; foo.bar;").unwrap();
     }
 
     #[test]
     fn it_can_parse_map() {
-        Parser::new("test", &TestReader("var foo = map [] as x: x;"))
-            .parse()
-            .unwrap();
+        parse!("var foo = map [] as x: x;").unwrap();
     }
 
     #[test]
     fn it_can_parse_reduce() {
-        Parser::new("test", &TestReader("var foo = reduce [] as a,b: a;"))
-            .parse()
-            .unwrap();
-
-        Parser::new(
-            "test",
-            &TestReader("var foo = reduce [] from t() as a,b: a;"),
-        )
-        .parse()
-        .unwrap();
+        parse!("var foo = reduce [] as a,b: a;").unwrap();
+        parse!("var foo = reduce [] from t() as a,b: a;").unwrap();
     }
 
     #[test]
     fn it_can_parse_list_literal() {
-        Parser::new("test", &TestReader("var foo = [];"))
-            .parse()
-            .unwrap();
-
-        Parser::new("test", &TestReader("var foo = [1];"))
-            .parse()
-            .unwrap();
-
-        Parser::new("test", &TestReader("var foo = [1 2];"))
-            .parse()
-            .expect_err("should not parse lists without commas");
-
-        Parser::new("test", &TestReader("var foo = [test(), 2];"))
-            .parse()
-            .unwrap();
+        parse!("var foo = [];").unwrap();
+        parse!("var foo = [1];").unwrap();
+        parse!("var foo = [1 2];").expect_err("should not parse lists without commas");
+        parse!("var foo = [test(), 2];").unwrap();
     }
 
     pub struct TestReader<'a>(pub &'a str);
