@@ -8,7 +8,7 @@ mod xyz;
 use crate::editor::rendering::RenderCommand;
 use bevy::prelude::*;
 use bevy_polyline::prelude::*;
-use dslcad::{Output, DSLCAD};
+use dslcad::{Dslcad, Output};
 use file_watcher::{FileWatcher, FileWatcherPlugin};
 use gui::UiEvent;
 use rfd::FileDialog;
@@ -167,7 +167,7 @@ fn render_file(state: &mut ResMut<State>) -> Option<Vec<PathBuf>> {
     let mut files = None;
 
     if let Some(file) = &state.file {
-        let mut cad = DSLCAD::default();
+        let mut cad = Dslcad::default();
         let model = cad.render_file(file.to_str().unwrap());
         files = Some(cad.documents().map(PathBuf::from).collect());
         state.output = Some(model);

@@ -173,6 +173,12 @@ impl Library {
             bind!(not_equals, math::not_equals[left=number, right=number], Category::Hidden, "not equal"),
             bind!(greater, math::greater[left=number, right=number], Category::Hidden, "greater than"),
             bind!(greater_or_equal, math::greater_or_equal[left=number, right=number], Category::Hidden, "greater than or equal"),
+            bind!(
+                round,
+                math::round[number = number],
+                Category::Math,
+                "round to the nearest whole number"
+            ),
             // Boolean
             bind!(and, boolean::and[left=bool, right=bool], Category::Hidden, "logical and"),
             bind!(or, boolean::or[left=bool, right=bool], Category::Hidden, "logical or"),

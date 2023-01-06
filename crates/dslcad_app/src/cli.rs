@@ -1,5 +1,5 @@
 use clap::Parser;
-use dslcad::{Output, DSLCAD};
+use dslcad::{Dslcad, Output};
 use std::error::Error;
 use std::fs;
 use std::fs::OpenOptions;
@@ -20,7 +20,7 @@ struct Args {
 
 pub(crate) fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-    let mut cad = DSLCAD::default();
+    let mut cad = Dslcad::default();
     let model = cad.render_file(&args.source)?;
 
     write_stl_to_file(&model, &args.out)?;

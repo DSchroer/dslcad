@@ -3,7 +3,7 @@ use crate::editor::State;
 use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
-use dslcad::DSLCAD;
+use dslcad::Dslcad;
 
 pub struct GuiPlugin;
 impl Plugin for GuiPlugin {
@@ -120,7 +120,7 @@ fn cheatsheet(mut egui_context: ResMut<EguiContext>, mut state: ResMut<State>) {
         .show(egui_context.ctx_mut(), |ui| {
             egui::ScrollArea::vertical()
                 .max_height(512.)
-                .show(ui, |ui| ui.monospace(DSLCAD::default().cheat_sheet()));
+                .show(ui, |ui| ui.monospace(Dslcad::default().cheat_sheet()));
         });
 }
 

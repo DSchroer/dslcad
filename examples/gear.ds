@@ -1,5 +1,35 @@
 // https://www.engineersedge.com/gear_formula.htm
 
-var parts = 10;
-reduce range(end=parts) from sphere() as a, b:
-  a ->left union(right=sphere() ->shape rotate(z=b * (360/parts)));
+var pitch_diameter = 20;
+var thickness = 1;
+
+var tooth_base_width = 2.5;
+var tooth_depth = 2.5;
+
+var tooth_top_width = tooth_base_width * 0.75;
+var root_diameter = pitch_diameter - (tooth_depth/2);
+
+var wheel = circle(radius=root_diameter)
+                ->shape extrude(z=thickness)
+                ->shape translate(x=-root_diameter, y=-root_diameter)
+                ;
+
+var tooth_bite = pitch_diameter * 0.01;
+var tooth = face(parts=[
+    point(x=-tooth_bite,y=tooth_base_width/2),
+    point(x=tooth_depth,y=tooth_top_width/2),
+    point(x=tooth_depth,y=-tooth_top_width/2),
+    point(x=-tooth_bite,y=-tooth_base_width/2),
+])
+    ->shape extrude(z=thickness)
+    ->shape translate(x=root_diameter);
+
+var number_of_teeth = round(number=(pi() * pitch_diameter) / tooth_base_width);
+
+var tooth_list = map range(end=number_of_teeth) as t:
+                    tooth ->shape rotate(z=t * 360/number_of_teeth);
+
+var teeth = reduce tooth_list as a,b:
+                a ->left union(right=b);
+
+wheel ->left union(right=teeth);

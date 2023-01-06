@@ -1,5 +1,5 @@
-use dslcad::DSLCAD;
+use dslcad::Dslcad;
 
 fn main() {
-    println!("{}", DSLCAD::default().cheat_sheet())
+    println!("{}", Dslcad::default().cheat_sheet())
 }

@@ -34,21 +34,21 @@ impl Display for Error {
     }
 }
 
-pub struct DSLCAD<R> {
+pub struct Dslcad<R> {
     reader: R,
     library: Library,
     paths: Vec<String>,
 }
 
-impl Default for DSLCAD<FileReader> {
+impl Default for Dslcad<FileReader> {
     fn default() -> Self {
-        DSLCAD::<FileReader>::new(FileReader, Library::default())
+        Dslcad::<FileReader>::new(FileReader, Library::default())
     }
 }
 
-impl<R: Reader> DSLCAD<R> {
+impl<R: Reader> Dslcad<R> {
     pub fn new(reader: R, library: Library) -> Self {
-        DSLCAD {
+        Dslcad {
             reader,
             library,
             paths: Vec::new(),

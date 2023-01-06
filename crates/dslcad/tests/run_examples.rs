@@ -1,4 +1,4 @@
-use dslcad::DSLCAD;
+use dslcad::Dslcad;
 use std::fs::{self, DirEntry};
 use std::io;
 
@@ -13,7 +13,7 @@ fn test_can_run_examples() {
     for example in examples {
         println!("rendering {}", example.path().to_str().unwrap());
 
-        let mut cad = DSLCAD::default();
+        let mut cad = Dslcad::default();
         cad.render_file(example.path().to_str().unwrap())
             .unwrap_or_else(|_| panic!("cant render {:?}", example));
     }
