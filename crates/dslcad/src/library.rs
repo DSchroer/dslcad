@@ -2,6 +2,7 @@ mod boolean;
 mod faces;
 mod math;
 mod shapes;
+mod lists;
 
 use crate::runtime::{RuntimeError, Type, Value};
 use indexmap::IndexMap;
@@ -140,6 +141,7 @@ pub enum Category {
     Math,
     TwoD,
     ThreeD,
+    Lists,
 }
 
 impl Display for Category {
@@ -149,6 +151,7 @@ impl Display for Category {
             Category::Math => f.write_str("Math"),
             Category::TwoD => f.write_str("2D"),
             Category::ThreeD => f.write_str("3D"),
+            Category::Lists => f.write_str("Lists"),
         }
     }
 }
@@ -216,6 +219,9 @@ impl Library {
             bind!(translate, shapes::translate[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "move a shape"),
             bind!(rotate, shapes::rotate[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "rotate a shape"),
             bind!(scale, shapes::scale[shape=shape, scale=number], Category::ThreeD, "scale a shape"),
+            // Lists
+            bind!(length, lists::length[list=list], Category::Lists, "get the length of a list"),
+            bind!(range, lists::range[start=option_number, end=number], Category::Lists, "create a list of numbers from a range"),
         ];
 
         Self::from_signatures(signatures)

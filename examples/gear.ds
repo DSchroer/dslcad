@@ -1,6 +1,5 @@
 // https://www.engineersedge.com/gear_formula.htm
 
-var teeth = reduce [0, 90, 180] from cube() as a, b:
-                a ->left union(right=cube() ->shape rotate(z=b));
-
-teeth;
+var parts = 10;
+reduce range(end=parts) from sphere() as a, b:
+  a ->left union(right=sphere() ->shape rotate(z=b * (360/parts)));
