@@ -1,7 +1,8 @@
 // https://www.engineersedge.com/gear_formula.htm
 
 var pitch_diameter = 20;
-var thickness = 1;
+var thickness = 6;
+var t = 0.4;
 
 var tooth_base_width = 2.5;
 var tooth_depth = 2.5;
@@ -17,12 +18,13 @@ var wheel = circle(radius=root_diameter)
 var tooth_bite = pitch_diameter * 0.01;
 var tooth = face(parts=[
     point(x=-tooth_bite,y=tooth_base_width/2),
-    point(x=tooth_depth,y=tooth_top_width/2),
-    point(x=tooth_depth,y=-tooth_top_width/2),
+    point(x=tooth_depth - t,y=tooth_top_width/2),
+    point(x=tooth_depth - t,y=-tooth_top_width/2),
     point(x=-tooth_bite,y=-tooth_base_width/2),
 ])
     ->shape extrude(z=thickness)
-    ->shape translate(x=root_diameter);
+    ->shape translate(x=root_diameter)
+    ->left difference(right=wheel);
 
 var number_of_teeth = round(number=(pi() * pitch_diameter) / tooth_base_width);
 

@@ -1,0 +1,56 @@
+var t = 0.4;
+
+var base = face(parts=[
+	arc(
+		start=point(x=-5, y=-5), 
+		center=point(x=-25, y=25), 
+		end=point(x=-5,y=45)
+	),
+	arc(
+		start=point(x=85, y=45), 
+		center=point(x=85+20, y=25), 
+		end=point(x=85,y=-5)
+	),
+]) ->shape extrude(z=5);
+
+var peg = cylinder(height=10, radius=4)
+	->shape translate(x=-4, y=-4 + 20)
+	->left union(
+		right= cylinder(height=15, radius=2)
+			->shape translate(x=-2, y=-2 + 20)
+	);
+
+var stand = base 
+	->left union(right=peg)
+	->left union(right=peg ->shape translate(x=40))
+	->left union(right=peg ->shape translate(x=80));
+
+var bearing = cylinder(height=5, radius=2 + t)
+			->shape translate(x=-2 - t, y=-2 - t);
+
+var driver = ./gear(thickness=5)
+	->left difference(right=bearing)
+	->left union(right=
+		cylinder(height=15, radius=2)
+			->shape translate(y=12)
+		)
+	;
+
+var gear = ./gear(thickness=5)
+	->left difference(right=bearing)
+	;
+
+var table = ./gear(thickness=7)
+	->left difference(right=bearing)
+	->left union(
+		right=cylinder(height=2, radius=40)
+			->shape translate(x=-40, y=-40, z=7)
+	)
+	;
+
+//stand
+//	->left union(right=driver ->shape translate(z=10, y=20))
+//	->left union(right=gear ->shape translate(z=10, y=20, x=40))
+//	->left union(right=table ->shape translate(z=10, y=20, x=80));
+
+table;
