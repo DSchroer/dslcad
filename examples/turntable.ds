@@ -48,9 +48,7 @@ var table = ./gear(thickness=7)
 	)
 	;
 
-//stand
-//	->left union(right=driver ->shape translate(z=10, y=20))
-//	->left union(right=gear ->shape translate(z=10, y=20, x=40))
-//	->left union(right=table ->shape translate(z=10, y=20, x=80));
-
-table;
+stand;
+driver ->shape translate(z=10, y=20);
+gear ->shape translate(z=10, y=20, x=40);
+table ->shape translate(z=10, y=20, x=80);

@@ -81,28 +81,10 @@ impl<'a, T: Reader> Parser<'a, T> {
         let source = self.source()?;
         let mut lex = Token::lexer(&source);
 
-        let mut seen_return = false;
         let mut statements = Vec::new();
         while let Some(_) = lex.clone().next() {
-            let statement = self.parse_statement(&mut lex);
-            match statement {
-                Ok(s) => {
-                    if matches!(s, Statement::Return(_)) {
-                        if !seen_return {
-                            seen_return = true;
-                        } else {
-                            return Err(ParseError::Expected(
-                                "end of file",
-                                self.path.clone(),
-                                lex.span(),
-                                self.source()?,
-                            ));
-                        }
-                    }
-                    statements.push(s)
-                }
-                Err(error) => return Err(error),
-            }
+            let statement = self.parse_statement(&mut lex)?;
+            statements.push(statement);
         }
 
         self.documents.insert(
@@ -553,8 +535,8 @@ pub mod tests {
     }
 
     #[test]
-    fn it_rejects_duplicate_returns() {
-        parse!("5; 10;").expect_err("expected duplicate return error");
+    fn it_allows_duplicate_returns() {
+        parse!("5; 10;").unwrap();
     }
 
     #[test]

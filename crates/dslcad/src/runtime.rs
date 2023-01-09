@@ -35,6 +35,7 @@ pub fn eval(
 ) -> Result<ScriptInstance, RuntimeError> {
     let mut scope = Scope::new(arguments);
 
+    let mut ret = None;
     for statement in doc.statements() {
         match statement {
             Statement::Variable { name, value } => match value {
@@ -50,12 +51,25 @@ pub fn eval(
             },
             Statement::Return(e) => {
                 let value = eval_expression(&scope, e, ctx)?;
-                return Ok(ScriptInstance::from_scope(value, scope));
+                ret = match ret {
+                    None => Some(value),
+                    Some(v) => Some(match v.get_type() {
+                        Type::List => {
+                            let mut items = v.to_list().unwrap();
+                            items.push(value);
+                            Value::List(items)
+                        }
+                        _ => Value::List(vec![value]),
+                    }),
+                }
             }
         }
     }
 
-    Err(RuntimeError::NoReturnValue())
+    match ret {
+        None => Err(RuntimeError::NoReturnValue()),
+        Some(value) => Ok(ScriptInstance::from_scope(value, scope)),
+    }
 }
 
 fn eval_expression(
