@@ -434,6 +434,18 @@ impl<'a, T: Reader> Parser<'a, T> {
                 let r = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
                 self.parse_expression_rhs(Expression::Access(l, r), lexer)
             }
+            Some(Token::OpenList) => {
+                lexer.next();
+                let r = self.parse_expression(lexer)?;
+                take!(self, lexer, Token::CloseList = "]");
+                self.parse_expression_rhs(
+                    Expression::Index {
+                        target: first.into(),
+                        index: r.into(),
+                    },
+                    lexer,
+                )
+            }
             Some(Token::Inject) => {
                 lexer.next();
                 let prop = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
@@ -564,6 +576,11 @@ pub mod tests {
     #[test]
     fn it_can_parse_access() {
         parse!("var foo; foo.bar;").unwrap();
+    }
+
+    #[test]
+    fn it_can_parse_index() {
+        parse!("var foo; foo[0];").unwrap();
     }
 
     #[test]

@@ -19,6 +19,10 @@ pub enum Expression {
         arguments: HashMap<String, Box<Expression>>,
     },
     Access(Box<Expression>, String),
+    Index {
+        target: Box<Expression>,
+        index: Box<Expression>,
+    },
     Map {
         identifier: String,
         range: Box<Expression>,

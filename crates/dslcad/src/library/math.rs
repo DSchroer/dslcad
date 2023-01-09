@@ -1,7 +1,7 @@
 use crate::runtime::{RuntimeError, Value};
 
 pub fn round(number: f64) -> Result<Value, RuntimeError> {
-    Ok(Value::Number(number as i64 as f64))
+    Ok(Value::Number(number.round()))
 }
 
 pub fn add(left: f64, right: f64) -> Result<Value, RuntimeError> {

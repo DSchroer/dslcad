@@ -176,6 +176,18 @@ fn eval_expression(
                 None => Err(RuntimeError::UnexpectedType(condition_value.get_type())),
             }
         }
+        Expression::Index { target, index } => {
+            let target_value = eval_expression(instance, target, ctx)?;
+            let index_value = eval_expression(instance, index, ctx)?;
+
+            let list = target_value
+                .to_list()
+                .ok_or_else(|| RuntimeError::UnexpectedType(target_value.get_type()))?;
+            let index = index_value
+                .to_number()
+                .ok_or_else(|| RuntimeError::UnexpectedType(index_value.get_type()))?;
+            Ok(list[index.round() as usize].clone())
+        }
     }
 }
 
