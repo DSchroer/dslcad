@@ -320,6 +320,8 @@ impl Display for Library {
 - `b(name=a)` pass a into the name parameter of function b
 - `a ->name b()` pipe a into the name parameter of function b
 - `./file(name=a)` run a file as if it were a function
+- `model.data` access data of a model
+- `list[5]` get the fifth item of a list
 - `if a: something() else: something_else();` test a and follow one branch depending on the value
 
 ## Lists

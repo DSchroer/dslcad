@@ -1,6 +1,7 @@
 use super::{Access, Value};
 use crate::runtime::scope::Scope;
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone)]
 pub struct ScriptInstance {
@@ -20,6 +21,15 @@ impl ScriptInstance {
 
     pub fn value(&self) -> &Value {
         &self.value
+    }
+}
+
+impl Display for ScriptInstance {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.value
+            .to_output()
+            .map_err(|_| std::fmt::Error::default())?
+            .fmt(f)
     }
 }
 
