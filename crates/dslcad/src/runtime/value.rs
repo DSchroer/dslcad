@@ -14,6 +14,7 @@ pub enum Value {
     Number(f64),
     Bool(bool),
     Text(String),
+
     List(Vec<Value>),
 
     Script(Rc<RefCell<ScriptInstance>>),
