@@ -59,7 +59,7 @@ pub fn eval(
                             items.push(value);
                             Value::List(items)
                         }
-                        _ => Value::List(vec![value]),
+                        _ => Value::List(vec![v, value]),
                     }),
                 }
             }

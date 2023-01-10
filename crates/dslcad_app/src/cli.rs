@@ -13,22 +13,40 @@ struct Args {
     /// Source path to load
     source: String,
 
-    /// Outfile
-    #[arg(short, long)]
+    /// Outdir
+    #[arg(short, long, default_value = ".")]
     out: String,
 }
 
 pub(crate) fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let mut cad = Dslcad::default();
-    let model = cad.render_file(&args.source)?;
+    let source = Path::new(&args.source);
+    let root = Path::new(&args.out);
 
-    write_stl_to_file(&model, &args.out)?;
+    write_outputs(
+        &cad.render_file(source.to_str().unwrap())?,
+        root,
+        source.file_stem().unwrap().to_str().unwrap(),
+    )?;
 
     Ok(())
 }
 
-pub fn write_stl_to_file(output: &Output, path: &str) -> Result<(), Box<dyn Error>> {
+pub fn write_outputs(outputs: &[Output], dir: &Path, name: &str) -> Result<(), Box<dyn Error>> {
+    for (index, model) in outputs.iter().enumerate() {
+        let full_name = if index == 0 {
+            name.to_string()
+        } else {
+            format!("{}_{}", name, index)
+        };
+        let file = dir.join(Path::new(&format!("{}.stl", full_name)));
+        write_stl_to_file(model, &file)?;
+    }
+    Ok(())
+}
+
+fn write_stl_to_file(output: &Output, path: &Path) -> Result<(), Box<dyn Error>> {
     let mut triangles = Vec::new();
     let mesh = output.mesh();
     for (face, normal) in mesh.triangles_with_normals() {

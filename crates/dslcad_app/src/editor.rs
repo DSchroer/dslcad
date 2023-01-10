@@ -58,7 +58,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 #[derive(Resource)]
 struct State {
     file: Option<PathBuf>,
-    output: Option<Result<Output, dslcad::Error>>,
+    output: Option<Result<Vec<Output>, dslcad::Error>>,
     autowatch: bool,
     watcher: Option<FileWatcher>,
 
@@ -115,9 +115,14 @@ fn controller(
             }
             UiEvent::SaveStl() => {
                 if let Some(Ok(model)) = &state.output {
-                    if let Some(path) = file_dialog_ext(&state, "stl").save_file() {
-                        crate::cli::write_stl_to_file(model, path.to_str().unwrap())
-                            .expect("unable to save stl");
+                    if let Some(path) = file_dialog_ext(&state, None).pick_folder() {
+                        let origin = state.file.clone();
+                        crate::cli::write_outputs(
+                            model,
+                            &path,
+                            origin.unwrap().file_stem().unwrap().to_str().unwrap(),
+                        )
+                        .expect("unable to save stl");
                     }
                 }
             }
@@ -148,19 +153,22 @@ fn load_file(state: &mut ResMut<State>, file: PathBuf) {
 }
 
 fn file_dialog(state: &State) -> FileDialog {
-    file_dialog_ext(state, dslcad::constants::FILE_EXTENSION)
+    file_dialog_ext(state, Some(dslcad::constants::FILE_EXTENSION))
 }
 
-fn file_dialog_ext(state: &State, ext: &str) -> FileDialog {
+fn file_dialog_ext(state: &State, ext: Option<&str>) -> FileDialog {
     let dir = if let Some(file) = &state.file {
         file.parent().unwrap().to_path_buf()
     } else {
         env::current_dir().unwrap()
     };
-
-    FileDialog::new()
-        .add_filter(&(dslcad::constants::NAME.to_owned() + " Script"), &[ext])
-        .set_directory(dir)
+    let dialog = FileDialog::new();
+    let dialog = if let Some(ext) = ext {
+        dialog.add_filter(&(dslcad::constants::NAME.to_owned() + " Script"), &[ext])
+    } else {
+        dialog
+    };
+    dialog.set_directory(dir)
 }
 
 fn render_file(state: &mut ResMut<State>) -> Option<Vec<PathBuf>> {

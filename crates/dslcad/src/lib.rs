@@ -55,7 +55,7 @@ impl<R: Reader> Dslcad<R> {
         }
     }
 
-    pub fn render_file(&mut self, path: &str) -> Result<Output, Error> {
+    pub fn render_file(&mut self, path: &str) -> Result<Vec<Output>, Error> {
         let parser = parser::Parser::new(path, &self.reader);
         let ast = parser.parse().map_err(Error::Parse)?;
 
@@ -70,9 +70,22 @@ impl<R: Reader> Dslcad<R> {
         let output = runtime::eval(main, HashMap::new(), &ctx)
             .map_err(Error::Runtime)?
             .value()
-            .to_output()
-            .map_err(|_| Error::Runtime(RuntimeError::CantWrite()))?;
-        Ok(output)
+            .clone();
+
+        if let Some(parts) = output.to_list() {
+            let mut outputs = Vec::new();
+            for part in parts {
+                outputs.push(
+                    part.to_output()
+                        .map_err(|_| Error::Runtime(RuntimeError::CantWrite()))?,
+                );
+            }
+            Ok(outputs)
+        } else {
+            Ok(vec![output
+                .to_output()
+                .map_err(|_| Error::Runtime(RuntimeError::CantWrite()))?])
+        }
     }
 
     pub fn documents(&self) -> impl Iterator<Item = &str> {

@@ -56,16 +56,18 @@ fn mesh_renderer(
                 return;
             };
 
-            if let Some(Ok(model)) = &state.output {
-                let mesh = stl_to_triangle_mesh(model.mesh());
+            if let Some(Ok(models)) = &state.output {
+                for model in models {
+                    let mesh = stl_to_triangle_mesh(model.mesh());
 
-                entity.add_children(|builder| {
-                    builder.spawn(PbrBundle {
-                        mesh: meshes.add(mesh),
-                        material: materials.add(Blueprint::white().into()),
-                        ..Default::default()
+                    entity.add_children(|builder| {
+                        builder.spawn(PbrBundle {
+                            mesh: meshes.add(mesh),
+                            material: materials.add(Blueprint::white().into()),
+                            ..Default::default()
+                        });
                     });
-                });
+                }
             }
         }
     }
@@ -91,28 +93,30 @@ fn point_renderer(
                 return;
             };
 
-            if let Some(Ok(model)) = &state.output {
-                entity.add_children(|builder| {
-                    builder.spawn(MaterialMeshBundle {
-                        mesh: meshes.add(
-                            PointsMesh::from_iter(
-                                model
-                                    .points()
-                                    .iter()
-                                    .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32)),
-                            )
-                            .into(),
-                        ),
-                        material: point_materials.add(PointsMaterial {
-                            point_size: 10.0,
-                            perspective: false,
-                            circle: true,
-                            color: Blueprint::black(),
+            if let Some(Ok(models)) = &state.output {
+                for model in models {
+                    entity.add_children(|builder| {
+                        builder.spawn(MaterialMeshBundle {
+                            mesh: meshes.add(
+                                PointsMesh::from_iter(
+                                    model
+                                        .points()
+                                        .iter()
+                                        .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32)),
+                                )
+                                .into(),
+                            ),
+                            material: point_materials.add(PointsMaterial {
+                                point_size: 10.0,
+                                perspective: false,
+                                circle: true,
+                                color: Blueprint::black(),
+                                ..Default::default()
+                            }),
                             ..Default::default()
-                        }),
-                        ..Default::default()
+                        });
                     });
-                });
+                }
             }
         }
     }
@@ -138,25 +142,27 @@ fn line_renderer(
                 return;
             };
 
-            if let Some(Ok(model)) = &state.output {
-                for line in model.lines() {
-                    entity.add_children(|builder| {
-                        builder.spawn(PolylineBundle {
-                            polyline: polylines.add(Polyline {
-                                vertices: line
-                                    .iter()
-                                    .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))
-                                    .collect(),
-                            }),
-                            material: polyline_materials.add(PolylineMaterial {
-                                width: 2.0,
-                                color: Blueprint::black(),
-                                perspective: false,
+            if let Some(Ok(models)) = &state.output {
+                for model in models {
+                    for line in model.lines() {
+                        entity.add_children(|builder| {
+                            builder.spawn(PolylineBundle {
+                                polyline: polylines.add(Polyline {
+                                    vertices: line
+                                        .iter()
+                                        .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))
+                                        .collect(),
+                                }),
+                                material: polyline_materials.add(PolylineMaterial {
+                                    width: 2.0,
+                                    color: Blueprint::black(),
+                                    perspective: false,
+                                    ..Default::default()
+                                }),
                                 ..Default::default()
-                            }),
-                            ..Default::default()
+                            });
                         });
-                    });
+                    }
                 }
             }
         }

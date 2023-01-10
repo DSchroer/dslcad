@@ -84,7 +84,7 @@ fn main_ui(
                 ui.checkbox(&mut state.autowatch, "Auto Render");
             });
             ui.menu_button("Export", |ui| {
-                if ui.button("As STL").clicked() {
+                if ui.button("To folder").clicked() {
                     events.send(UiEvent::SaveStl());
                     ui.close_menu();
                 }
@@ -134,8 +134,16 @@ fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {
                 None => {}
                 Some(output) => {
                     match output {
-                        Ok(o) => ui.monospace(o.text()),
-                        Err(e) => ui.monospace(&e.to_string()),
+                        Ok(o) => {
+                            for o in o {
+                                if !o.text().is_empty() {
+                                    ui.monospace(o.text());
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            ui.monospace(&e.to_string());
+                        }
                     };
                 }
             });
