@@ -126,10 +126,13 @@ fn cheatsheet(mut egui_context: ResMut<EguiContext>, mut state: ResMut<State>) {
 
 fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {
     egui::TopBottomPanel::bottom("Console").show(egui_context.ctx_mut(), |ui| {
-        ui.label("Console:");
+        ui.heading("Console:");
         ui.separator();
+
         egui::ScrollArea::vertical()
             .max_height(256.)
+            .max_width(f32::INFINITY)
+            .auto_shrink([false, true])
             .show(ui, |ui| match &state.output {
                 None => {}
                 Some(output) => {

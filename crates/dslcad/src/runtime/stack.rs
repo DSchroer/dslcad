@@ -15,10 +15,7 @@ impl<'a> StackFrame<'a> {
     pub fn from_statement(document: &'a Document, statement: &'a Statement) -> Self {
         StackFrame {
             document,
-            span: match statement {
-                Statement::Variable { span, .. } => span.clone(),
-                Statement::Return(_, span) => span.clone(),
-            },
+            span: statement.span().clone(),
         }
     }
 }

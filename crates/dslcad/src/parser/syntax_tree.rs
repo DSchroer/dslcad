@@ -12,6 +12,15 @@ pub enum Statement {
     Return(Expression, Span),
 }
 
+impl Statement {
+    pub fn span(&self) -> &Span {
+        match self {
+            Statement::Variable { span, .. } => span,
+            Statement::Return(_, span) => span,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Expression {
     Literal(Literal, Span),
