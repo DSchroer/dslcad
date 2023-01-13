@@ -1,0 +1,17 @@
+var radius = 1;
+var height = 1;
+
+var t = 0.4;
+
+var inner_radius = (radius - 1) + t;
+var inner = cylinder(radius=inner_radius, height=1)
+	->shape translate(x=-inner_radius, y=-inner_radius, z=height);
+
+var cut_size = radius * 1.25;
+var cut = cube(x=cut_size, y=cut_size, z=1) 
+	->shape translate(x=radius/2, y=-cut_size/2,z=height);
+
+cylinder(radius=radius + 1, height=1 - t)
+	->shape translate(x=-radius - 1, y=-radius - 1, z=height)
+	->left difference(right=inner)
+	->left difference(right=cut);
