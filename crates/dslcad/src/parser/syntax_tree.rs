@@ -1,3 +1,4 @@
+use logos::Span;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
@@ -6,27 +7,31 @@ pub enum Statement {
     Variable {
         name: String,
         value: Option<Expression>,
+        span: Span,
     },
-    Return(Expression),
+    Return(Expression, Span),
 }
 
 #[derive(Debug, Clone)]
 pub enum Expression {
-    Literal(Literal),
-    Reference(String),
+    Literal(Literal, Span),
+    Reference(String, Span),
     Invocation {
         path: String,
         arguments: HashMap<String, Box<Expression>>,
+        span: Span,
     },
-    Access(Box<Expression>, String),
+    Access(Box<Expression>, String, Span),
     Index {
         target: Box<Expression>,
         index: Box<Expression>,
+        span: Span,
     },
     Map {
         identifier: String,
         range: Box<Expression>,
         action: Box<Expression>,
+        span: Span,
     },
     Reduce {
         left: String,
@@ -34,12 +39,29 @@ pub enum Expression {
         root: Option<Box<Expression>>,
         range: Box<Expression>,
         action: Box<Expression>,
+        span: Span,
     },
     If {
         condition: Box<Expression>,
         if_true: Box<Expression>,
         if_false: Box<Expression>,
+        span: Span,
     },
+}
+
+impl Expression {
+    pub fn span(&self) -> &Span {
+        match self {
+            Expression::Literal(_, span) => span,
+            Expression::Reference(_, span) => span,
+            Expression::Invocation { span, .. } => span,
+            Expression::Access(_, _, span) => span,
+            Expression::Index { span, .. } => span,
+            Expression::Map { span, .. } => span,
+            Expression::Reduce { span, .. } => span,
+            Expression::If { span, .. } => span,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

@@ -6,7 +6,7 @@ mod parser;
 mod runtime;
 
 use crate::parser::ParseError;
-use crate::runtime::{EvalContext, RuntimeError};
+use crate::runtime::{RuntimeError, WithStack};
 use library::Library;
 use parser::Reader;
 use path_absolutize::Absolutize;
@@ -22,7 +22,8 @@ pub use runtime::Output;
 #[derive(Error, Debug)]
 pub enum Error {
     Parse(ParseError),
-    Runtime(RuntimeError),
+    Runtime(WithStack<RuntimeError>),
+    CantWrite(),
 }
 
 impl Display for Error {
@@ -30,6 +31,7 @@ impl Display for Error {
         match self {
             Error::Parse(p) => Display::fmt(p, f),
             Error::Runtime(r) => Display::fmt(r, f),
+            Error::CantWrite() => f.write_str("unable to write file"),
         }
     }
 }
@@ -61,13 +63,11 @@ impl<R: Reader> Dslcad<R> {
 
         self.paths = ast.documents().keys().cloned().collect();
 
-        let ctx = EvalContext {
-            documents: ast.documents(),
-            library: &self.library,
-        };
         let main = ast.root_document();
 
-        let output = runtime::eval(main, HashMap::new(), &ctx)
+        let mut engine = runtime::Engine::new(&self.library, ast.documents());
+        let output = engine
+            .eval(main, HashMap::new())
             .map_err(Error::Runtime)?
             .value()
             .clone();
@@ -75,16 +75,11 @@ impl<R: Reader> Dslcad<R> {
         if let Some(parts) = output.to_list() {
             let mut outputs = Vec::new();
             for part in parts {
-                outputs.push(
-                    part.to_output()
-                        .map_err(|_| Error::Runtime(RuntimeError::CantWrite()))?,
-                );
+                outputs.push(part.to_output().map_err(|_| Error::CantWrite())?);
             }
             Ok(outputs)
         } else {
-            Ok(vec![output
-                .to_output()
-                .map_err(|_| Error::Runtime(RuntimeError::CantWrite()))?])
+            Ok(vec![output.to_output().map_err(|_| Error::CantWrite())?])
         }
     }
 
@@ -115,18 +110,16 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
-    use crate::runtime::ScriptInstance;
+    use crate::runtime::{Engine, ScriptInstance};
 
     fn run(code: &str) -> ScriptInstance {
         let reader = TestReader(code);
         let parser = parser::Parser::new("test", &reader);
         let documents = parser.parse().unwrap();
-        let ctx = EvalContext {
-            documents: documents.documents(),
-            library: &Library::new(),
-        };
+        let lib = Library::new();
+        let mut engine = Engine::new(&lib, documents.documents());
         let main = documents.root_document();
-        runtime::eval(main, HashMap::new(), &ctx).expect("failed to eval")
+        engine.eval(main, HashMap::new()).expect("failed to eval")
     }
 
     #[test]

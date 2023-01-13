@@ -18,8 +18,8 @@ pub enum RuntimeError {
     NoReturnValue(),
     #[error("Reduce must have at least one value")]
     EmptyReduce(),
-    #[error("Cant Write")]
-    CantWrite(),
+    #[error("Stack overflow")]
+    StackOverflow(),
     #[error("{0}")]
     Opencascade(opencascade::Error),
     #[error("Could not find function with name '{name}'")]
