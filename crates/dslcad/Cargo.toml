@@ -14,4 +14,4 @@ logos = "0.12"
 thiserror = "1.0"
 path-absolutize = "3"
 opencascade = { path = "../opencascade" }
-indexmap = "1.9.1"
+indexmap = "1.9.2"
