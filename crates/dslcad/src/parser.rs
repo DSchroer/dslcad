@@ -463,6 +463,7 @@ impl<'a, T: Reader> Parser<'a, T> {
             }
             Some(Token::Inject) => {
                 lexer.next();
+                let first_span = first.span().clone();
                 let sb = SpanBuilder::from(lexer);
                 let prop = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
 
@@ -478,7 +479,7 @@ impl<'a, T: Reader> Parser<'a, T> {
                             Expression::Invocation {
                                 path,
                                 arguments,
-                                span: sb.to(lexer),
+                                span: first_span.start..sb.to(lexer).end,
                             },
                             lexer,
                         )
@@ -575,6 +576,16 @@ pub mod tests {
             Expression::Invocation { arguments: x, .. }
             , ..
         ) if !x.contains_key("value")))
+    }
+
+    #[test]
+    fn it_can_load_inject_spans() {
+        let p = parse_statement!("5 ->value cube();");
+        if let Statement::Return(expr, ..) = p {
+            assert_eq!(0..16, *expr.span())
+        } else {
+            assert!(false)
+        }
     }
 
     #[test]
