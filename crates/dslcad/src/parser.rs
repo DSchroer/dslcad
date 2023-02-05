@@ -584,7 +584,7 @@ pub mod tests {
         if let Statement::Return(expr, ..) = p {
             assert_eq!(0..16, *expr.span())
         } else {
-            assert!(false)
+            unreachable!();
         }
     }
 
