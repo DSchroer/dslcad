@@ -34,7 +34,7 @@ impl FileWatcher {
                 }
             }
             Err(e) => {
-                println!("watch error: {:?}", e)
+                println!("watch error: {e:?}")
             }
         })
         .unwrap();

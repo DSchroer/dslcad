@@ -38,9 +38,9 @@ pub fn write_outputs(outputs: &[Output], dir: &Path, name: &str) -> Result<(), B
         let full_name = if index == 0 {
             name.to_string()
         } else {
-            format!("{}_{}", name, index)
+            format!("{name}_{index}")
         };
-        let file = dir.join(Path::new(&format!("{}.stl", full_name)));
+        let file = dir.join(Path::new(&format!("{full_name}.stl")));
         write_stl_to_file(model, &file)?;
     }
     Ok(())

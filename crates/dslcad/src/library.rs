@@ -275,7 +275,7 @@ impl Library {
                 return Ok(signature.function);
             }
             return Err(RuntimeError::CouldNotFindFunctionSignature {
-                target: format!("{}", to_call),
+                target: format!("{to_call}"),
                 options: indices
                     .iter()
                     .map(|i| format!("{}", self.signatures[*i]))
@@ -288,7 +288,7 @@ impl Library {
         }
     }
 
-    fn build_lookup<'a>(signatures: &'a [Signature]) -> HashMap<&'static str, Vec<usize>> {
+    fn build_lookup(signatures: &[Signature]) -> HashMap<&'static str, Vec<usize>> {
         let mut lookup: HashMap<&str, Vec<usize>> = HashMap::new();
         for (i, sig) in signatures.iter().enumerate() {
             if lookup.contains_key(sig.name) {
@@ -378,7 +378,7 @@ impl<'a> Display for CallSignature<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}(", self.name)?;
         for (i, (name, arg_type)) in self.arguments.iter().enumerate() {
-            write!(f, "{}={}", name, arg_type)?;
+            write!(f, "{name}={arg_type}")?;
             if i != self.arguments.len() - 1 {
                 write!(f, ", ")?;
             }
@@ -392,10 +392,10 @@ impl Display for Signature {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}(", self.name)?;
         for (i, (name, access)) in self.arguments.iter().enumerate() {
-            write!(f, "{}=", name)?;
+            write!(f, "{name}=")?;
             match access {
-                Access::Required(t) => write!(f, "{}", t)?,
-                Access::Optional(t) => write!(f, "[{}]", t)?,
+                Access::Required(t) => write!(f, "{t}")?,
+                Access::Optional(t) => write!(f, "[{t}]")?,
             }
             if i != self.arguments.len() - 1 {
                 write!(f, ", ")?;
@@ -427,7 +427,7 @@ pub mod tests {
     #[test]
     fn it_can_print_library() {
         let lib = Library::new();
-        println!("{}", lib);
+        println!("{lib}");
     }
 
     #[test]

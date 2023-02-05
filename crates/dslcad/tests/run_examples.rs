@@ -15,7 +15,7 @@ fn test_can_run_examples() {
 
         let mut cad = Dslcad::default();
         cad.render_file(example.path().to_str().unwrap())
-            .unwrap_or_else(|_| panic!("cant render {:?}", example));
+            .unwrap_or_else(|_| panic!("cant render {example:?}"));
     }
 }
 

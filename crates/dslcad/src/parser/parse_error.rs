@@ -40,7 +40,7 @@ impl Display for ParseError {
                 match last {
                     None => f.write_str("unexpected end of line [0]:")?,
                     Some((line, text)) => {
-                        f.write_fmt(format_args!("unexpected end of line [{}]: {}", line, text))?
+                        f.write_fmt(format_args!("unexpected end of line [{line}]: {text}"))?
                     }
                 }
             }
@@ -136,7 +136,7 @@ pub mod tests {
         assert_eq!("v", source[range].to_string());
         assert_eq!(
             "error: test.txt[3:2]\nexpected foo but found v\n",
-            format!("{}", error)
+            format!("{error}")
         )
     }
 }

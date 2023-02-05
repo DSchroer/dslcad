@@ -152,7 +152,7 @@ mod tests {
             "+", "-", "*", "/", "%", "^", ">", ">=", "==", "!=", "<", "<=",
         ];
         for op in ops {
-            run(format!("1 {} 1;", op).as_str());
+            run(format!("1 {op} 1;").as_str());
         }
     }
 
