@@ -1,0 +1,8 @@
+site_name: DSLCAD (Pronounced DieselCAD)
+repo_url: https://github.com/DSchroer/dslcad/
+theme:
+  name: readthedocs
+nav:
+  - Getting Started: index.md
+  - Concepts: concepts.md
+  - Syntax Reference: reference.md
