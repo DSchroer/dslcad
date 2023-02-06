@@ -6,6 +6,10 @@ Inspired by OpenSCAD, it has a language and 3D viewer to simplify the modeling e
 
 ![screenshot](docs/screenshot.png)
 
+## Usage
+
+Check out the [documentation](https://dschroer.github.io/dslcad/) pages.
+
 ## Installation
 
 Download the latest DSLCAD from the [Releases](https://github.com/DSchroer/model-script/releases) tab of this repo. 
@@ -15,12 +19,3 @@ You can find pre-built binaries for:
 - MacOS
 - Linux
 
-Check out the cheatsheet.md file of the release for the latest command reference.
-
-Check out the [examples](examples) folder for examples of how to model objects.
-
-## Usage
-
-For basic editing, run DSLCAD and use the GUI.
-
-For automated usage, list the CLI options with `dslcad --help`.
