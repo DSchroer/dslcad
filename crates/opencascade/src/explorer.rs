@@ -1,4 +1,3 @@
-use crate::Error;
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
     TopAbs_ShapeEnum, TopExp_Explorer, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Face,
@@ -22,12 +21,12 @@ impl<T> Explorer<T>
 where
     Explorer<T>: GeomIterator<T>,
 {
-    pub fn new(shape: &TopoDS_Shape) -> Result<Self, Error> {
-        Ok(Explorer {
+    pub fn new(shape: &TopoDS_Shape) -> Self {
+        Explorer {
             explorer: TopExp_Explorer_ctor(shape, Self::shape()),
             first: true,
             _phantom: PhantomData::default(),
-        })
+        }
     }
 
     pub fn next(&mut self) -> Option<&T> {

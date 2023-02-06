@@ -14,7 +14,7 @@ use opencascade_sys::ffi::{
     BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt,
     BRep_Tool_Triangulation, HandleGeomCurve_Value, Poly_Triangulation_Node, TopAbs_Orientation,
     TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape,
-    TopoDS_Shape_to_owned, TopoDS_cast_to_face, TopoDS_cast_to_vertex,
+    TopoDS_Shape_to_owned, TopoDS_cast_to_face,
 };
 use std::pin::Pin;
 
@@ -157,7 +157,7 @@ impl Shape {
     pub fn fillet(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
         let mut fillet = BRepFilletAPI_MakeFillet_ctor(&target.shape);
 
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&target.shape)?;
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&target.shape);
         while let Some(edge) = edge_explorer.next() {
             fillet.pin_mut().add_edge(thickness, edge);
         }
@@ -168,7 +168,7 @@ impl Shape {
     pub fn chamfer(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
         let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(&target.shape);
 
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&target.shape)?;
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&target.shape);
         while let Some(edge) = edge_explorer.next() {
             chamfer.pin_mut().add_edge(thickness, edge);
         }
@@ -229,7 +229,7 @@ impl Shape {
     pub fn lines(&mut self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&self.shape)?;
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&self.shape);
         while let Some(edge) = edge_explorer.next() {
             if let Some(line) = Self::extract_line(edge) {
                 lines.push(line);
@@ -263,12 +263,11 @@ impl Shape {
     pub fn points(&mut self) -> Result<Vec<[f64; 3]>, Error> {
         let mut points = Vec::new();
 
-        let mut edge_explorer = TopExp_Explorer_ctor(&self.shape, TopAbs_ShapeEnum::TopAbs_VERTEX);
-        while edge_explorer.More() {
-            let vertex = TopoDS_cast_to_vertex(edge_explorer.Current());
+        let mut vertex_explorer = Explorer::new(&self.shape);
+
+        while let Some(vertex) = vertex_explorer.next() {
             let point: Point = BRep_Tool_Pnt(vertex).into();
             points.push(point.into());
-            edge_explorer.pin_mut().Next();
         }
 
         Ok(points)
