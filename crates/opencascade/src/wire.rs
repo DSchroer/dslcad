@@ -221,10 +221,7 @@ mod tests {
     #[test]
     fn it_can_find_points() {
         let mut wire = WireFactory::new();
-        wire.add_edge(&Edge::new_line(
-            &Point::new(0., 0., 0.),
-            &Point::new(0., 10., 0.),
-        ).unwrap());
+        wire.add_edge(&Edge::new_line(&Point::new(0., 0., 0.), &Point::new(0., 10., 0.)).unwrap());
         let mut wire = wire.build().unwrap();
 
         assert!(!wire.points().unwrap().is_empty());
