@@ -1,4 +1,3 @@
-use crate::command::Builder;
 use crate::Error;
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
@@ -22,9 +21,9 @@ impl<T> Explorer<T>
 where
     Explorer<T>: GeomIterator<T>,
 {
-    pub fn new(shape: &mut impl Builder<TopoDS_Shape>) -> Result<Self, Error> {
+    pub fn new(shape: &TopoDS_Shape) -> Result<Self, Error> {
         Ok(Explorer {
-            explorer: TopExp_Explorer_ctor(shape.try_build()?, Self::shape()),
+            explorer: TopExp_Explorer_ctor(shape, Self::shape()),
             first: true,
             _phantom: PhantomData::default(),
         })

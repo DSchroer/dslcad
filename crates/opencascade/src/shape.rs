@@ -1,34 +1,25 @@
-use crate::command::{Builder, Command};
+use crate::command::{Builder, PinBuilder, PinCommand};
 use crate::explorer::Explorer;
 use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
     gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, BRepAlgoAPI_Common,
     BRepAlgoAPI_Common_ctor, BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse,
-    BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform,
-    BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor,
-    BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepMesh_IncrementalMesh_ctor,
-    BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder,
-    BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
-    BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
-    BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt, BRep_Tool_Triangulation,
-    HandleGeomCurve_Value, Message_ProgressRange_ctor, Poly_Triangulation_Node, TopAbs_Orientation,
+    BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
+    BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer,
+    BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor,
+    BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
+    BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
+    BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
+    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt,
+    BRep_Tool_Triangulation, HandleGeomCurve_Value, Poly_Triangulation_Node, TopAbs_Orientation,
     TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape,
-    TopoDS_cast_to_face, TopoDS_cast_to_vertex,
+    TopoDS_Shape_to_owned, TopoDS_cast_to_face, TopoDS_cast_to_vertex,
 };
+use std::pin::Pin;
 
-pub enum Shape {
-    Box(UniquePtr<BRepPrimAPI_MakeBox>),
-    Cylinder(UniquePtr<BRepPrimAPI_MakeCylinder>),
-    Sphere(UniquePtr<BRepPrimAPI_MakeSphere>),
-    Fuse(UniquePtr<BRepAlgoAPI_Fuse>),
-    Cut(UniquePtr<BRepAlgoAPI_Cut>),
-    Intersect(UniquePtr<BRepAlgoAPI_Common>),
-    Fillet(UniquePtr<BRepFilletAPI_MakeFillet>),
-    Chamfer(UniquePtr<BRepFilletAPI_MakeChamfer>),
-    Transformed(UniquePtr<BRepBuilderAPI_Transform>),
-    Prism(UniquePtr<BRepPrimAPI_MakePrism>),
-    Revol(UniquePtr<BRepPrimAPI_MakeRevol>),
+pub struct Shape {
+    shape: UniquePtr<TopoDS_Shape>,
 }
 
 pub enum Axis {
@@ -40,62 +31,45 @@ pub enum Axis {
 impl Shape {
     pub fn cube(dx: f64, dy: f64, dz: f64) -> Result<Self, Error> {
         let origin = Point::new(0., 0., 0.);
-        Ok(Shape::Box(BRepPrimAPI_MakeBox_ctor(
-            &origin.point,
-            dx,
-            dy,
-            dz,
-        )))
+        let mut b = BRepPrimAPI_MakeBox_ctor(&origin.point, dx, dy, dz);
+        Ok(PinBuilder::try_build(&mut b)?.into())
     }
 
     pub fn sphere(r: f64) -> Result<Self, Error> {
-        Ok(Shape::Sphere(BRepPrimAPI_MakeSphere_ctor(r)))
+        let mut sphere = BRepPrimAPI_MakeSphere_ctor(r);
+        Ok(PinBuilder::try_build(&mut sphere)?.into())
     }
 
     pub fn cylinder(radius: f64, height: f64) -> Result<Self, Error> {
         let origin = Point::new(radius, radius, 0.);
         let axis = gp_Ax2_ctor(&origin.point, gp_DZ());
-        Ok(Shape::Cylinder(BRepPrimAPI_MakeCylinder_ctor(
-            &axis, radius, height,
-        )))
+        let mut cylinder = BRepPrimAPI_MakeCylinder_ctor(&axis, radius, height);
+        Ok(PinBuilder::try_build(&mut cylinder)?.into())
     }
 
     pub fn fuse(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
-        Ok(Shape::Fuse(BRepAlgoAPI_Fuse_ctor(
-            left.try_build()?,
-            right.try_build()?,
-        )))
+        Ok(PinBuilder::try_build(&mut BRepAlgoAPI_Fuse_ctor(&left.shape, &right.shape))?.into())
     }
 
     pub fn cut(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
-        Ok(Shape::Cut(BRepAlgoAPI_Cut_ctor(
-            left.try_build()?,
-            right.try_build()?,
-        )))
+        Ok(PinBuilder::try_build(&mut BRepAlgoAPI_Cut_ctor(&left.shape, &right.shape))?.into())
     }
 
     pub fn intersect(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
-        Ok(Shape::Intersect(BRepAlgoAPI_Common_ctor(
-            left.try_build()?,
-            right.try_build()?,
-        )))
+        Ok(PinBuilder::try_build(&mut BRepAlgoAPI_Common_ctor(&left.shape, &right.shape))?.into())
     }
 
     pub fn extrude(wire: &mut Wire, x: f64, y: f64, z: f64) -> Result<Self, Error> {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.try_build()?, false);
         let prism_vec = new_vec(x, y, z);
 
-        if !face_profile.IsDone() {
-            let progress = Message_ProgressRange_ctor();
-            face_profile.pin_mut().Build(&progress);
-
-            if !face_profile.IsDone() {
-                return Err("unable to compute shape".to_string().into());
-            }
-        }
-        let body =
-            BRepPrimAPI_MakePrism_ctor(face_profile.pin_mut().Shape(), &prism_vec, true, true);
-        Ok(Shape::Prism(body))
+        let mut body = BRepPrimAPI_MakePrism_ctor(
+            PinBuilder::try_build(&mut face_profile)?,
+            &prism_vec,
+            true,
+            true,
+        );
+        Ok(PinBuilder::try_build(&mut body)?.into())
     }
 
     pub fn extrude_rotate(wire: &mut Wire, axis: Axis, degrees: f64) -> Result<Self, Error> {
@@ -108,17 +82,13 @@ impl Shape {
             Axis::Z => gp_OZ(),
         };
 
-        if !face_profile.IsDone() {
-            let progress = Message_ProgressRange_ctor();
-            face_profile.pin_mut().Build(&progress);
-
-            if !face_profile.IsDone() {
-                return Err("unable to compute shape".to_string().into());
-            }
-        }
-        let body =
-            BRepPrimAPI_MakeRevol_ctor(face_profile.pin_mut().Shape(), gp_axis, radians, true);
-        Ok(Shape::Revol(body))
+        let mut body = BRepPrimAPI_MakeRevol_ctor(
+            PinBuilder::try_build(&mut face_profile)?,
+            gp_axis,
+            radians,
+            true,
+        );
+        Ok(PinBuilder::try_build(&mut body)?.into())
     }
 
     pub fn translate(left: &mut Shape, point: &Point) -> Result<Self, Error> {
@@ -127,11 +97,12 @@ impl Shape {
             .pin_mut()
             .SetTranslation(&Point::new(0., 0., 0.).point, &point.point);
 
-        Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.try_build()?,
+        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+            &left.shape,
             &transform,
             true,
-        )))
+        ))?
+        .into())
     }
 
     pub fn rotate(left: &mut Shape, axis: Axis, degrees: f64) -> Result<Self, Error> {
@@ -144,11 +115,12 @@ impl Shape {
         let radians = degrees * (std::f64::consts::PI / 180.);
         transform.pin_mut().SetRotation(gp_axis, radians);
 
-        Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.try_build()?,
+        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+            &left.shape,
             &transform,
             true,
-        )))
+        ))?
+        .into())
     }
 
     pub fn scale(left: &mut Shape, scale: f64) -> Result<Self, Error> {
@@ -157,11 +129,12 @@ impl Shape {
             .pin_mut()
             .SetScale(&Point::new(0., 0., 0.).point, scale);
 
-        Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.try_build()?,
+        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+            &left.shape,
             &transform,
             true,
-        )))
+        ))?
+        .into())
     }
 
     pub fn mirror(left: &mut Shape, axis: Axis) -> Result<Self, Error> {
@@ -173,37 +146,38 @@ impl Shape {
         };
         transform.pin_mut().set_mirror_axis(gp_axis);
 
-        Ok(Shape::Transformed(BRepBuilderAPI_Transform_ctor(
-            left.try_build()?,
+        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+            &left.shape,
             &transform,
             true,
-        )))
+        ))?
+        .into())
     }
 
     pub fn fillet(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
-        let mut fillet = BRepFilletAPI_MakeFillet_ctor(target.try_build()?);
+        let mut fillet = BRepFilletAPI_MakeFillet_ctor(&target.shape);
 
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(target)?;
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&target.shape)?;
         while let Some(edge) = edge_explorer.next() {
             fillet.pin_mut().add_edge(thickness, edge);
         }
 
-        Ok(Shape::Fillet(fillet))
+        Ok(PinBuilder::try_build(&mut fillet)?.into())
     }
 
     pub fn chamfer(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
-        let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(target.try_build()?);
+        let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(&target.shape);
 
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(target)?;
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&target.shape)?;
         while let Some(edge) = edge_explorer.next() {
             chamfer.pin_mut().add_edge(thickness, edge);
         }
 
-        Ok(Shape::Chamfer(chamfer))
+        Ok(PinBuilder::try_build(&mut chamfer)?.into())
     }
 
     pub fn mesh(&mut self) -> Result<Mesh, Error> {
-        let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(self.try_build()?, 0.01);
+        let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(&self.shape, 0.01);
         if !incremental_mesh.IsDone() {
             return Err("unable to build incremental mesh".into());
         }
@@ -218,7 +192,7 @@ impl Shape {
             let face = TopoDS_cast_to_face(edge_explorer.Current());
             let mut location = TopLoc_Location_ctor();
 
-            let triangulation_handle = BRep_Tool_Triangulation(&face, location.pin_mut());
+            let triangulation_handle = BRep_Tool_Triangulation(face, location.pin_mut());
             if !triangulation_handle.IsNull() {
                 let triangulation = unsafe { &*triangulation_handle.get() };
 
@@ -255,7 +229,7 @@ impl Shape {
     pub fn lines(&mut self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(self)?;
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&self.shape)?;
         while let Some(edge) = edge_explorer.next() {
             if let Some(line) = Self::extract_line(edge) {
                 lines.push(line);
@@ -289,8 +263,7 @@ impl Shape {
     pub fn points(&mut self) -> Result<Vec<[f64; 3]>, Error> {
         let mut points = Vec::new();
 
-        let mut edge_explorer =
-            TopExp_Explorer_ctor(self.try_build()?, TopAbs_ShapeEnum::TopAbs_VERTEX);
+        let mut edge_explorer = TopExp_Explorer_ctor(&self.shape, TopAbs_ShapeEnum::TopAbs_VERTEX);
         while edge_explorer.More() {
             let vertex = TopoDS_cast_to_vertex(edge_explorer.Current());
             let point: Point = BRep_Tool_Pnt(vertex).into();
@@ -302,57 +275,46 @@ impl Shape {
     }
 }
 
-impl Command for Shape {
-    fn is_done(&self) -> bool {
-        match self {
-            Shape::Box(b) => b.IsDone(),
-            Shape::Sphere(b) => b.IsDone(),
-            Shape::Cylinder(c) => c.IsDone(),
-            Shape::Fuse(f) => f.IsDone(),
-            Shape::Cut(f) => f.IsDone(),
-            Shape::Intersect(f) => f.IsDone(),
-            Shape::Fillet(f) => f.IsDone(),
-            Shape::Chamfer(f) => f.IsDone(),
-            Shape::Transformed(f) => f.IsDone(),
-            Shape::Prism(p) => p.IsDone(),
-            Shape::Revol(p) => p.IsDone(),
-        }
-    }
-
-    fn build(&mut self, progress: &opencascade_sys::ffi::Message_ProgressRange) {
-        match self {
-            Shape::Box(b) => b.pin_mut().Build(progress),
-            Shape::Sphere(b) => b.pin_mut().Build(progress),
-            Shape::Cylinder(c) => c.pin_mut().Build(progress),
-            Shape::Fuse(f) => f.pin_mut().Build(progress),
-            Shape::Cut(f) => f.pin_mut().Build(progress),
-            Shape::Intersect(f) => f.pin_mut().Build(progress),
-            Shape::Fillet(f) => f.pin_mut().Build(progress),
-            Shape::Chamfer(f) => f.pin_mut().Build(progress),
-            Shape::Transformed(f) => f.pin_mut().Build(progress),
-            Shape::Prism(p) => p.pin_mut().Build(progress),
-            Shape::Revol(p) => p.pin_mut().Build(progress),
+impl From<&TopoDS_Shape> for Shape {
+    fn from(value: &TopoDS_Shape) -> Self {
+        Shape {
+            shape: TopoDS_Shape_to_owned(value),
         }
     }
 }
 
-impl Builder<TopoDS_Shape> for Shape {
-    unsafe fn value(&mut self) -> &TopoDS_Shape {
-        match self {
-            Shape::Box(b) => b.pin_mut().Shape(),
-            Shape::Sphere(b) => b.pin_mut().Shape(),
-            Shape::Cylinder(c) => c.pin_mut().Shape(),
-            Shape::Fuse(f) => f.pin_mut().Shape(),
-            Shape::Cut(f) => f.pin_mut().Shape(),
-            Shape::Intersect(f) => f.pin_mut().Shape(),
-            Shape::Fillet(f) => f.pin_mut().Shape(),
-            Shape::Chamfer(f) => f.pin_mut().Shape(),
-            Shape::Transformed(f) => f.pin_mut().Shape(),
-            Shape::Prism(p) => p.pin_mut().Shape(),
-            Shape::Revol(p) => p.pin_mut().Shape(),
+macro_rules! shape_builder {
+    ($type_name: ty) => {
+        impl PinCommand for $type_name {
+            fn is_done(&self) -> bool {
+                self.IsDone()
+            }
+
+            fn build(self: Pin<&mut Self>, progress: &opencascade_sys::ffi::Message_ProgressRange) {
+                self.Build(progress)
+            }
         }
-    }
+
+        impl PinBuilder<TopoDS_Shape> for $type_name {
+            unsafe fn value(self: Pin<&mut Self>) -> &TopoDS_Shape {
+                self.Shape()
+            }
+        }
+    };
 }
+
+shape_builder!(BRepPrimAPI_MakeBox);
+shape_builder!(BRepPrimAPI_MakeSphere);
+shape_builder!(BRepPrimAPI_MakeCylinder);
+shape_builder!(BRepPrimAPI_MakePrism);
+shape_builder!(BRepFilletAPI_MakeFillet);
+shape_builder!(BRepFilletAPI_MakeChamfer);
+shape_builder!(BRepPrimAPI_MakeRevol);
+shape_builder!(BRepAlgoAPI_Fuse);
+shape_builder!(BRepAlgoAPI_Cut);
+shape_builder!(BRepAlgoAPI_Common);
+shape_builder!(BRepBuilderAPI_Transform);
+shape_builder!(BRepBuilderAPI_MakeFace);
 
 #[cfg(test)]
 mod tests {
