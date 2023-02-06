@@ -1,4 +1,4 @@
-use crate::command::{PinBuilder, PinCommand};
+use crate::command::{Builder, Command};
 use crate::edge::Edge;
 use crate::{Axis, Error, Point};
 use cxx::UniquePtr;
@@ -30,7 +30,7 @@ impl WireFactory {
     }
 
     pub fn build(mut self) -> Result<Wire, Error> {
-        Ok(Wire(TopoDS_Shape_to_owned(PinBuilder::try_build(
+        Ok(Wire(TopoDS_Shape_to_owned(Builder::try_build(
             &mut self.make_wire,
         )?)))
     }
@@ -52,7 +52,7 @@ impl Wire {
     pub fn from_edge(left: &Edge) -> Result<Self, Error> {
         let mut wire_builder = BRepBuilderAPI_MakeWire_ctor();
         wire_builder.pin_mut().add_edge(&left.0);
-        Ok(Wire(TopoDS_Shape_to_owned(PinBuilder::try_build(
+        Ok(Wire(TopoDS_Shape_to_owned(Builder::try_build(
             &mut wire_builder,
         )?)))
     }
@@ -61,7 +61,7 @@ impl Wire {
         let mut wire_builder = BRepBuilderAPI_MakeWire_ctor();
         wire_builder.pin_mut().add_wire(self.wire());
         wire_builder.pin_mut().add_edge(&left.0);
-        Ok(Wire(TopoDS_Shape_to_owned(PinBuilder::try_build(
+        Ok(Wire(TopoDS_Shape_to_owned(Builder::try_build(
             &mut wire_builder,
         )?)))
     }
@@ -70,7 +70,7 @@ impl Wire {
         let mut wire_builder = BRepBuilderAPI_MakeWire_ctor();
         wire_builder.pin_mut().add_wire(self.wire());
         wire_builder.pin_mut().add_wire(wire.wire());
-        Ok(Wire(TopoDS_Shape_to_owned(PinBuilder::try_build(
+        Ok(Wire(TopoDS_Shape_to_owned(Builder::try_build(
             &mut wire_builder,
         )?)))
     }
@@ -142,7 +142,7 @@ impl Wire {
             .pin_mut()
             .SetTranslation(&Point::new(0., 0., 0.).point, &point.point);
 
-        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
             &left.0, &transform, true,
         ))?
         .into())
@@ -158,7 +158,7 @@ impl Wire {
         let radians = degrees * (std::f64::consts::PI / 180.);
         transform.pin_mut().SetRotation(gp_axis, radians);
 
-        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
             &left.0, &transform, true,
         ))?
         .into())
@@ -170,7 +170,7 @@ impl Wire {
             .pin_mut()
             .SetScale(&Point::new(0., 0., 0.).point, scale);
 
-        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
             &left.0, &transform, true,
         ))?
         .into())
@@ -185,7 +185,7 @@ impl Wire {
         };
         transform.pin_mut().set_mirror_axis(gp_axis);
 
-        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
             &left.0, &transform, true,
         ))?
         .into())
@@ -198,7 +198,7 @@ impl From<&TopoDS_Shape> for Wire {
     }
 }
 
-impl PinCommand for BRepBuilderAPI_MakeWire {
+impl Command for BRepBuilderAPI_MakeWire {
     fn is_done(&self) -> bool {
         self.IsDone()
     }
@@ -208,7 +208,7 @@ impl PinCommand for BRepBuilderAPI_MakeWire {
     }
 }
 
-impl PinBuilder<TopoDS_Shape> for BRepBuilderAPI_MakeWire {
+impl Builder<TopoDS_Shape> for BRepBuilderAPI_MakeWire {
     unsafe fn value(self: Pin<&mut Self>) -> &TopoDS_Shape {
         self.Shape()
     }

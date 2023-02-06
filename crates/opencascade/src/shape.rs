@@ -1,4 +1,4 @@
-use crate::command::{PinBuilder, PinCommand};
+use crate::command::{Builder, Command};
 use crate::explorer::Explorer;
 use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
@@ -32,31 +32,31 @@ impl Shape {
     pub fn cube(dx: f64, dy: f64, dz: f64) -> Result<Self, Error> {
         let origin = Point::new(0., 0., 0.);
         let mut b = BRepPrimAPI_MakeBox_ctor(&origin.point, dx, dy, dz);
-        Ok(PinBuilder::try_build(&mut b)?.into())
+        Ok(Builder::try_build(&mut b)?.into())
     }
 
     pub fn sphere(r: f64) -> Result<Self, Error> {
         let mut sphere = BRepPrimAPI_MakeSphere_ctor(r);
-        Ok(PinBuilder::try_build(&mut sphere)?.into())
+        Ok(Builder::try_build(&mut sphere)?.into())
     }
 
     pub fn cylinder(radius: f64, height: f64) -> Result<Self, Error> {
         let origin = Point::new(radius, radius, 0.);
         let axis = gp_Ax2_ctor(&origin.point, gp_DZ());
         let mut cylinder = BRepPrimAPI_MakeCylinder_ctor(&axis, radius, height);
-        Ok(PinBuilder::try_build(&mut cylinder)?.into())
+        Ok(Builder::try_build(&mut cylinder)?.into())
     }
 
     pub fn fuse(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
-        Ok(PinBuilder::try_build(&mut BRepAlgoAPI_Fuse_ctor(&left.shape, &right.shape))?.into())
+        Ok(Builder::try_build(&mut BRepAlgoAPI_Fuse_ctor(&left.shape, &right.shape))?.into())
     }
 
     pub fn cut(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
-        Ok(PinBuilder::try_build(&mut BRepAlgoAPI_Cut_ctor(&left.shape, &right.shape))?.into())
+        Ok(Builder::try_build(&mut BRepAlgoAPI_Cut_ctor(&left.shape, &right.shape))?.into())
     }
 
     pub fn intersect(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
-        Ok(PinBuilder::try_build(&mut BRepAlgoAPI_Common_ctor(&left.shape, &right.shape))?.into())
+        Ok(Builder::try_build(&mut BRepAlgoAPI_Common_ctor(&left.shape, &right.shape))?.into())
     }
 
     pub fn extrude(wire: &mut Wire, x: f64, y: f64, z: f64) -> Result<Self, Error> {
@@ -64,12 +64,12 @@ impl Shape {
         let prism_vec = new_vec(x, y, z);
 
         let mut body = BRepPrimAPI_MakePrism_ctor(
-            PinBuilder::try_build(&mut face_profile)?,
+            Builder::try_build(&mut face_profile)?,
             &prism_vec,
             true,
             true,
         );
-        Ok(PinBuilder::try_build(&mut body)?.into())
+        Ok(Builder::try_build(&mut body)?.into())
     }
 
     pub fn extrude_rotate(wire: &mut Wire, axis: Axis, degrees: f64) -> Result<Self, Error> {
@@ -83,12 +83,12 @@ impl Shape {
         };
 
         let mut body = BRepPrimAPI_MakeRevol_ctor(
-            PinBuilder::try_build(&mut face_profile)?,
+            Builder::try_build(&mut face_profile)?,
             gp_axis,
             radians,
             true,
         );
-        Ok(PinBuilder::try_build(&mut body)?.into())
+        Ok(Builder::try_build(&mut body)?.into())
     }
 
     pub fn translate(left: &mut Shape, point: &Point) -> Result<Self, Error> {
@@ -97,7 +97,7 @@ impl Shape {
             .pin_mut()
             .SetTranslation(&Point::new(0., 0., 0.).point, &point.point);
 
-        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
             &left.shape,
             &transform,
             true,
@@ -115,7 +115,7 @@ impl Shape {
         let radians = degrees * (std::f64::consts::PI / 180.);
         transform.pin_mut().SetRotation(gp_axis, radians);
 
-        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
             &left.shape,
             &transform,
             true,
@@ -129,7 +129,7 @@ impl Shape {
             .pin_mut()
             .SetScale(&Point::new(0., 0., 0.).point, scale);
 
-        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
             &left.shape,
             &transform,
             true,
@@ -146,7 +146,7 @@ impl Shape {
         };
         transform.pin_mut().set_mirror_axis(gp_axis);
 
-        Ok(PinBuilder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
             &left.shape,
             &transform,
             true,
@@ -162,7 +162,7 @@ impl Shape {
             fillet.pin_mut().add_edge(thickness, edge);
         }
 
-        Ok(PinBuilder::try_build(&mut fillet)?.into())
+        Ok(Builder::try_build(&mut fillet)?.into())
     }
 
     pub fn chamfer(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
@@ -173,7 +173,7 @@ impl Shape {
             chamfer.pin_mut().add_edge(thickness, edge);
         }
 
-        Ok(PinBuilder::try_build(&mut chamfer)?.into())
+        Ok(Builder::try_build(&mut chamfer)?.into())
     }
 
     pub fn mesh(&mut self) -> Result<Mesh, Error> {
@@ -284,7 +284,7 @@ impl From<&TopoDS_Shape> for Shape {
 
 macro_rules! shape_builder {
     ($type_name: ty) => {
-        impl PinCommand for $type_name {
+        impl Command for $type_name {
             fn is_done(&self) -> bool {
                 self.IsDone()
             }
@@ -294,7 +294,7 @@ macro_rules! shape_builder {
             }
         }
 
-        impl PinBuilder<TopoDS_Shape> for $type_name {
+        impl Builder<TopoDS_Shape> for $type_name {
             unsafe fn value(self: Pin<&mut Self>) -> &TopoDS_Shape {
                 self.Shape()
             }

@@ -1,4 +1,4 @@
-use crate::command::{PinBuilder, PinCommand};
+use crate::command::{Builder, Command};
 use crate::{Error, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
@@ -17,9 +17,7 @@ impl Edge {
         let mut edge_1 = BRepBuilderAPI_MakeEdge_HandleGeomCurve(
             &new_HandleGeomCurve_from_HandleGeom_TrimmedCurve(&GC_MakeSegment_Value(&segment)),
         );
-        Ok(Edge(TopoDS_Edge_to_owned(PinBuilder::try_build(
-            &mut edge_1,
-        )?)))
+        Ok(Edge(TopoDS_Edge_to_owned(Builder::try_build(&mut edge_1)?)))
     }
 
     pub fn new_arc(a: &Point, b: &Point, c: &Point) -> Result<Self, Error> {
@@ -27,13 +25,11 @@ impl Edge {
         let mut edge_1 = BRepBuilderAPI_MakeEdge_HandleGeomCurve(
             &new_HandleGeomCurve_from_HandleGeom_TrimmedCurve(&GC_MakeArcOfCircle_Value(&segment)),
         );
-        Ok(Edge(TopoDS_Edge_to_owned(PinBuilder::try_build(
-            &mut edge_1,
-        )?)))
+        Ok(Edge(TopoDS_Edge_to_owned(Builder::try_build(&mut edge_1)?)))
     }
 }
 
-impl PinCommand for BRepBuilderAPI_MakeEdge {
+impl Command for BRepBuilderAPI_MakeEdge {
     fn is_done(&self) -> bool {
         self.IsDone()
     }
@@ -43,7 +39,7 @@ impl PinCommand for BRepBuilderAPI_MakeEdge {
     }
 }
 
-impl PinBuilder<TopoDS_Edge> for BRepBuilderAPI_MakeEdge {
+impl Builder<TopoDS_Edge> for BRepBuilderAPI_MakeEdge {
     unsafe fn value(self: Pin<&mut Self>) -> &TopoDS_Edge {
         self.Edge()
     }
