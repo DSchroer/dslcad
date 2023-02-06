@@ -1,8 +1,8 @@
 # Syntax Reference
 
-The following is a cheat sheet style reference for all operators in DSLCAD. 
+The following is a cheat sheet style reference for all operators in DSLCAD.
 Please refer to the [examples](https://github.com/DSchroer/dslcad/tree/master/examples) folder for even more reference on how
-to build parts. 
+to build parts.
 
 ## Syntax
 - `var name = value;` create a variable called name that stores value
@@ -51,6 +51,9 @@ to build parts.
 - `arc(start=point, center=point, end=point)` create an arcing line between three points
 - `union(left=edge, right=edge)` combine two edges
 - `face(parts=list)` make a closed face from a list of points, lines and arcs
+- `translate(shape=edge, x=[number], y=[number])` move an edge
+- `rotate(shape=edge, angle=[number])` rotate an edge
+- `scale(shape=edge, scale=number)` scale an edge
 
 ## 3D
 - `extrude(shape=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape

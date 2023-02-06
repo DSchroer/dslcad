@@ -1,6 +1,6 @@
 use super::from_cascade;
 use crate::runtime::{RuntimeError, Type, Value};
-use opencascade::{Axis, Edge, Point, Shape, Wire};
+use opencascade::{Axis, Edge, Point, Shape, Wire, WireFactory};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -13,9 +13,9 @@ pub fn point(x: Option<f64>, y: Option<f64>) -> Result<Value, RuntimeError> {
 }
 
 pub fn line(start: Rc<RefCell<Point>>, end: Rc<RefCell<Point>>) -> Result<Value, RuntimeError> {
-    let mut edge = Wire::new();
-    edge.add_edge(&mut Edge::new_line(&start.borrow(), &end.borrow()))?;
-    Ok(Value::Line(Rc::new(RefCell::new(edge))))
+    let mut edge = WireFactory::new();
+    edge.add_edge(&Edge::new_line(&start.borrow(), &end.borrow())?);
+    Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
 pub fn arc(
@@ -23,33 +23,33 @@ pub fn arc(
     center: Rc<RefCell<Point>>,
     end: Rc<RefCell<Point>>,
 ) -> Result<Value, RuntimeError> {
-    let mut edge = Wire::new();
-    edge.add_edge(&mut Edge::new_arc(
+    let mut edge = WireFactory::new();
+    edge.add_edge(&Edge::new_arc(
         &start.borrow(),
         &center.borrow(),
         &end.borrow(),
-    ))?;
-    Ok(Value::Line(Rc::new(RefCell::new(edge))))
+    )?);
+    Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
 pub fn square(x: Option<f64>, y: Option<f64>) -> Result<Value, RuntimeError> {
-    let mut edge = Wire::new();
+    let mut edge = WireFactory::new();
 
     let a = Point::default();
     let b = Point::new(0.0, y.unwrap_or(1.0), 0.0);
     let c = Point::new(x.unwrap_or(1.0), y.unwrap_or(1.0), 0.0);
     let d = Point::new(x.unwrap_or(1.0), 0.0, 0.0);
 
-    edge.add_edge(&mut Edge::new_line(&a, &b))?;
-    edge.add_edge(&mut Edge::new_line(&b, &c))?;
-    edge.add_edge(&mut Edge::new_line(&c, &d))?;
-    edge.add_edge(&mut Edge::new_line(&d, &a))?;
+    edge.add_edge(&Edge::new_line(&a, &b)?);
+    edge.add_edge(&Edge::new_line(&b, &c)?);
+    edge.add_edge(&Edge::new_line(&c, &d)?);
+    edge.add_edge(&Edge::new_line(&d, &a)?);
 
-    Ok(Value::Line(Rc::new(RefCell::new(edge))))
+    Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
 pub fn circle(radius: Option<f64>) -> Result<Value, RuntimeError> {
-    let mut edge = Wire::new();
+    let mut edge = WireFactory::new();
 
     let r = radius.unwrap_or(0.5);
 
@@ -58,10 +58,10 @@ pub fn circle(radius: Option<f64>) -> Result<Value, RuntimeError> {
     let c = Point::new_2d(r * 2.0, r);
     let d = Point::new_2d(r, 0.0);
 
-    edge.add_edge(&mut Edge::new_arc(&a, &b, &c))?;
-    edge.add_edge(&mut Edge::new_arc(&c, &d, &a))?;
+    edge.add_edge(&Edge::new_arc(&a, &b, &c)?);
+    edge.add_edge(&Edge::new_arc(&c, &d, &a)?);
 
-    Ok(Value::Line(Rc::new(RefCell::new(edge))))
+    Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
 pub fn extrude(
@@ -107,13 +107,13 @@ pub fn union_edge(
     left: Rc<RefCell<Wire>>,
     right: Rc<RefCell<Wire>>,
 ) -> Result<Value, RuntimeError> {
-    let mut left = left.borrow_mut();
-    let mut right = right.borrow_mut();
+    let left = left.borrow();
+    let right = right.borrow();
 
-    let mut edge = Wire::new();
-    edge.join(&mut left)?;
-    edge.join(&mut right)?;
-    Ok(Value::Line(Rc::new(RefCell::new(edge))))
+    let mut edge = WireFactory::new();
+    edge.add_wire(&left);
+    edge.add_wire(&right);
+    Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
 pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
@@ -129,7 +129,7 @@ pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
         return Ok(parts[0].clone());
     }
 
-    let mut edge = Wire::new();
+    let mut edge = WireFactory::new();
     for i in 0..parts_len {
         let last = if i == 0 { parts_len - 1 } else { i - 1 };
         let last_end = end_point(&mut parts[last])?;
@@ -137,18 +137,18 @@ pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
         let point = &parts[i];
 
         if last_end != current_start {
-            edge.add_edge(&mut Edge::new_line(
+            edge.add_edge(&Edge::new_line(
                 &last_end.borrow(),
                 &current_start.borrow(),
-            ))?;
+            )?);
         }
 
         if point.get_type() == Type::Edge {
-            edge.join(&mut point.to_line().unwrap().borrow_mut())?;
+            edge.add_wire(&point.to_line().unwrap().borrow_mut());
         }
     }
 
-    Ok(Value::Line(Rc::new(RefCell::new(edge))))
+    Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
 fn start_point(value: &mut Value) -> Result<Rc<RefCell<Point>>, RuntimeError> {
@@ -169,4 +169,32 @@ fn end_point(value: &mut Value) -> Result<Rc<RefCell<Point>>, RuntimeError> {
         ))),
         other => Err(RuntimeError::UnexpectedType(other)),
     }
+}
+
+pub fn translate(
+    shape: Rc<RefCell<Wire>>,
+    x: Option<f64>,
+    y: Option<f64>,
+) -> Result<Value, RuntimeError> {
+    let mut shape = shape.borrow_mut();
+    Ok(Value::Line(Rc::new(RefCell::new(from_cascade!(
+        Wire::translate(
+            &mut shape,
+            &Point::new_2d(x.unwrap_or(0.0), y.unwrap_or(0.0)),
+        )
+    )?))))
+}
+
+pub fn rotate(shape: Rc<RefCell<Wire>>, angle: Option<f64>) -> Result<Value, RuntimeError> {
+    let mut shape = shape.borrow_mut();
+    let shape = from_cascade!(Wire::rotate(&mut shape, Axis::Z, angle.unwrap_or(0.0)))?;
+
+    Ok(Value::Line(Rc::new(RefCell::new(shape))))
+}
+
+pub fn scale(shape: Rc<RefCell<Wire>>, size: f64) -> Result<Value, RuntimeError> {
+    let mut shape = shape.borrow_mut();
+    Ok(Value::Line(Rc::new(RefCell::new(from_cascade!(
+        Wire::scale(&mut shape, size,)
+    )?))))
 }

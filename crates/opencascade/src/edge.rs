@@ -1,45 +1,50 @@
-use crate::command::{Builder, Command};
-use crate::Point;
+use crate::command::{PinBuilder, PinCommand};
+use crate::{Error, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
     new_HandleGeomCurve_from_HandleGeom_TrimmedCurve, BRepBuilderAPI_MakeEdge,
     BRepBuilderAPI_MakeEdge_HandleGeomCurve, GC_MakeArcOfCircle_Value,
     GC_MakeArcOfCircle_point_point_point, GC_MakeSegment_Value, GC_MakeSegment_point_point,
-    Message_ProgressRange, TopoDS_Edge,
+    TopoDS_Edge, TopoDS_Edge_to_owned,
 };
+use std::pin::Pin;
 
-pub struct Edge(pub(crate) UniquePtr<BRepBuilderAPI_MakeEdge>);
+pub struct Edge(pub(crate) UniquePtr<TopoDS_Edge>);
 
 impl Edge {
-    pub fn new_line(a: &Point, b: &Point) -> Self {
+    pub fn new_line(a: &Point, b: &Point) -> Result<Self, Error> {
         let segment = GC_MakeSegment_point_point(&a.point, &b.point);
-        let edge_1 = BRepBuilderAPI_MakeEdge_HandleGeomCurve(
+        let mut edge_1 = BRepBuilderAPI_MakeEdge_HandleGeomCurve(
             &new_HandleGeomCurve_from_HandleGeom_TrimmedCurve(&GC_MakeSegment_Value(&segment)),
         );
-        Edge(edge_1)
+        Ok(Edge(TopoDS_Edge_to_owned(PinBuilder::try_build(
+            &mut edge_1,
+        )?)))
     }
 
-    pub fn new_arc(a: &Point, b: &Point, c: &Point) -> Self {
+    pub fn new_arc(a: &Point, b: &Point, c: &Point) -> Result<Self, Error> {
         let segment = GC_MakeArcOfCircle_point_point_point(&a.point, &b.point, &c.point);
-        let edge_1 = BRepBuilderAPI_MakeEdge_HandleGeomCurve(
+        let mut edge_1 = BRepBuilderAPI_MakeEdge_HandleGeomCurve(
             &new_HandleGeomCurve_from_HandleGeom_TrimmedCurve(&GC_MakeArcOfCircle_Value(&segment)),
         );
-        Edge(edge_1)
+        Ok(Edge(TopoDS_Edge_to_owned(PinBuilder::try_build(
+            &mut edge_1,
+        )?)))
     }
 }
 
-impl Command for Edge {
+impl PinCommand for BRepBuilderAPI_MakeEdge {
     fn is_done(&self) -> bool {
-        self.0.IsDone()
+        self.IsDone()
     }
 
-    fn build(&mut self, progress: &Message_ProgressRange) {
-        self.0.pin_mut().Build(progress)
+    fn build(self: Pin<&mut Self>, progress: &opencascade_sys::ffi::Message_ProgressRange) {
+        self.Build(progress)
     }
 }
 
-impl Builder<TopoDS_Edge> for Edge {
-    unsafe fn value(&mut self) -> &TopoDS_Edge {
-        self.0.pin_mut().Edge()
+impl PinBuilder<TopoDS_Edge> for BRepBuilderAPI_MakeEdge {
+    unsafe fn value(self: Pin<&mut Self>) -> &TopoDS_Edge {
+        self.Edge()
     }
 }

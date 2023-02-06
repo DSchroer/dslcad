@@ -1,4 +1,4 @@
-use crate::command::{Builder, PinBuilder, PinCommand};
+use crate::command::{PinBuilder, PinCommand};
 use crate::explorer::Explorer;
 use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
@@ -60,7 +60,7 @@ impl Shape {
     }
 
     pub fn extrude(wire: &mut Wire, x: f64, y: f64, z: f64) -> Result<Self, Error> {
-        let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.try_build()?, false);
+        let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.wire(), false);
         let prism_vec = new_vec(x, y, z);
 
         let mut body = BRepPrimAPI_MakePrism_ctor(
@@ -73,7 +73,7 @@ impl Shape {
     }
 
     pub fn extrude_rotate(wire: &mut Wire, axis: Axis, degrees: f64) -> Result<Self, Error> {
-        let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.try_build()?, false);
+        let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.wire(), false);
 
         let radians = degrees * (std::f64::consts::PI / 180.);
         let gp_axis = match axis {

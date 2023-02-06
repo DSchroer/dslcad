@@ -206,6 +206,9 @@ impl Library {
                 Category::TwoD,
                 "make a closed face from a list of points, lines and arcs"
             ),
+            bind!(translate, faces::translate[shape=edge, x=option_number, y=option_number], Category::TwoD, "move an edge"),
+            bind!(rotate, faces::rotate[shape=edge, angle=option_number], Category::TwoD, "rotate an edge"),
+            bind!(scale, faces::scale[shape=edge, scale=number], Category::TwoD, "scale an edge"),
             // 3D
             bind!(extrude, faces::extrude[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),
