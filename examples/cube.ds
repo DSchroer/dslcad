@@ -1,1 +1,5 @@
-cube();
+square(x=10, y=10)
+->shape translate(x=0.5, y=0.5)
+->left union(right=square())
+//->shape extrude(z=1)
+;

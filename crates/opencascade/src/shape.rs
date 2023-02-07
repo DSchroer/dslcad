@@ -4,17 +4,17 @@ use crate::shapes::DsShape;
 use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
-    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_vec, BRepAlgoAPI_Common, BRepAlgoAPI_Common_ctor,
-    BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor,
-    BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform,
-    BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet,
-    BRepFilletAPI_MakeFillet_ctor, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox,
-    BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor,
-    BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol,
-    BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor,
-    BRep_Tool_Curve, BRep_Tool_Pnt, BRep_Tool_Triangulation, HandleGeomCurve_Value,
-    Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor,
-    TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_cast_to_face,
+    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_vec, BRepAlgoAPI_Common, BRepAlgoAPI_Cut,
+    BRepAlgoAPI_Fuse, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
+    BRepBuilderAPI_Transform, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor,
+    BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepMesh_IncrementalMesh_ctor,
+    BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder,
+    BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
+    BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
+    BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt, BRep_Tool_Triangulation,
+    HandleGeomCurve_Value, Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum,
+    TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
+    TopoDS_cast_to_face,
 };
 use std::pin::Pin;
 
@@ -51,18 +51,6 @@ impl Shape {
         let axis = gp_Ax2_ctor(&origin.point, gp_DZ());
         let mut cylinder = BRepPrimAPI_MakeCylinder_ctor(&axis, radius, height);
         Ok(Builder::try_build(&mut cylinder)?.into())
-    }
-
-    pub fn fuse(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
-        Ok(Builder::try_build(&mut BRepAlgoAPI_Fuse_ctor(&left.shape, &right.shape))?.into())
-    }
-
-    pub fn cut(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
-        Ok(Builder::try_build(&mut BRepAlgoAPI_Cut_ctor(&left.shape, &right.shape))?.into())
-    }
-
-    pub fn intersect(left: &mut Shape, right: &mut Shape) -> Result<Self, Error> {
-        Ok(Builder::try_build(&mut BRepAlgoAPI_Common_ctor(&left.shape, &right.shape))?.into())
     }
 
     pub fn extrude(wire: &mut Wire, x: f64, y: f64, z: f64) -> Result<Self, Error> {

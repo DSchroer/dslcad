@@ -1,7 +1,8 @@
 use crate::command::Builder;
 use crate::{Axis, Error, Point};
 use opencascade_sys::ffi::{
-    gp_OX, gp_OY, gp_OZ, new_transform, BRepBuilderAPI_Transform_ctor, TopoDS_Shape,
+    gp_OX, gp_OY, gp_OZ, new_transform, BRepAlgoAPI_Common_ctor, BRepAlgoAPI_Cut_ctor,
+    BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_Transform_ctor, TopoDS_Shape,
 };
 
 pub trait DsShape: for<'a> From<&'a TopoDS_Shape> {
@@ -64,5 +65,17 @@ pub trait DsShape: for<'a> From<&'a TopoDS_Shape> {
             true,
         ))?
         .into())
+    }
+
+    fn fuse(&self, right: &Self) -> Result<Self, Error> {
+        Ok(Builder::try_build(&mut BRepAlgoAPI_Fuse_ctor(self.shape(), right.shape()))?.into())
+    }
+
+    fn cut(&self, right: &Self) -> Result<Self, Error> {
+        Ok(Builder::try_build(&mut BRepAlgoAPI_Cut_ctor(self.shape(), right.shape()))?.into())
+    }
+
+    fn intersect(&self, right: &Self) -> Result<Self, Error> {
+        Ok(Builder::try_build(&mut BRepAlgoAPI_Common_ctor(self.shape(), right.shape()))?.into())
     }
 }

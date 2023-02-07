@@ -29,11 +29,11 @@ pub fn union_shape(
     left: Rc<RefCell<Shape>>,
     right: Rc<RefCell<Shape>>,
 ) -> Result<Value, RuntimeError> {
-    let mut left = left.borrow_mut();
-    let mut right = right.borrow_mut();
+    let left = left.borrow();
+    let right = right.borrow();
 
     Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::fuse(&mut left, &mut right,)
+        Shape::fuse(&left, &right)
     )?))))
 }
 
@@ -41,11 +41,11 @@ pub fn difference(
     left: Rc<RefCell<Shape>>,
     right: Rc<RefCell<Shape>>,
 ) -> Result<Value, RuntimeError> {
-    let mut left = left.borrow_mut();
-    let mut right = right.borrow_mut();
+    let left = left.borrow();
+    let right = right.borrow();
 
     Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::cut(&mut left, &mut right,)
+        Shape::cut(&left, &right,)
     )?))))
 }
 
@@ -53,11 +53,11 @@ pub fn intersect(
     left: Rc<RefCell<Shape>>,
     right: Rc<RefCell<Shape>>,
 ) -> Result<Value, RuntimeError> {
-    let mut left = left.borrow_mut();
-    let mut right = right.borrow_mut();
+    let left = left.borrow();
+    let right = right.borrow();
 
     Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::intersect(&mut left, &mut right,)
+        Shape::intersect(&left, &right,)
     )?))))
 }
 
