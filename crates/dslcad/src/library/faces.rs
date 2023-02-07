@@ -32,13 +32,16 @@ pub fn arc(
     Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
-pub fn square(x: Option<f64>, y: Option<f64>) -> Result<Value, RuntimeError> {
+pub fn square(x: Option<f64>, y: Option<f64>, center: bool) -> Result<Value, RuntimeError> {
     let mut edge = WireFactory::new();
 
-    let a = Point::default();
-    let b = Point::new(0.0, y.unwrap_or(1.0), 0.0);
-    let c = Point::new(x.unwrap_or(1.0), y.unwrap_or(1.0), 0.0);
-    let d = Point::new(x.unwrap_or(1.0), 0.0, 0.0);
+    let x0 = if center { -x.unwrap_or(1.0) / 2.0 } else { 0.0 };
+    let y0 = if center { -y.unwrap_or(1.0) / 2.0 } else { 0.0 };
+
+    let a = Point::new_2d(x0, y0);
+    let b = Point::new_2d(x0, y0 + y.unwrap_or(1.0));
+    let c = Point::new_2d(x0 + x.unwrap_or(1.0), y0 + y.unwrap_or(1.0));
+    let d = Point::new_2d(x0 + x.unwrap_or(1.0), y0);
 
     edge.add_edge(&Edge::new_line(&a, &b)?);
     edge.add_edge(&Edge::new_line(&b, &c)?);
@@ -48,15 +51,18 @@ pub fn square(x: Option<f64>, y: Option<f64>) -> Result<Value, RuntimeError> {
     Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
-pub fn circle(radius: Option<f64>) -> Result<Value, RuntimeError> {
+pub fn circle(radius: Option<f64>, center: bool) -> Result<Value, RuntimeError> {
     let mut edge = WireFactory::new();
 
     let r = radius.unwrap_or(0.5);
 
-    let a = Point::new_2d(0.0, r);
-    let b = Point::new_2d(r, r * 2.0);
-    let c = Point::new_2d(r * 2.0, r);
-    let d = Point::new_2d(r, 0.0);
+    let x0 = if center { -r } else { 0.0 };
+    let y0 = if center { -r } else { 0.0 };
+
+    let a = Point::new_2d(x0, y0 + r);
+    let b = Point::new_2d(x0 + r, y0 + (r * 2.0));
+    let c = Point::new_2d(x0 + (r * 2.0), y0 + r);
+    let d = Point::new_2d(x0 + r, y0);
 
     edge.add_edge(&Edge::new_arc(&a, &b, &c)?);
     edge.add_edge(&Edge::new_arc(&c, &d, &a)?);

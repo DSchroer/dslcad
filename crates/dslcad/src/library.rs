@@ -60,6 +60,7 @@ macro_rules! arguments {
     (number) => {Access::Required(Type::Number)};
     (option_number) => {Access::Optional(Type::Number)};
     (bool) => {Access::Required(Type::Bool)};
+    (option_bool) => {Access::Optional(Type::Bool)};
     (point) => {Access::Required(Type::Point)};
     (edge) => {Access::Required(Type::Edge)};
     (shape) => {Access::Required(Type::Shape)};
@@ -91,6 +92,14 @@ macro_rules! invoke {
         value
             .to_bool()
             .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
+    }};
+    ($map: ident, $name: ident=option_bool) => {{
+        match $map.get(stringify!($name)) {
+            Some(value) => value
+                .to_bool()
+                .unwrap_or_else(||false),
+            None => false,
+        }
     }};
     ($map: ident, $name: ident=point) => {{
         let value = $map
@@ -191,10 +200,10 @@ impl Library {
             // 2D
             bind!(point, faces::point[x=option_number, y=option_number], Category::TwoD, "create a new 2D point"),
             bind!(line, faces::line[start=point, end=point], Category::TwoD, "create a line between two points"),
-            bind!(square, faces::square[x=option_number, y=option_number], Category::TwoD, "create a square"),
+            bind!(square, faces::square[x=option_number, y=option_number, center=option_bool], Category::TwoD, "create a square"),
             bind!(
                 circle,
-                faces::circle[radius = option_number],
+                faces::circle[radius = option_number, center=option_bool],
                 Category::TwoD,
                 "create a circle"
             ),
