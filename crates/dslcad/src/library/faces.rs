@@ -1,6 +1,6 @@
 use super::from_cascade;
 use crate::runtime::{RuntimeError, Type, Value};
-use opencascade::{Axis, Edge, Point, Shape, Wire, WireFactory};
+use opencascade::{Axis, DsShape, Edge, Point, Shape, Wire, WireFactory};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -182,25 +182,22 @@ pub fn translate(
     x: Option<f64>,
     y: Option<f64>,
 ) -> Result<Value, RuntimeError> {
-    let mut shape = shape.borrow_mut();
+    let shape = shape.borrow();
     Ok(Value::Line(Rc::new(RefCell::new(from_cascade!(
-        Wire::translate(
-            &mut shape,
-            &Point::new_2d(x.unwrap_or(0.0), y.unwrap_or(0.0)),
-        )
+        Wire::translate(&shape, &Point::new_2d(x.unwrap_or(0.0), y.unwrap_or(0.0)),)
     )?))))
 }
 
 pub fn rotate(shape: Rc<RefCell<Wire>>, angle: Option<f64>) -> Result<Value, RuntimeError> {
-    let mut shape = shape.borrow_mut();
-    let shape = from_cascade!(Wire::rotate(&mut shape, Axis::Z, angle.unwrap_or(0.0)))?;
+    let shape = shape.borrow();
+    let shape = from_cascade!(Wire::rotate(&shape, Axis::Z, angle.unwrap_or(0.0)))?;
 
     Ok(Value::Line(Rc::new(RefCell::new(shape))))
 }
 
 pub fn scale(shape: Rc<RefCell<Wire>>, size: f64) -> Result<Value, RuntimeError> {
-    let mut shape = shape.borrow_mut();
+    let shape = shape.borrow();
     Ok(Value::Line(Rc::new(RefCell::new(from_cascade!(
-        Wire::scale(&mut shape, size,)
+        Wire::scale(&shape, size,)
     )?))))
 }

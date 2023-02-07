@@ -4,7 +4,7 @@ use crate::runtime::{RuntimeError, Value};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use opencascade::{Axis, Point, Shape};
+use opencascade::{Axis, DsShape, Point, Shape};
 
 pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
     Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
@@ -14,8 +14,8 @@ pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, Run
 
 pub fn sphere(radius: Option<f64>) -> Result<Value, RuntimeError> {
     let r = radius.unwrap_or(0.5);
-    let mut base = from_cascade!(Shape::sphere(r))?;
-    let moved = from_cascade!(Shape::translate(&mut base, &Point::new(r, r, r)))?;
+    let base = from_cascade!(Shape::sphere(r))?;
+    let moved = from_cascade!(base.translate(&Point::new(r, r, r)))?;
     Ok(Value::Shape(Rc::new(RefCell::new(moved))))
 }
 
@@ -81,10 +81,10 @@ pub fn translate(
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
-    let mut shape = shape.borrow_mut();
+    let shape = shape.borrow();
     Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
         Shape::translate(
-            &mut shape,
+            &shape,
             &Point::new(x.unwrap_or(0.0), y.unwrap_or(0.0), z.unwrap_or(0.0)),
         )
     )?))))
@@ -96,17 +96,17 @@ pub fn rotate(
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
-    let mut shape = shape.borrow_mut();
-    let mut shape = from_cascade!(Shape::rotate(&mut shape, Axis::X, x.unwrap_or(0.0)))?;
-    let mut shape = from_cascade!(Shape::rotate(&mut shape, Axis::Y, y.unwrap_or(0.0)))?;
-    let shape = from_cascade!(Shape::rotate(&mut shape, Axis::Z, z.unwrap_or(0.0)))?;
+    let shape = shape.borrow();
+    let shape = from_cascade!(Shape::rotate(&shape, Axis::X, x.unwrap_or(0.0)))?;
+    let shape = from_cascade!(Shape::rotate(&shape, Axis::Y, y.unwrap_or(0.0)))?;
+    let shape = from_cascade!(Shape::rotate(&shape, Axis::Z, z.unwrap_or(0.0)))?;
 
     Ok(Value::Shape(Rc::new(RefCell::new(shape))))
 }
 
 pub fn scale(shape: Rc<RefCell<Shape>>, size: f64) -> Result<Value, RuntimeError> {
-    let mut shape = shape.borrow_mut();
+    let shape = shape.borrow();
     Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::scale(&mut shape, size,)
+        Shape::scale(&shape, size,)
     )?))))
 }

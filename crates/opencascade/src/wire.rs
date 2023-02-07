@@ -1,12 +1,11 @@
 use crate::command::{Builder, Command};
 use crate::edge::Edge;
-use crate::{Axis, Error, Point};
+use crate::{DsShape, Error, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
-    gp_OX, gp_OY, gp_OZ, new_transform, BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor,
-    BRepBuilderAPI_Transform_ctor, BRep_Tool_Curve, HandleGeomCurve_Value, TopAbs_ShapeEnum,
-    TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Wire,
-    TopoDS_cast_to_edge, TopoDS_cast_to_wire,
+    BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor, BRep_Tool_Curve, HandleGeomCurve_Value,
+    TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
+    TopoDS_Wire, TopoDS_cast_to_edge, TopoDS_cast_to_wire,
 };
 use std::pin::Pin;
 
@@ -43,6 +42,12 @@ impl Default for WireFactory {
 }
 
 pub struct Wire(pub(crate) UniquePtr<TopoDS_Shape>);
+
+impl DsShape for Wire {
+    fn shape(&self) -> &TopoDS_Shape {
+        &self.0
+    }
+}
 
 impl Wire {
     pub(crate) fn wire(&self) -> &TopoDS_Wire {
@@ -134,61 +139,6 @@ impl Wire {
         let end = HandleGeomCurve_Value(&curve, last).into();
 
         (start, end)
-    }
-
-    pub fn translate(left: &mut Wire, point: &Point) -> Result<Self, Error> {
-        let mut transform = new_transform();
-        transform
-            .pin_mut()
-            .SetTranslation(&Point::new(0., 0., 0.).point, &point.point);
-
-        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
-            &left.0, &transform, true,
-        ))?
-        .into())
-    }
-
-    pub fn rotate(left: &mut Wire, axis: Axis, degrees: f64) -> Result<Self, Error> {
-        let mut transform = new_transform();
-        let gp_axis = match axis {
-            Axis::X => gp_OX(),
-            Axis::Y => gp_OY(),
-            Axis::Z => gp_OZ(),
-        };
-        let radians = degrees * (std::f64::consts::PI / 180.);
-        transform.pin_mut().SetRotation(gp_axis, radians);
-
-        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
-            &left.0, &transform, true,
-        ))?
-        .into())
-    }
-
-    pub fn scale(left: &mut Wire, scale: f64) -> Result<Self, Error> {
-        let mut transform = new_transform();
-        transform
-            .pin_mut()
-            .SetScale(&Point::new(0., 0., 0.).point, scale);
-
-        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
-            &left.0, &transform, true,
-        ))?
-        .into())
-    }
-
-    pub fn mirror(left: &mut Wire, axis: Axis) -> Result<Self, Error> {
-        let mut transform = new_transform();
-        let gp_axis = match axis {
-            Axis::X => gp_OX(),
-            Axis::Y => gp_OY(),
-            Axis::Z => gp_OZ(),
-        };
-        transform.pin_mut().set_mirror_axis(gp_axis);
-
-        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
-            &left.0, &transform, true,
-        ))?
-        .into())
     }
 }
 

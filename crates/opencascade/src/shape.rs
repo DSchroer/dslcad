@@ -1,20 +1,20 @@
 use crate::command::{Builder, Command};
 use crate::explorer::Explorer;
+use crate::shapes::DsShape;
 use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
-    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_transform, new_vec, BRepAlgoAPI_Common,
-    BRepAlgoAPI_Common_ctor, BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse,
-    BRepAlgoAPI_Fuse_ctor, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
-    BRepBuilderAPI_Transform, BRepBuilderAPI_Transform_ctor, BRepFilletAPI_MakeChamfer,
-    BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor,
-    BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
-    BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
-    BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
-    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt,
-    BRep_Tool_Triangulation, HandleGeomCurve_Value, Poly_Triangulation_Node, TopAbs_Orientation,
-    TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape,
-    TopoDS_Shape_to_owned, TopoDS_cast_to_face,
+    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_vec, BRepAlgoAPI_Common, BRepAlgoAPI_Common_ctor,
+    BRepAlgoAPI_Cut, BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse, BRepAlgoAPI_Fuse_ctor,
+    BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform,
+    BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet,
+    BRepFilletAPI_MakeFillet_ctor, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox,
+    BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor,
+    BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol,
+    BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor,
+    BRep_Tool_Curve, BRep_Tool_Pnt, BRep_Tool_Triangulation, HandleGeomCurve_Value,
+    Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor,
+    TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_cast_to_face,
 };
 use std::pin::Pin;
 
@@ -26,6 +26,12 @@ pub enum Axis {
     X,
     Y,
     Z,
+}
+
+impl DsShape for Shape {
+    fn shape(&self) -> &TopoDS_Shape {
+        &self.shape
+    }
 }
 
 impl Shape {
@@ -89,69 +95,6 @@ impl Shape {
             true,
         );
         Ok(Builder::try_build(&mut body)?.into())
-    }
-
-    pub fn translate(left: &mut Shape, point: &Point) -> Result<Self, Error> {
-        let mut transform = new_transform();
-        transform
-            .pin_mut()
-            .SetTranslation(&Point::new(0., 0., 0.).point, &point.point);
-
-        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
-            &left.shape,
-            &transform,
-            true,
-        ))?
-        .into())
-    }
-
-    pub fn rotate(left: &mut Shape, axis: Axis, degrees: f64) -> Result<Self, Error> {
-        let mut transform = new_transform();
-        let gp_axis = match axis {
-            Axis::X => gp_OX(),
-            Axis::Y => gp_OY(),
-            Axis::Z => gp_OZ(),
-        };
-        let radians = degrees * (std::f64::consts::PI / 180.);
-        transform.pin_mut().SetRotation(gp_axis, radians);
-
-        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
-            &left.shape,
-            &transform,
-            true,
-        ))?
-        .into())
-    }
-
-    pub fn scale(left: &mut Shape, scale: f64) -> Result<Self, Error> {
-        let mut transform = new_transform();
-        transform
-            .pin_mut()
-            .SetScale(&Point::new(0., 0., 0.).point, scale);
-
-        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
-            &left.shape,
-            &transform,
-            true,
-        ))?
-        .into())
-    }
-
-    pub fn mirror(left: &mut Shape, axis: Axis) -> Result<Self, Error> {
-        let mut transform = new_transform();
-        let gp_axis = match axis {
-            Axis::X => gp_OX(),
-            Axis::Y => gp_OY(),
-            Axis::Z => gp_OZ(),
-        };
-        transform.pin_mut().set_mirror_axis(gp_axis);
-
-        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
-            &left.shape,
-            &transform,
-            true,
-        ))?
-        .into())
     }
 
     pub fn fillet(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
@@ -359,29 +302,29 @@ mod tests {
 
     #[test]
     fn it_can_write_translated_stl() {
-        let mut b = Shape::cube(10., 10., 10.).unwrap();
-        let mut shape = Shape::translate(&mut b, &Point::new(10., 0., 0.)).unwrap();
+        let b = Shape::cube(10., 10., 10.).unwrap();
+        let mut shape = Shape::translate(&b, &Point::new(10., 0., 0.)).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_rotated_stl() {
-        let mut b = Shape::cube(10., 10., 10.).unwrap();
-        let mut shape = Shape::rotate(&mut b, Axis::X, 45.).unwrap();
+        let b = Shape::cube(10., 10., 10.).unwrap();
+        let mut shape = Shape::rotate(&b, Axis::X, 45.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_scaled_stl() {
-        let mut b = Shape::cube(1., 1., 1.).unwrap();
-        let mut shape = Shape::scale(&mut b, 10.).unwrap();
+        let b = Shape::cube(1., 1., 1.).unwrap();
+        let mut shape = Shape::scale(&b, 10.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_mirrored_stl() {
-        let mut b = Shape::cube(1., 1., 1.).unwrap();
-        let mut shape = Shape::mirror(&mut b, Axis::X).unwrap();
+        let b = Shape::cube(1., 1., 1.).unwrap();
+        let mut shape = Shape::mirror(&b, Axis::X).unwrap();
         shape.mesh().unwrap();
     }
 
