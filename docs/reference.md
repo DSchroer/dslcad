@@ -4,6 +4,8 @@ The following is a cheat sheet style reference for all operators in DSLCAD.
 Please refer to the [examples](https://github.com/DSchroer/dslcad/tree/master/examples) folder for even more reference on how
 to build parts.
 
+# Cheat Sheet
+
 ## Syntax
 - `var name = value;` create a variable called name that stores value
 - `value;` draw the value, each script can only draw one thing
@@ -46,8 +48,8 @@ to build parts.
 ## 2D
 - `point(x=[number], y=[number])` create a new 2D point
 - `line(start=point, end=point)` create a line between two points
-- `square(x=[number], y=[number])` create a square
-- `circle(radius=[number])` create a circle
+- `square(x=[number], y=[number], center=[bool])` create a square
+- `circle(radius=[number], center=[bool])` create a circle
 - `arc(start=point, center=point, end=point)` create an arcing line between three points
 - `union(left=edge, right=edge)` combine two edges
 - `face(parts=list)` make a closed face from a list of points, lines and arcs
