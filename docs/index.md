@@ -26,6 +26,8 @@ For basic editing, run DSLCAD and use the GUI.
 
 For automated usage, list the CLI options with `dslcad --help`.
 
+To see what can be built check out the [examples](https://github.com/DSchroer/dslcad/tree/master/examples) folder.
+
 ## Hello World
 
 To create a DSLCAD program. Simply create a new `*.ds` file or use `File > New`.
