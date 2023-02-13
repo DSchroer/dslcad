@@ -2,7 +2,7 @@ use crate::editor::rendering::RenderCommand;
 use crate::editor::State;
 use bevy::app::AppExit;
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
+use bevy_egui::{egui, EguiContext, EguiPlugin};
 use dslcad::Dslcad;
 
 pub struct GuiPlugin;
@@ -14,7 +14,6 @@ impl Plugin for GuiPlugin {
             .add_system(about)
             .add_system(cheatsheet)
             .add_system(console_panel)
-            .add_system(update_ui_scale_factor)
             .add_system(keybindings);
     }
 }
@@ -151,10 +150,4 @@ fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {
                 }
             });
     });
-}
-
-fn update_ui_scale_factor(mut egui_settings: ResMut<EguiSettings>, windows: Res<Windows>) {
-    if let Some(window) = windows.get_primary() {
-        egui_settings.scale_factor = 1.0 / window.scale_factor();
-    }
 }

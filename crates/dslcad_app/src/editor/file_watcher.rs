@@ -1,7 +1,6 @@
 use crate::editor::{State, UiEvent};
 use bevy::prelude::ResMut;
 use bevy::prelude::*;
-use notify::event::{AccessKind, AccessMode};
 use notify::{Error, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -29,7 +28,7 @@ impl FileWatcher {
         let watch_status = status.clone();
         let watcher = notify::recommended_watcher(move |res: Result<Event, Error>| match res {
             Ok(e) => {
-                if let EventKind::Access(AccessKind::Close(AccessMode::Write)) = e.kind {
+                if let EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_) = e.kind {
                     watch_status.swap(true, Ordering::Relaxed);
                 }
             }

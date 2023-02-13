@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Use system UI scale factor
+- Use Create, Modify and Remove events for file watcher
+
 ## [v0.0.1] - 2023-02-10
 
 First full release!

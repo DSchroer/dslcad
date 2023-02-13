@@ -11,7 +11,7 @@ path = "utils/cheat_sheet.rs"
 
 [dependencies]
 logos = "0.12"
-thiserror = "1.0"
+thiserror = "1.0.38"
 path-absolutize = "3"
 opencascade = { path = "../opencascade" }
 indexmap = "1.9.2"
