@@ -20,6 +20,13 @@ Download the zip file for your system and extract it.
 
 To start the DSLCAD viewer simply run the program.
 
+### System Requirements
+
+The core compiler and CLI should run on just about any system.
+
+In order to use the GUI you need to meet the [bevy system requirements](https://github.com/bevyengine/bevy/blob/latest/docs/linux_dependencies.md).
+Notably you should have a vulkan enabled graphics driver.
+
 ## Usage
 
 For basic editing, run DSLCAD and use the GUI.
