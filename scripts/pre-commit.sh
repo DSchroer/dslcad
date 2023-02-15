@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -ex
 cargo +nightly fmt --check
-cargo clippy
+cargo clippy --all-targets
 cargo test
