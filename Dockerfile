@@ -18,7 +18,8 @@ RUN apt-get update; apt-get install -y \
     git \
     wget \
     libxml2-dev \
-    libssl-dev
+    libssl-dev \
+    docker
 
 # OSXCross for Mac Builds
 RUN git clone https://github.com/tpoechtrager/osxcross
