@@ -252,91 +252,91 @@ mod tests {
 
     #[test]
     fn it_can_write_box_stl() {
-        let mut shape = Shape::cube(1., 10., 1.).unwrap();
+        let shape = Shape::cube(1., 10., 1.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_sphere_stl() {
-        let mut shape = Shape::sphere(1.).unwrap();
+        let shape = Shape::sphere(1.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_mesh_box_stl() {
-        let mut shape = Shape::cube(1., 10., 1.).unwrap();
+        let shape = Shape::cube(1., 10., 1.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_fillet_box_stl() {
-        let mut b = Shape::cube(10., 10., 10.).unwrap();
-        let mut shape = Shape::fillet(&mut b, 0.5).unwrap();
+        let b = Shape::cube(10., 10., 10.).unwrap();
+        let shape = Shape::fillet(&b, 0.5).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_chamfer_box_stl() {
-        let mut b = Shape::cube(10., 10., 10.).unwrap();
-        let mut shape = Shape::chamfer(&mut b, 0.5).unwrap();
+        let b = Shape::cube(10., 10., 10.).unwrap();
+        let shape = Shape::chamfer(&b, 0.5).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_cylinder_stl() {
-        let mut shape = Shape::cylinder(10., 100.).unwrap();
+        let shape = Shape::cylinder(10., 100.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_translated_stl() {
         let b = Shape::cube(10., 10., 10.).unwrap();
-        let mut shape = Shape::translate(&b, &Point::new(10., 0., 0.)).unwrap();
+        let shape = Shape::translate(&b, &Point::new(10., 0., 0.)).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_rotated_stl() {
         let b = Shape::cube(10., 10., 10.).unwrap();
-        let mut shape = Shape::rotate(&b, Axis::X, 45.).unwrap();
+        let shape = Shape::rotate(&b, Axis::X, 45.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_scaled_stl() {
         let b = Shape::cube(1., 1., 1.).unwrap();
-        let mut shape = Shape::scale(&b, 10.).unwrap();
+        let shape = Shape::scale(&b, 10.).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_mirrored_stl() {
         let b = Shape::cube(1., 1., 1.).unwrap();
-        let mut shape = Shape::mirror(&b, Axis::X).unwrap();
+        let shape = Shape::mirror(&b, Axis::X).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_fuse_stl() {
-        let mut b = Shape::cube(15., 15., 1.).unwrap();
-        let mut c = Shape::cylinder(10., 100.).unwrap();
-        let mut shape = Shape::fuse(&mut b, &mut c).unwrap();
+        let b = Shape::cube(15., 15., 1.).unwrap();
+        let c = Shape::cylinder(10., 100.).unwrap();
+        let shape = Shape::fuse(&b, &c).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_cut_stl() {
-        let mut b = Shape::cube(15., 15., 1.).unwrap();
-        let mut c = Shape::cylinder(10., 100.).unwrap();
-        let mut shape = Shape::cut(&mut b, &mut c).unwrap();
+        let b = Shape::cube(15., 15., 1.).unwrap();
+        let c = Shape::cylinder(10., 100.).unwrap();
+        let shape = Shape::cut(&b, &c).unwrap();
         shape.mesh().unwrap();
     }
 
     #[test]
     fn it_can_write_intersect_stl() {
-        let mut b = Shape::cube(15., 15., 1.).unwrap();
-        let mut c = Shape::cylinder(10., 100.).unwrap();
-        let mut shape = Shape::intersect(&mut b, &mut c).unwrap();
+        let b = Shape::cube(15., 15., 1.).unwrap();
+        let c = Shape::cylinder(10., 100.).unwrap();
+        let shape = Shape::intersect(&b, &c).unwrap();
         shape.mesh().unwrap();
     }
 }
