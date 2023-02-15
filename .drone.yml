@@ -20,10 +20,12 @@ steps:
       - cargo clippy -- -Dwarnings
       - cargo test
 
-
   - name: build releases
     image: modelscriptci
     pull: never
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
     commands:
       - ./scripts/use-env.sh ci
       - ./scripts/release.sh

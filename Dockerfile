@@ -32,7 +32,10 @@ RUN ln -s /osxcross/target/bin/x86_64-apple-darwin20.4-ld /osxcross/target/bin/x
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
+# Cross
+RUN cargo install cross --git https://github.com/cross-rs/cross
+ENV CROSS_CONTAINER_IN_CONTAINER=true
+
 # Toolchains
 RUN rustup toolchain install nightly
-RUN rustup target add x86_64-pc-windows-gnu
 RUN rustup target add x86_64-apple-darwin
