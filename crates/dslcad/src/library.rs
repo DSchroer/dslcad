@@ -37,13 +37,6 @@ enum Access {
     Optional(Type),
 }
 
-macro_rules! from_cascade {
-    ($source: expr) => {
-        $source.map_err(|e| RuntimeError::Opencascade(e))
-    };
-}
-pub(crate) use from_cascade;
-
 macro_rules! bind {
     ($name: ident, $func: path[$($arg_name:ident=$arg_value:ident), *], $cat: expr, $desc: literal) => {{
         Signature{
@@ -221,14 +214,14 @@ impl Library {
             // 3D
             bind!(extrude, faces::extrude[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),
-            bind!(cube, shapes::cube[x=option_number, y=option_number, z=option_number], Category::ThreeD, "create a cube"),
+            bind!(cube, shapes::cube[x=option_number, y=option_number, z=option_number, center=option_bool], Category::ThreeD, "create a cube"),
             bind!(
                 sphere,
-                shapes::sphere[radius = option_number],
+                shapes::sphere[radius = option_number, center=option_bool],
                 Category::ThreeD,
                 "create a sphere"
             ),
-            bind!(cylinder, shapes::cylinder[radius=option_number, height=option_number], Category::ThreeD, "create a cylinder"),
+            bind!(cylinder, shapes::cylinder[radius=option_number, height=option_number, center=option_bool], Category::ThreeD, "create a cylinder"),
             bind!(union, shapes::union_shape[left=shape, right=shape], Category::ThreeD, "combine two shapes"),
             bind!(chamfer, shapes::chamfer[shape=shape, radius=number], Category::ThreeD, "chamfer edges"),
             bind!(fillet, shapes::fillet[shape=shape, radius=number], Category::ThreeD, "fillet edges"),

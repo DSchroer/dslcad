@@ -24,6 +24,12 @@ pub enum Value {
     Shape(Rc<RefCell<Shape>>),
 }
 
+impl From<Shape> for Value {
+    fn from(value: Shape) -> Self {
+        Value::Shape(Rc::new(RefCell::new(value)))
+    }
+}
+
 impl Debug for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {

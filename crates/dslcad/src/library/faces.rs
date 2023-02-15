@@ -1,4 +1,3 @@
-use super::from_cascade;
 use crate::runtime::{RuntimeError, Type, Value};
 use opencascade::{Axis, DsShape, Edge, Point, Shape, Wire, WireFactory};
 use std::cell::RefCell;
@@ -77,13 +76,11 @@ pub fn extrude(
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
     let mut shape = shape.borrow_mut();
-    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::extrude(
-            &mut shape,
-            x.unwrap_or(0.0),
-            y.unwrap_or(0.0),
-            z.unwrap_or(0.0),
-        )
+    Ok(Value::Shape(Rc::new(RefCell::new(Shape::extrude(
+        &mut shape,
+        x.unwrap_or(0.0),
+        y.unwrap_or(0.0),
+        z.unwrap_or(0.0),
     )?))))
 }
 
@@ -104,8 +101,8 @@ pub fn revolve(
     };
 
     let mut shape = shape.borrow_mut();
-    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::extrude_rotate(&mut shape, axis, angle,)
+    Ok(Value::Shape(Rc::new(RefCell::new(Shape::extrude_rotate(
+        &mut shape, axis, angle,
     )?))))
 }
 
@@ -183,21 +180,22 @@ pub fn translate(
     y: Option<f64>,
 ) -> Result<Value, RuntimeError> {
     let shape = shape.borrow();
-    Ok(Value::Line(Rc::new(RefCell::new(from_cascade!(
-        Wire::translate(&shape, &Point::new_2d(x.unwrap_or(0.0), y.unwrap_or(0.0)),)
+    Ok(Value::Line(Rc::new(RefCell::new(Wire::translate(
+        &shape,
+        &Point::new_2d(x.unwrap_or(0.0), y.unwrap_or(0.0)),
     )?))))
 }
 
 pub fn rotate(shape: Rc<RefCell<Wire>>, angle: Option<f64>) -> Result<Value, RuntimeError> {
     let shape = shape.borrow();
-    let shape = from_cascade!(Wire::rotate(&shape, Axis::Z, angle.unwrap_or(0.0)))?;
+    let shape = Wire::rotate(&shape, Axis::Z, angle.unwrap_or(0.0))?;
 
     Ok(Value::Line(Rc::new(RefCell::new(shape))))
 }
 
 pub fn scale(shape: Rc<RefCell<Wire>>, size: f64) -> Result<Value, RuntimeError> {
     let shape = shape.borrow();
-    Ok(Value::Line(Rc::new(RefCell::new(from_cascade!(
-        Wire::scale(&shape, size,)
+    Ok(Value::Line(Rc::new(RefCell::new(Wire::scale(
+        &shape, size,
     )?))))
 }

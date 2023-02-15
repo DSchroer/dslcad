@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- New `center` option for 3D primitives
+
 ### Fixed
 - Use system UI scale factor
 - Use Create, Modify and Remove events for file watcher

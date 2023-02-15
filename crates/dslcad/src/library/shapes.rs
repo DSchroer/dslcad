@@ -1,4 +1,3 @@
-use super::from_cascade;
 use crate::runtime::{RuntimeError, Value};
 
 use std::cell::RefCell;
@@ -6,23 +5,55 @@ use std::rc::Rc;
 
 use opencascade::{Axis, DsShape, Point, Shape};
 
-pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
-    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::cube(x.unwrap_or(1.0), y.unwrap_or(1.0), z.unwrap_or(1.0),)
-    )?))))
+pub fn cube(
+    x: Option<f64>,
+    y: Option<f64>,
+    z: Option<f64>,
+    center: bool,
+) -> Result<Value, RuntimeError> {
+    let x = x.unwrap_or(1.0);
+    let y = y.unwrap_or(1.0);
+    let z = z.unwrap_or(1.0);
+
+    let cube = Shape::cube(x, y, z)?;
+    let aligned = if center {
+        cube.translate(&Point::new(-x / 2., -y / 2., -z / 2.))?
+    } else {
+        cube
+    };
+
+    Ok(aligned.into())
 }
 
-pub fn sphere(radius: Option<f64>) -> Result<Value, RuntimeError> {
+pub fn sphere(radius: Option<f64>, center: bool) -> Result<Value, RuntimeError> {
     let r = radius.unwrap_or(0.5);
-    let base = from_cascade!(Shape::sphere(r))?;
-    let moved = from_cascade!(base.translate(&Point::new(r, r, r)))?;
-    Ok(Value::Shape(Rc::new(RefCell::new(moved))))
+
+    let base = Shape::sphere(r)?;
+    let aligned = if center {
+        base
+    } else {
+        base.translate(&Point::new(r, r, r))?
+    };
+
+    Ok(aligned.into())
 }
 
-pub fn cylinder(radius: Option<f64>, height: Option<f64>) -> Result<Value, RuntimeError> {
-    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::cylinder(radius.unwrap_or(0.5), height.unwrap_or(1.0),)
-    )?))))
+pub fn cylinder(
+    radius: Option<f64>,
+    height: Option<f64>,
+    center: bool,
+) -> Result<Value, RuntimeError> {
+    let radius = radius.unwrap_or(0.5);
+    let height = height.unwrap_or(1.0);
+
+    let base = Shape::cylinder(radius, height)?;
+    let aligned = if center {
+        base.translate(&Point::new(-radius, -radius, -height / 2.))?
+    } else {
+        base
+    };
+
+    Ok(aligned.into())
 }
 
 pub fn union_shape(
@@ -32,9 +63,7 @@ pub fn union_shape(
     let left = left.borrow();
     let right = right.borrow();
 
-    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::fuse(&left, &right)
-    )?))))
+    Ok(Shape::fuse(&left, &right)?.into())
 }
 
 pub fn difference(
@@ -44,9 +73,7 @@ pub fn difference(
     let left = left.borrow();
     let right = right.borrow();
 
-    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::cut(&left, &right,)
-    )?))))
+    Ok(Shape::cut(&left, &right)?.into())
 }
 
 pub fn intersect(
@@ -56,23 +83,17 @@ pub fn intersect(
     let left = left.borrow();
     let right = right.borrow();
 
-    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::intersect(&left, &right,)
-    )?))))
+    Ok(Shape::intersect(&left, &right)?.into())
 }
 
 pub fn chamfer(shape: Rc<RefCell<Shape>>, radius: f64) -> Result<Value, RuntimeError> {
-    let mut shape = shape.borrow_mut();
-    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::chamfer(&mut shape, radius,)
-    )?))))
+    let shape = shape.borrow();
+    Ok(Shape::chamfer(&shape, radius)?.into())
 }
 
 pub fn fillet(shape: Rc<RefCell<Shape>>, radius: f64) -> Result<Value, RuntimeError> {
-    let mut shape = shape.borrow_mut();
-    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::fillet(&mut shape, radius,)
-    )?))))
+    let shape = shape.borrow();
+    Ok(Shape::fillet(&shape, radius)?.into())
 }
 
 pub fn translate(
@@ -82,12 +103,11 @@ pub fn translate(
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
     let shape = shape.borrow();
-    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::translate(
-            &shape,
-            &Point::new(x.unwrap_or(0.0), y.unwrap_or(0.0), z.unwrap_or(0.0)),
-        )
-    )?))))
+    Ok(Shape::translate(
+        &shape,
+        &Point::new(x.unwrap_or(0.0), y.unwrap_or(0.0), z.unwrap_or(0.0)),
+    )?
+    .into())
 }
 
 pub fn rotate(
@@ -97,16 +117,14 @@ pub fn rotate(
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
     let shape = shape.borrow();
-    let shape = from_cascade!(Shape::rotate(&shape, Axis::X, x.unwrap_or(0.0)))?;
-    let shape = from_cascade!(Shape::rotate(&shape, Axis::Y, y.unwrap_or(0.0)))?;
-    let shape = from_cascade!(Shape::rotate(&shape, Axis::Z, z.unwrap_or(0.0)))?;
+    let shape = Shape::rotate(&shape, Axis::X, x.unwrap_or(0.0))?;
+    let shape = Shape::rotate(&shape, Axis::Y, y.unwrap_or(0.0))?;
+    let shape = Shape::rotate(&shape, Axis::Z, z.unwrap_or(0.0))?;
 
-    Ok(Value::Shape(Rc::new(RefCell::new(shape))))
+    Ok(shape.into())
 }
 
 pub fn scale(shape: Rc<RefCell<Shape>>, size: f64) -> Result<Value, RuntimeError> {
     let shape = shape.borrow();
-    Ok(Value::Shape(Rc::new(RefCell::new(from_cascade!(
-        Shape::scale(&shape, size,)
-    )?))))
+    Ok(Shape::scale(&shape, size)?.into())
 }

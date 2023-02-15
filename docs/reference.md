@@ -60,9 +60,9 @@ to build parts.
 ## 3D
 - `extrude(shape=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
 - `revolve(shape=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape around an axis
-- `cube(x=[number], y=[number], z=[number])` create a cube
-- `sphere(radius=[number])` create a sphere
-- `cylinder(radius=[number], height=[number])` create a cylinder
+- `cube(x=[number], y=[number], z=[number], center=[bool])` create a cube
+- `sphere(radius=[number], center=[bool])` create a sphere
+- `cylinder(radius=[number], height=[number], center=[bool])` create a cylinder
 - `union(left=shape, right=shape)` combine two shapes
 - `chamfer(shape=shape, radius=number)` chamfer edges
 - `fillet(shape=shape, radius=number)` fillet edges

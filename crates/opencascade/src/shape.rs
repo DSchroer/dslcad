@@ -85,7 +85,7 @@ impl Shape {
         Ok(Builder::try_build(&mut body)?.into())
     }
 
-    pub fn fillet(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
+    pub fn fillet(target: &Shape, thickness: f64) -> Result<Self, Error> {
         let mut fillet = BRepFilletAPI_MakeFillet_ctor(&target.shape);
 
         let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&target.shape);
@@ -96,7 +96,7 @@ impl Shape {
         Ok(Builder::try_build(&mut fillet)?.into())
     }
 
-    pub fn chamfer(target: &mut Shape, thickness: f64) -> Result<Self, Error> {
+    pub fn chamfer(target: &Shape, thickness: f64) -> Result<Self, Error> {
         let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(&target.shape);
 
         let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&target.shape);
@@ -107,7 +107,7 @@ impl Shape {
         Ok(Builder::try_build(&mut chamfer)?.into())
     }
 
-    pub fn mesh(&mut self) -> Result<Mesh, Error> {
+    pub fn mesh(&self) -> Result<Mesh, Error> {
         let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(&self.shape, 0.01);
         if !incremental_mesh.IsDone() {
             return Err("unable to build incremental mesh".into());
