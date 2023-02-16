@@ -43,6 +43,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # Cross
 RUN cargo install cross --git https://github.com/cross-rs/cross
 ENV CROSS_CONTAINER_IN_CONTAINER=true
+ENV CROSS_CONTAINER_ENGINE_NO_BUILDKIT=1
 
 # Toolchains
 RUN rustup toolchain install nightly
