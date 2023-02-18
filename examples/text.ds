@@ -1,0 +1,3 @@
+var name = "World";
+
+format(message="Hello {n}!", n=name);

@@ -84,3 +84,7 @@ to build parts.
 - `length(list=list)` get the length of a list
 - `range(start=[number], end=number)` create a list of numbers from a range
 
+## Text
+- `string(item=*)` convert to text
+- `format(message=text, ...)` format text using {my_arg} style formatting
+- `formatln(message=text, ...)` format text with newline

@@ -30,6 +30,12 @@ impl From<Shape> for Value {
     }
 }
 
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        Value::Text(value)
+    }
+}
+
 impl From<f64> for Value {
     fn from(value: f64) -> Self {
         Value::Number(value)
@@ -71,6 +77,14 @@ impl Value {
         match self {
             Value::Number(f) => Some(*f),
             Value::Script(i) => i.borrow().value().to_number(),
+            _ => None,
+        }
+    }
+
+    pub fn to_text(&self) -> Option<String> {
+        match self {
+            Value::Text(f) => Some(f.clone()),
+            Value::Script(i) => i.borrow().value().to_text(),
             _ => None,
         }
     }

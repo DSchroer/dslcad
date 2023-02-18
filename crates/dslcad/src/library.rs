@@ -3,6 +3,7 @@ mod faces;
 mod lists;
 mod math;
 mod shapes;
+mod text;
 
 use crate::runtime::{RuntimeError, Type, Value};
 use indexmap::IndexMap;
@@ -29,12 +30,14 @@ pub struct Signature {
     function: &'static Function,
     category: Category,
     description: &'static str,
+    variadic: bool,
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 enum Access {
     Required(Type),
     Optional(Type),
+    RequiredAny(),
 }
 
 macro_rules! bind {
@@ -45,6 +48,7 @@ macro_rules! bind {
             function: invoke!($func[$($arg_name=$arg_value), *]),
             category: $cat,
             description: $desc,
+            variadic: false
         }
     }};
 }
@@ -54,6 +58,8 @@ macro_rules! arguments {
     (option_number) => {Access::Optional(Type::Number)};
     (bool) => {Access::Required(Type::Bool)};
     (option_bool) => {Access::Optional(Type::Bool)};
+    (text) => {Access::Required(Type::Text)};
+    (any) => {Access::RequiredAny()};
     (point) => {Access::Required(Type::Point)};
     (edge) => {Access::Required(Type::Edge)};
     (shape) => {Access::Required(Type::Shape)};
@@ -62,6 +68,11 @@ macro_rules! arguments {
 }
 
 macro_rules! invoke {
+    ($map: ident, $name: ident=any) => {{
+        $map.get(stringify!($name))
+            .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?
+            .clone()
+    }};
     ($map: ident, $name: ident=number) => {{
         let value = $map
             .get(stringify!($name))
@@ -93,6 +104,14 @@ macro_rules! invoke {
                 .unwrap_or_else(||false),
             None => false,
         }
+    }};
+    ($map: ident, $name: ident=text) => {{
+        let value = $map
+            .get(stringify!($name))
+            .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
+        value
+            .to_text()
+            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
     }};
     ($map: ident, $name: ident=point) => {{
         let value = $map
@@ -144,6 +163,7 @@ pub enum Category {
     TwoD,
     ThreeD,
     Lists,
+    Text,
 }
 
 impl Display for Category {
@@ -154,6 +174,7 @@ impl Display for Category {
             Category::TwoD => f.write_str("2D"),
             Category::ThreeD => f.write_str("3D"),
             Category::Lists => f.write_str("Lists"),
+            Category::Text => f.write_str("Text"),
         }
     }
 }
@@ -238,6 +259,30 @@ impl Library {
                 Category::Hidden,
                 "logical not"
             ),
+            // Text
+            bind!(add, text::add[left=text, right=text], Category::Hidden, "add text"),
+            bind!(
+                string,
+                text::string[item = any],
+                Category::Text,
+                "convert to text"
+            ),
+            Signature {
+                name: "format",
+                arguments: IndexMap::from([("message", Access::Required(Type::Text))]),
+                function: &|args| Ok(text::format(args)?.into()),
+                category: Category::Text,
+                description: "format text using {my_arg} style formatting",
+                variadic: true,
+            },
+            Signature {
+                name: "formatln",
+                arguments: IndexMap::from([("message", Access::Required(Type::Text))]),
+                function: &|args| Ok(text::formatln(args)?.into()),
+                category: Category::Text,
+                description: "format text with newline",
+                variadic: true,
+            },
             // 2D
             bind!(point, faces::point[x=option_number, y=option_number], Category::TwoD, "create a new 2D point"),
             bind!(line, faces::line[start=point, end=point], Category::TwoD, "create a line between two points"),
@@ -301,9 +346,11 @@ impl Library {
             'index: for index in indices {
                 let signature = &self.signatures[*index];
 
-                for name in to_call.arguments.keys() {
-                    if !signature.arguments.contains_key(name) {
-                        continue 'index;
+                if !signature.variadic {
+                    for name in to_call.arguments.keys() {
+                        if !signature.arguments.contains_key(name) {
+                            continue 'index;
+                        }
                     }
                 }
 
@@ -313,6 +360,11 @@ impl Library {
                             if !to_call.arguments.contains_key(name)
                                 || !to_call.arguments.get(name).unwrap().eq(t)
                             {
+                                continue 'index;
+                            }
+                        }
+                        Access::RequiredAny() => {
+                            if !to_call.arguments.contains_key(name) {
                                 continue 'index;
                             }
                         }
@@ -448,11 +500,16 @@ impl Display for Signature {
             write!(f, "{name}=")?;
             match access {
                 Access::Required(t) => write!(f, "{t}")?,
+                Access::RequiredAny() => write!(f, "*")?,
                 Access::Optional(t) => write!(f, "[{t}]")?,
             }
-            if i != self.arguments.len() - 1 {
+            if i != self.arguments.len() - 1 || self.variadic {
                 write!(f, ", ")?;
             }
+        }
+
+        if self.variadic {
+            write!(f, "...")?;
         }
 
         write!(f, ")")
