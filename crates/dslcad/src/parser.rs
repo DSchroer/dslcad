@@ -24,7 +24,7 @@ pub struct Parser<'a> {
     store: &'a SourceStore,
     path: &'a DocId,
     documents: HashMap<&'a DocId, Document<'a>>,
-    variables: HashSet<String>,
+    variables: HashSet<&'a str>,
 }
 
 #[derive(Debug)]
@@ -76,8 +76,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(mut self) -> Result<Ast<'a>, ParseError> {
-        let source = self.source()?;
-        let mut lex = Token::lexer(&source);
+        let mut lex = Token::lexer(self.store.read(self.path));
 
         let mut statements = Vec::new();
         while let Some(_) = lex.clone().next() {
@@ -100,7 +99,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_statement(&mut self, lexer: &mut Lexer) -> Result<Statement, ParseError> {
+    fn parse_statement(&mut self, lexer: &mut Lexer<'a>) -> Result<Statement, ParseError> {
         let mut peek = lexer.clone();
         match peek.next() {
             Some(Token::Var) => self.parse_variable_statement(lexer),
@@ -112,21 +111,20 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_return_statement(&mut self, lexer: &mut Lexer) -> Result<Statement, ParseError> {
+    fn parse_return_statement(&mut self, lexer: &mut Lexer<'a>) -> Result<Statement, ParseError> {
         let expr = self.parse_expression(lexer)?;
         let sb = SpanBuilder::from_expr(&expr);
         take!(self, lexer, Token::Semicolon = "semicolon");
         Ok(Statement::Return(expr, sb.to(lexer)))
     }
 
-    fn parse_variable_statement(&mut self, lexer: &mut Lexer) -> Result<Statement, ParseError> {
+    fn parse_variable_statement(&mut self, lexer: &mut Lexer<'a>) -> Result<Statement, ParseError> {
         take!(self, lexer, Token::Var = "var");
         let sb = SpanBuilder::from(lexer);
-        let name =
-            take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
+        let name = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
 
-        if !self.variables.contains(&name) {
-            self.variables.insert(name.clone());
+        if !self.variables.contains(name) {
+            self.variables.insert(name);
         } else {
             return Err(ParseError::DuplicateVariableName(
                 self.path.clone(),
@@ -144,13 +142,13 @@ impl<'a> Parser<'a> {
             }
         );
         Ok(Statement::Variable {
-            name,
+            name: name.to_string(),
             value: expr,
             span: sb.to(lexer),
         })
     }
 
-    fn parse_call(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+    fn parse_call(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression, ParseError> {
         let path = take!(self, lexer,
             Token::Identifier = "identifier" => CallPath::String(lexer.slice().to_string()),
             Token::Path = "path" => {
@@ -205,7 +203,10 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_argument(&mut self, lexer: &mut Lexer) -> Result<(String, Expression), ParseError> {
+    fn parse_argument(
+        &mut self,
+        lexer: &mut Lexer<'a>,
+    ) -> Result<(String, Expression), ParseError> {
         let name =
             take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
         take!(self, lexer, Token::Equal = "=");
@@ -214,11 +215,10 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_reference(&self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
-        let name =
-            take!(self, lexer, Token::Identifier = "identifier" => lexer.slice().to_string());
+        let name = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
         let sb = SpanBuilder::from(lexer);
 
-        if !self.variables.contains(&name) {
+        if !self.variables.contains(name) {
             return Err(ParseError::UndeclaredIdentifier(
                 self.path.clone(),
                 lexer.span(),
@@ -226,10 +226,10 @@ impl<'a> Parser<'a> {
             ));
         }
 
-        Ok(Expression::Reference(name, sb.to(lexer)))
+        Ok(Expression::Reference(name.to_string(), sb.to(lexer)))
     }
 
-    fn parse_list(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+    fn parse_list(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression, ParseError> {
         take!(self, lexer, Token::OpenList = "[");
         let sb = SpanBuilder::from(lexer);
 
@@ -253,7 +253,7 @@ impl<'a> Parser<'a> {
         Ok(Expression::Literal(Literal::List(items), sb.to(lexer)))
     }
 
-    fn parse_map(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+    fn parse_map(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression, ParseError> {
         take!(self, lexer, Token::Map = "map");
         let sb = SpanBuilder::from(lexer);
 
@@ -262,7 +262,7 @@ impl<'a> Parser<'a> {
         let ident = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
         take!(self, lexer, Token::Colon = ":");
 
-        self.variables.insert(ident.to_string());
+        self.variables.insert(ident);
         let action = self.parse_expression(lexer)?;
         self.variables.remove(ident);
 
@@ -274,7 +274,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_reduce(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+    fn parse_reduce(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression, ParseError> {
         take!(self, lexer, Token::Reduce = "reduce");
         let sb = SpanBuilder::from(lexer);
 
@@ -292,8 +292,8 @@ impl<'a> Parser<'a> {
         let right = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
         take!(self, lexer, Token::Colon = ":");
 
-        self.variables.insert(left.to_string());
-        self.variables.insert(right.to_string());
+        self.variables.insert(left);
+        self.variables.insert(right);
         let action = self.parse_expression(lexer)?;
         self.variables.remove(left);
         self.variables.remove(right);
@@ -308,7 +308,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_if(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+    fn parse_if(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression, ParseError> {
         take!(self, lexer, Token::If = "if");
         let sb = SpanBuilder::from(lexer);
 
@@ -334,12 +334,12 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+    fn parse_expression(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression, ParseError> {
         let first = self.parse_expression_lhs(lexer)?;
         self.parse_expression_rhs(first, lexer)
     }
 
-    fn parse_expression_lhs(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
+    fn parse_expression_lhs(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression, ParseError> {
         let mut peek = lexer.clone();
         Ok(take!(self, peek,
             Token::Minus = "-" => {
@@ -417,7 +417,7 @@ impl<'a> Parser<'a> {
     fn parse_expression_rhs(
         &mut self,
         lhs: Expression,
-        lexer: &mut Lexer,
+        lexer: &mut Lexer<'a>,
     ) -> Result<Expression, ParseError> {
         let first = lhs;
 

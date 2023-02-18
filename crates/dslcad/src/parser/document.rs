@@ -7,7 +7,7 @@ use std::slice::Iter;
 pub struct Document<'a> {
     id: &'a DocId,
     source: &'a str,
-    identifiers: HashSet<String>,
+    identifiers: HashSet<&'a str>,
     statements: Vec<Statement>,
 }
 
@@ -15,7 +15,7 @@ impl<'a> Document<'a> {
     pub fn new(
         id: &'a DocId,
         source: &'a str,
-        identifiers: HashSet<String>,
+        identifiers: HashSet<&'a str>,
         statements: Vec<Statement>,
     ) -> Self {
         Document {
