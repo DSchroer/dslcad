@@ -1455,6 +1455,7 @@ dependencies = [
  "logos",
  "opencascade",
  "path-absolutize",
+ "stl_io",
  "thiserror",
 ]
 
@@ -1472,7 +1473,6 @@ dependencies = [
  "path-absolutize",
  "rfd",
  "smooth-bevy-cameras",
- "stl_io",
 ]
 
 [[package]]

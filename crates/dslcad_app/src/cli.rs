@@ -1,10 +1,10 @@
 use clap::Parser;
+use dslcad::export;
 use dslcad::{Dslcad, Output};
 use std::error::Error;
 use std::fs;
 use std::fs::OpenOptions;
 use std::path::Path;
-use stl_io::{Normal, Triangle, Vector};
 
 /// model_script cad compiler
 #[derive(Parser, Debug)]
@@ -40,35 +40,42 @@ pub fn write_outputs(outputs: &[Output], dir: &Path, name: &str) -> Result<(), B
         } else {
             format!("{name}_{index}")
         };
-        let file = dir.join(Path::new(&format!("{full_name}.stl")));
+        let file = dir.join(Path::new(&full_name));
+
+        write_txt_to_file(model, &file)?;
         write_stl_to_file(model, &file)?;
     }
     Ok(())
 }
 
+fn write_txt_to_file(output: &Output, path: &Path) -> Result<(), Box<dyn Error>> {
+    if output.text().is_empty() {
+        return Ok(());
+    }
+
+    let path = Path::new(path).with_extension("txt");
+    if path.exists() {
+        fs::remove_file(&path)?;
+    }
+
+    let mut file = OpenOptions::new().create_new(true).write(true).open(path)?;
+
+    export::export_txt(output, &mut file)?;
+    Ok(())
+}
+
 fn write_stl_to_file(output: &Output, path: &Path) -> Result<(), Box<dyn Error>> {
-    let mut triangles = Vec::new();
-    let mesh = output.mesh();
-    for (face, normal) in mesh.triangles_with_normals() {
-        triangles.push(Triangle {
-            vertices: [
-                Vector::new(mesh.vertex_f32(face[0])),
-                Vector::new(mesh.vertex_f32(face[1])),
-                Vector::new(mesh.vertex_f32(face[2])),
-            ],
-            normal: Normal::new(normal.map(|n| n as f32)),
-        })
+    if output.mesh().triangles.is_empty() {
+        return Ok(());
     }
 
-    let outpath = Path::new(path).with_extension("stl");
-    if outpath.exists() {
-        fs::remove_file(&outpath)?;
+    let path = Path::new(path).with_extension("stl");
+    if path.exists() {
+        fs::remove_file(&path)?;
     }
 
-    let mut file = OpenOptions::new()
-        .create_new(true)
-        .write(true)
-        .open(outpath)?;
-    stl_io::write_stl(&mut file, triangles.iter())?;
+    let mut file = OpenOptions::new().create_new(true).write(true).open(path)?;
+
+    export::export_stl(output, &mut file)?;
     Ok(())
 }

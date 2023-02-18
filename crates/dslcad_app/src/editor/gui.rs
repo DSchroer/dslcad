@@ -22,7 +22,7 @@ pub enum UiEvent {
     CreateFile(),
     OpenFile(),
     Render(),
-    SaveStl(),
+    Export(),
 }
 
 fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
@@ -84,7 +84,7 @@ fn main_ui(
             });
             ui.menu_button("Export", |ui| {
                 if ui.button("To folder").clicked() {
-                    events.send(UiEvent::SaveStl());
+                    events.send(UiEvent::Export());
                     ui.close_menu();
                 }
             });

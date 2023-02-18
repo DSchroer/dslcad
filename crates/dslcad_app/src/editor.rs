@@ -113,7 +113,7 @@ fn controller(
                 render_file(&mut state);
                 render.send(RenderCommand::Redraw);
             }
-            UiEvent::SaveStl() => {
+            UiEvent::Export() => {
                 if let Some(Ok(model)) = &state.output {
                     if let Some(path) = file_dialog_ext(&state, None).pick_folder() {
                         let origin = state.file.clone();
