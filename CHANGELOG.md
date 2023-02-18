@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Trig functions for `sin`, `cos`, `tan`
 - Text operations `format` and `formatln`
 - Math `ceil` and `floor`
+- Escape sequences for `\r`, `\n`, `\"`, `\\`, `\t`
 
 ### Fixed
 - Use system UI scale factor

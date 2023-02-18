@@ -382,10 +382,9 @@ impl<'a, T: Reader> Parser<'a, T> {
                 let value = lexer.slice() == "true";
                 Expression::Literal(Literal::Bool(value), lexer.span())
             },
-            Token::String = "string" => {
+            Token::String(data) = "string" => {
                 lexer.next();
-                let value = lexer.slice();
-                Expression::Literal(Literal::Text(value[1..value.len()-1].to_string()), lexer.span())
+                Expression::Literal(Literal::Text(data), lexer.span())
             },
             Token::Path = "path" => self.parse_call(lexer)?,
             Token::Identifier = "identifier" => {
