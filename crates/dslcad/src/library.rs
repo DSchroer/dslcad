@@ -250,6 +250,18 @@ impl Library {
                 Category::Math,
                 "round to the nearest whole number"
             ),
+            bind!(
+                ceil,
+                math::ceil[number = number],
+                Category::Math,
+                "round up to a whole number"
+            ),
+            bind!(
+                floor,
+                math::floor[number = number],
+                Category::Math,
+                "round down to a whole number"
+            ),
             // Boolean
             bind!(and, boolean::and[left=bool, right=bool], Category::Hidden, "logical and"),
             bind!(or, boolean::or[left=bool, right=bool], Category::Hidden, "logical or"),

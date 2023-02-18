@@ -1,8 +1,16 @@
 use crate::runtime::{RuntimeError, Value};
 use std::f64::consts::PI;
 
-pub fn round(number: f64) -> Result<Value, RuntimeError> {
-    Ok(Value::Number(number.round()))
+pub fn round(number: f64) -> Result<f64, RuntimeError> {
+    Ok(number.round())
+}
+
+pub fn ceil(number: f64) -> Result<f64, RuntimeError> {
+    Ok(number.ceil())
+}
+
+pub fn floor(number: f64) -> Result<f64, RuntimeError> {
+    Ok(number.floor())
 }
 
 pub fn add(left: f64, right: f64) -> Result<Value, RuntimeError> {

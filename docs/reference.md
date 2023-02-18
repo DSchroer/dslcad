@@ -52,6 +52,8 @@ to build parts.
 - `tan(degrees=number)` tan operation
 - `tan(radians=number)` tan operation
 - `round(number=number)` round to the nearest whole number
+- `ceil(number=number)` round up to a whole number
+- `floor(number=number)` round down to a whole number
 
 ## 2D
 - `point(x=[number], y=[number])` create a new 2D point
