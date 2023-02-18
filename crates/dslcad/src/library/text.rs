@@ -14,7 +14,7 @@ pub fn string(item: Value) -> Result<String, RuntimeError> {
     }
 }
 
-pub fn format(arguments: &HashMap<String, Value>) -> Result<String, RuntimeError> {
+pub fn format(arguments: &HashMap<&str, Value>) -> Result<String, RuntimeError> {
     let message = arguments
         .get("message")
         .ok_or_else(|| RuntimeError::UnsetParameter("message".into()))?;
@@ -29,7 +29,7 @@ pub fn format(arguments: &HashMap<String, Value>) -> Result<String, RuntimeError
     Ok(message)
 }
 
-pub fn formatln(arguments: &HashMap<String, Value>) -> Result<String, RuntimeError> {
+pub fn formatln(arguments: &HashMap<&str, Value>) -> Result<String, RuntimeError> {
     Ok(format(arguments)? + "\n")
 }
 
@@ -41,18 +41,14 @@ pub mod tests {
     fn it_formats_strings() {
         assert_eq!(
             "hi".to_owned(),
-            format(&HashMap::from([(
-                String::from("message"),
-                Value::Text("hi".into())
-            )]))
-            .unwrap()
+            format(&HashMap::from([("message", Value::Text("hi".into()))])).unwrap()
         );
 
         assert_eq!(
             "hi dom".to_owned(),
             format(&HashMap::from([
-                (String::from("message"), Value::Text("hi {name}".into())),
-                (String::from("name"), Value::Text("dom".into()))
+                ("message", Value::Text("hi {name}".into())),
+                ("name", Value::Text("dom".into()))
             ]))
             .unwrap()
         );

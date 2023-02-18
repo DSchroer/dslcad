@@ -10,7 +10,7 @@ use indexmap::IndexMap;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 
-type Function = dyn Fn(&HashMap<String, Value>) -> Result<Value, RuntimeError>;
+type Function = dyn Fn(&HashMap<&str, Value>) -> Result<Value, RuntimeError>;
 
 pub struct CallSignature<'a> {
     name: &'a str,
@@ -593,11 +593,8 @@ pub mod tests {
             ))
             .expect("couldnt find method");
         call(&HashMap::from([
-            (
-                "a".to_string(),
-                Value::Point(Rc::new(RefCell::new(Point::default()))),
-            ),
-            ("b".to_string(), Value::Number(0.0)),
+            ("a", Value::Point(Rc::new(RefCell::new(Point::default())))),
+            ("b", Value::Number(0.0)),
         ]))
         .expect("called wrong handler");
     }

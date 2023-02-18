@@ -8,7 +8,7 @@ pub struct Document<'a> {
     id: &'a DocId,
     source: &'a str,
     identifiers: HashSet<&'a str>,
-    statements: Vec<Statement>,
+    statements: Vec<Statement<'a>>,
 }
 
 impl<'a> Document<'a> {
@@ -16,7 +16,7 @@ impl<'a> Document<'a> {
         id: &'a DocId,
         source: &'a str,
         identifiers: HashSet<&'a str>,
-        statements: Vec<Statement>,
+        statements: Vec<Statement<'a>>,
     ) -> Self {
         Document {
             id,

@@ -46,7 +46,7 @@ impl<'a> Engine<'a> {
     pub fn eval(
         &mut self,
         doc: &'a Document,
-        arguments: HashMap<String, Value>,
+        arguments: HashMap<&str, Value>,
     ) -> Result<ScriptInstance, WithStack<RuntimeError>> {
         let mut scope = Scope::new(arguments);
 
@@ -65,7 +65,7 @@ impl<'a> Engine<'a> {
                 Statement::Variable { name, value, .. } => match value {
                     Some(value) => {
                         let value = self.expression(&scope, value)?;
-                        scope.set(name.clone(), value);
+                        scope.set(name.to_string(), value);
                     }
                     None => {
                         if scope.get(name).is_none() {
@@ -106,7 +106,7 @@ impl<'a> Engine<'a> {
     fn expression(
         &mut self,
         instance: &Scope,
-        expression: &Expression,
+        expression: &Expression<'a>,
     ) -> Result<Value, WithStack<RuntimeError>> {
         match expression {
             Expression::Invocation {
@@ -119,7 +119,7 @@ impl<'a> Engine<'a> {
                 }
                 let argument_types = argument_values
                     .iter()
-                    .map(|(name, value)| (name.as_str(), value.get_type()))
+                    .map(|(name, value)| (*name, value.get_type()))
                     .collect();
 
                 match path {
@@ -192,7 +192,7 @@ impl<'a> Engine<'a> {
                 let mut loop_scope = instance.clone();
                 let mut results = Vec::new();
                 for v in range_value {
-                    loop_scope.set(identifier.clone(), v);
+                    loop_scope.set(identifier.to_string(), v);
                     results.push(self.expression(&loop_scope, action)?);
                 }
 
@@ -223,8 +223,8 @@ impl<'a> Engine<'a> {
                         .map_err(|e| WithStack::from_err(e, &self.stack))?
                 };
                 for v in range_value.into_iter().rev() {
-                    loop_scope.set(left.clone(), result.clone());
-                    loop_scope.set(right.clone(), v);
+                    loop_scope.set(left.to_string(), result.clone());
+                    loop_scope.set(right.to_string(), v);
                     result = self.expression(&loop_scope, action)?;
                 }
 
@@ -266,7 +266,7 @@ impl<'a> Engine<'a> {
     fn access(
         &mut self,
         instance: &Scope,
-        l: &Expression,
+        l: &Expression<'a>,
         name: &str,
     ) -> Result<Value, WithStack<RuntimeError>> {
         let l = self.expression(instance, l.deref())?;

@@ -8,11 +8,11 @@ pub struct Scope {
 }
 
 impl Scope {
-    pub fn new(arguments: HashMap<String, Value>) -> Self {
+    pub fn new(arguments: HashMap<&str, Value>) -> Self {
         Scope {
             arguments: arguments
                 .into_iter()
-                .map(|(k, v)| (k, Box::new(v)))
+                .map(|(k, v)| (k.to_owned(), Box::new(v)))
                 .collect(),
             variables: HashMap::new(),
         }

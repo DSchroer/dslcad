@@ -89,7 +89,7 @@ mod tests {
             "var foo = bar;",
             HashSet::new(),
             vec![Statement::Variable {
-                name: "".to_string(),
+                name: "",
                 value: None,
                 span: 0..3,
             }],
