@@ -128,7 +128,7 @@ macro_rules! invoke {
     }};
     ($func: path[$($name: ident=$value: ident), *]) => {&|_a|{
         $(let $name = invoke!(_a, $name=$value);)*
-        $func($($name),*)
+        Ok($func($($name),*)?.into())
     }};
 }
 
@@ -169,6 +169,54 @@ impl Library {
             bind!(modulo, math::modulo[left=number, right=number], Category::Hidden, "modulo"),
             bind!(power, math::power[left=number, right=number], Category::Hidden, "exponentiation"),
             bind!(pi, math::pi[], Category::Math, "constant pi"),
+            bind!(
+                rad_to_deg,
+                math::rad_to_deg[radians = number],
+                Category::Math,
+                "convert radians to degrees"
+            ),
+            bind!(
+                deg_to_rad,
+                math::deg_to_rad[degrees = number],
+                Category::Math,
+                "convert degrees to radians"
+            ),
+            bind!(
+                sin,
+                math::sin_deg[degrees = number],
+                Category::Math,
+                "sin operation"
+            ),
+            bind!(
+                sin,
+                math::sin_rad[radians = number],
+                Category::Math,
+                "sin operation"
+            ),
+            bind!(
+                cos,
+                math::cos_deg[degrees = number],
+                Category::Math,
+                "cos operation"
+            ),
+            bind!(
+                cos,
+                math::cos_rad[radians = number],
+                Category::Math,
+                "cos operation"
+            ),
+            bind!(
+                tan,
+                math::tan_deg[degrees = number],
+                Category::Math,
+                "tan operation"
+            ),
+            bind!(
+                tan,
+                math::tan_rad[radians = number],
+                Category::Math,
+                "tan operation"
+            ),
             bind!(less, math::less[left=number, right=number], Category::Hidden, "less than"),
             bind!(less_or_equal, math::less_or_equal[left=number, right=number], Category::Hidden, "less than or equal"),
             bind!(equals, math::equals[left=number, right=number], Category::Hidden, "equal"),

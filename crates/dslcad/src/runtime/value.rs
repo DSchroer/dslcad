@@ -30,6 +30,12 @@ impl From<Shape> for Value {
     }
 }
 
+impl From<f64> for Value {
+    fn from(value: f64) -> Self {
+        Value::Number(value)
+    }
+}
+
 impl Debug for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {

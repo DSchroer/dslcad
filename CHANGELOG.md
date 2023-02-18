@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New `center` option for 3D primitives
 - Export to `txt` file support
+- Trig functions for `sin`, `cos`, `tan`
 
 ### Fixed
 - Use system UI scale factor

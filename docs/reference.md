@@ -43,6 +43,14 @@ to build parts.
 
 ## Math
 - `pi()` constant pi
+- `rad_to_deg(radians=number)` convert radians to degrees
+- `deg_to_rad(degrees=number)` convert degrees to radians
+- `sin(degrees=number)` sin operation
+- `sin(radians=number)` sin operation
+- `cos(degrees=number)` cos operation
+- `cos(radians=number)` cos operation
+- `tan(degrees=number)` tan operation
+- `tan(radians=number)` tan operation
 - `round(number=number)` round to the nearest whole number
 
 ## 2D
