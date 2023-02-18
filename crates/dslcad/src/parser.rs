@@ -2,6 +2,7 @@ mod document;
 mod lexer;
 mod parse_error;
 mod reader;
+mod source_store;
 mod span_builder;
 mod syntax_tree;
 
@@ -9,34 +10,35 @@ use lexer::{Lexer, Token};
 use logos::Logos;
 
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 
 use crate::parser::span_builder::SpanBuilder;
 pub use document::Document;
 pub use parse_error::ParseError;
 pub use reader::Reader;
-pub use syntax_tree::{Expression, Literal, Statement};
+pub use source_store::{DocId, SourceStore};
+pub use syntax_tree::{CallPath, Expression, Literal, Statement};
 
-pub struct Parser<'a, T> {
-    reader: &'a T,
-    path: PathBuf,
-    documents: HashMap<String, Document>,
+pub struct Parser<'a> {
+    store: &'a SourceStore,
+    path: &'a DocId,
+    documents: HashMap<&'a DocId, Document<'a>>,
     variables: HashSet<String>,
 }
 
 #[derive(Debug)]
-pub struct Ast {
-    root: PathBuf,
-    documents: HashMap<String, Document>,
+pub struct Ast<'a> {
+    root: &'a DocId,
+    documents: HashMap<&'a DocId, Document<'a>>,
 }
 
-impl Ast {
+impl<'a> Ast<'a> {
     pub fn root_document(&self) -> &Document {
-        self.documents.get(self.root.to_str().unwrap()).unwrap()
+        self.documents.get(&self.root).unwrap()
     }
 
-    pub fn documents(&self) -> &HashMap<String, Document> {
+    pub fn documents(&self) -> &HashMap<&'a DocId, Document> {
         &self.documents
     }
 }
@@ -59,12 +61,10 @@ macro_rules! take {
     };
 }
 
-impl<'a, T: Reader> Parser<'a, T> {
-    pub fn new(path: &str, reader: &'a T) -> Self {
-        let path = reader.normalize(Path::new(path));
-
+impl<'a> Parser<'a> {
+    pub fn new(path: &'a DocId, store: &'a SourceStore) -> Self {
         Parser {
-            reader,
+            store,
             path,
             documents: HashMap::new(),
             variables: HashSet::new(),
@@ -72,14 +72,10 @@ impl<'a, T: Reader> Parser<'a, T> {
     }
 
     fn source(&self) -> Result<String, ParseError> {
-        let input = self.reader.read(self.path.as_path());
-        if input.is_err() {
-            return Err(ParseError::NoSuchFile(self.path.clone()));
-        }
-        Ok(input.unwrap())
+        Ok(self.store.read(self.path).to_string())
     }
 
-    pub fn parse(mut self) -> Result<Ast, ParseError> {
+    pub fn parse(mut self) -> Result<Ast<'a>, ParseError> {
         let source = self.source()?;
         let mut lex = Token::lexer(&source);
 
@@ -89,10 +85,14 @@ impl<'a, T: Reader> Parser<'a, T> {
             statements.push(statement);
         }
 
-        let id = String::from(self.path.to_str().unwrap());
         self.documents.insert(
-            id.clone(),
-            Document::new(id, self.source()?, self.variables, statements),
+            self.path,
+            Document::new(
+                self.path,
+                self.store.read(self.path),
+                self.variables,
+                statements,
+            ),
         );
         Ok(Ast {
             root: self.path,
@@ -152,12 +152,12 @@ impl<'a, T: Reader> Parser<'a, T> {
 
     fn parse_call(&mut self, lexer: &mut Lexer) -> Result<Expression, ParseError> {
         let path = take!(self, lexer,
-            Token::Identifier = "identifier" => lexer.slice().to_string(),
+            Token::Identifier = "identifier" => CallPath::String(lexer.slice().to_string()),
             Token::Path = "path" => {
                 let path =  lexer.slice();
 
                 let mut buf = std::path::PathBuf::new();
-                buf.push(self.path.clone());
+                buf.push(self.path.to_path());
                 let buf = buf.parent().unwrap();
                 let buf = buf.join(path.to_string() + "." + crate::constants::FILE_EXTENSION).canonicalize();
                 let buf = match &buf {
@@ -165,14 +165,14 @@ impl<'a, T: Reader> Parser<'a, T> {
                     Err(_) => return Err(ParseError::NoSuchFile(PathBuf::from(path)))
                 };
 
-                if !self.documents.contains_key(buf) && self.path.to_str().unwrap() != buf {
-                    let ast = Parser::new(buf, self.reader).parse()?;
+                let id = self.store.forge_id(buf.to_string())?;
+                if !self.documents.contains_key(&id) && self.path.to_str() != buf {
+                    let ast = Parser::new(id, self.store).parse()?;
                     for (path, document) in ast.documents {
                         self.documents.insert(path, document);
                     }
                 }
-
-                buf.to_string()
+                CallPath::Document(id.clone())
             }
         );
         let sb = SpanBuilder::from(lexer);
@@ -348,7 +348,7 @@ impl<'a, T: Reader> Parser<'a, T> {
                 let expr = self.parse_expression_lhs(lexer)?;
                 let span = sb.to(lexer);
                 Expression::Invocation {
-                    path: String::from("subtract"),
+                    path: CallPath::String(String::from("subtract")),
                     arguments: HashMap::from([
                         (
                             "left".to_string(),
@@ -365,7 +365,7 @@ impl<'a, T: Reader> Parser<'a, T> {
                 let expr = self.parse_expression_lhs(lexer)?;
                 let span = sb.to(lexer);
                 Expression::Invocation {
-                    path: String::from("not"),
+                    path: CallPath::String(String::from("not")),
                     arguments: HashMap::from([
                          ("value".to_string(), Box::new(expr)),
                     ]),
@@ -428,7 +428,7 @@ impl<'a, T: Reader> Parser<'a, T> {
                 let l = Box::new($left);
                 let r = Box::new(self.parse_expression(lexer)?);
                 Ok(Expression::Invocation {
-                    path: String::from($name),
+                    path: CallPath::String(String::from($name)),
                     arguments: HashMap::from([
                         (String::from("left"), l),
                         (String::from("right"), r),
@@ -519,17 +519,23 @@ fn escape_string(input: &str) -> String {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     macro_rules! parse {
-        ($code: literal) => {
-            Parser::new("test", &TestReader($code)).parse()
-        };
+        ($code: literal) => {{}};
+    }
+
+    fn parse(code: &'static str, action: impl for<'a> FnOnce(Result<Ast<'a>, ParseError>)) {
+        let store = SourceStore::new(Box::new(TestReader(code)));
+        let res = Parser::new(store.forge_id("test".to_string()).unwrap(), &store).parse();
+        action(res)
     }
 
     macro_rules! parse_statement {
         ($code: literal) => {{
-            let parsed = Parser::new("test", &TestReader($code)).parse().unwrap();
+            let store = SourceStore::new(Box::new(TestReader($code)));
+            let root_id = store.forge_id("test".to_string()).unwrap();
+            let parsed = Parser::new(&root_id, &store).parse().unwrap();
             let doc = parsed.root_document();
             let statement = doc.statements().next();
             statement.unwrap().clone()
@@ -548,37 +554,53 @@ pub mod tests {
 
     #[test]
     fn it_can_parse_variable() {
-        parse!("var x = 5;").unwrap();
-        parse!("var x;").unwrap();
-        parse!("var x = true;").unwrap();
+        parse!("var x = 5;");
+        parse!("var x;");
+        parse!("var x = true;");
     }
 
     #[test]
     fn it_can_parse_calls() {
-        parse!("cube();").unwrap();
-        parse!("cube(x=5);").unwrap();
+        parse("cube();", |a| {
+            a.unwrap();
+        });
+        parse("cube(x=5);", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
     fn it_can_parse() {
-        parse!("test(x=10,y=10);").unwrap();
+        parse("test(x=10,y=10);", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
     fn it_can_parse_adds() {
-        parse!("2 + 2;").unwrap();
-        parse!("var test; test.area + 10;").unwrap();
+        parse("2 + 2;", |a| {
+            a.unwrap();
+        });
+        parse("var test; test.area + 10;", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
     fn it_can_parse_divide() {
-        parse!("var test; test(x=test / 2);").unwrap();
+        parse("var test; test(x=test / 2);", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
     fn it_can_parse_unary_minus() {
-        parse!("-2;").unwrap();
-        parse!("var foo; -foo;").unwrap();
+        parse("-2;", |a| {
+            a.unwrap();
+        });
+        parse("var foo; -foo;", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
@@ -589,7 +611,9 @@ pub mod tests {
 
     #[test]
     fn it_can_parse_inject() {
-        parse!("5 ->value cube();").unwrap();
+        parse("5 ->value cube();", |a| {
+            a.unwrap();
+        });
 
         let p = parse_statement!("5 ->value cube() ->test cube();");
         assert!(matches!(p, Statement::Return(
@@ -610,62 +634,94 @@ pub mod tests {
 
     #[test]
     fn it_allows_duplicate_returns() {
-        parse!("5; 10;").unwrap();
+        parse("5; 10;", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
     fn it_rejects_duplicate_variables() {
-        parse!("var x; var x;").expect_err("expected duplicate variable error");
+        parse("var x; var x;", |a| {
+            a.expect_err("expected duplicate variable error");
+        });
     }
 
     #[test]
     fn it_rejects_undeclared_variables() {
-        parse!("x;").expect_err("expected undeclared identifier error");
+        parse("x;", |a| {
+            a.expect_err("expected undeclared identifier error");
+        });
     }
 
     #[test]
     fn it_can_parse_brackets() {
-        parse!("3 - (3 + 2);").unwrap();
-        parse!("(3 - 3) + 2;").unwrap();
+        parse("3 - (3 + 2);", |a| {
+            a.unwrap();
+        });
+        parse("(3 - 3) + 2;", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
     fn it_can_parse_access() {
-        parse!("var foo; foo.bar;").unwrap();
+        parse("var foo; foo.bar;", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
     fn it_can_parse_index() {
-        parse!("var foo; foo[0];").unwrap();
+        parse("var foo; foo[0];", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
     fn it_can_parse_map() {
-        parse!("var foo = map [] as x: x;").unwrap();
+        parse("var foo = map [] as x: x;", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
     fn it_can_parse_reduce() {
-        parse!("var foo = reduce [] as a,b: a;").unwrap();
-        parse!("var foo = reduce [] from t() as a,b: a;").unwrap();
+        parse("var foo = reduce [] as a,b: a;", |a| {
+            a.unwrap();
+        });
+        parse("var foo = reduce [] from t() as a,b: a;", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
     fn it_can_parse_if() {
-        parse!("var foo = if true: 1 else: 0;").unwrap();
-        parse!("var foo = if true: 1 else if false: 2 else: 3;").unwrap();
+        parse("var foo = if true: 1 else: 0;", |a| {
+            a.unwrap();
+        });
+        parse("var foo = if true: 1 else if false: 2 else: 3;", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
     fn it_can_parse_list_literal() {
-        parse!("var foo = [];").unwrap();
-        parse!("var foo = [1];").unwrap();
-        parse!("var foo = [1 2];").expect_err("should not parse lists without commas");
-        parse!("var foo = [test(), 2];").unwrap();
+        parse("var foo = [];", |a| {
+            a.unwrap();
+        });
+        parse("var foo = [1];", |a| {
+            a.unwrap();
+        });
+        parse("var foo = [1 2];", |a| {
+            a.expect_err("should not parse lists without commas");
+        });
+        parse("var foo = [test(), 2];", |a| {
+            a.unwrap();
+        });
     }
 
-    pub struct TestReader<'a>(pub &'a str);
-    impl<'a> Reader for TestReader<'a> {
+    pub struct TestReader(pub &'static str);
+    impl Reader for TestReader {
         fn read(&self, _: &Path) -> Result<String, std::io::Error> {
             Ok(self.0.to_string())
         }

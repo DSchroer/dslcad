@@ -1,19 +1,20 @@
 use super::syntax_tree::Statement;
+use crate::parser::source_store::DocId;
 use std::collections::HashSet;
 use std::slice::Iter;
 
 #[derive(Debug)]
-pub struct Document {
-    id: String,
-    source: String,
+pub struct Document<'a> {
+    id: &'a DocId,
+    source: &'a str,
     identifiers: HashSet<String>,
     statements: Vec<Statement>,
 }
 
-impl Document {
+impl<'a> Document<'a> {
     pub fn new(
-        id: String,
-        source: String,
+        id: &'a DocId,
+        source: &'a str,
         identifiers: HashSet<String>,
         statements: Vec<Statement>,
     ) -> Self {
@@ -26,7 +27,7 @@ impl Document {
     }
 
     pub fn id(&self) -> &str {
-        &self.id
+        self.id.to_str()
     }
 
     pub fn has_identifier(&self, name: &str) -> bool {
@@ -38,6 +39,6 @@ impl Document {
     }
 
     pub fn source(&self) -> &str {
-        &self.source
+        self.source
     }
 }

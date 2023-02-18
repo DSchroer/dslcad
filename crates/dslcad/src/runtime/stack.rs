@@ -7,7 +7,7 @@ pub type Stack<'a> = Vec<StackFrame<'a>>;
 
 #[derive(Debug)]
 pub struct StackFrame<'a> {
-    document: &'a Document,
+    document: &'a Document<'a>,
     span: Span,
 }
 
@@ -74,15 +74,19 @@ fn line_col(text: &str, span: &Span) -> (usize, Span) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parser::tests::TestReader;
+    use crate::parser::SourceStore;
     use crate::runtime::RuntimeError;
     use std::collections::HashSet;
 
     #[test]
     fn it_can_print_stacks() {
         let mut stack = Stack::new();
+        let store = SourceStore::new(Box::new(TestReader("")));
+        let id = store.forge_id("test".to_string()).unwrap();
         let doc = Document::new(
-            "test".to_string(),
-            "var foo = bar;".to_string(),
+            id,
+            "var foo = bar;",
             HashSet::new(),
             vec![Statement::Variable {
                 name: "".to_string(),

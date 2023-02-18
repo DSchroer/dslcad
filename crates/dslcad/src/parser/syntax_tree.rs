@@ -1,3 +1,4 @@
+use crate::parser::DocId;
 use logos::Span;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -22,11 +23,17 @@ impl Statement {
 }
 
 #[derive(Debug, Clone)]
+pub enum CallPath {
+    String(String),
+    Document(DocId),
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression {
     Literal(Literal, Span),
     Reference(String, Span),
     Invocation {
-        path: String,
+        path: CallPath,
         arguments: HashMap<String, Box<Expression>>,
         span: Span,
     },

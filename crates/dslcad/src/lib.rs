@@ -6,7 +6,7 @@ mod library;
 mod parser;
 mod runtime;
 
-use crate::parser::ParseError;
+use crate::parser::{ParseError, SourceStore};
 use crate::runtime::{RuntimeError, WithStack};
 use library::Library;
 use parser::Reader;
@@ -37,32 +37,41 @@ impl Display for Error {
     }
 }
 
-pub struct Dslcad<R> {
-    reader: R,
+pub struct Dslcad {
+    store: SourceStore,
     library: Library,
     paths: Vec<String>,
 }
 
-impl Default for Dslcad<FileReader> {
+impl Default for Dslcad {
     fn default() -> Self {
-        Dslcad::<FileReader>::new(FileReader, Library::default())
+        Dslcad::new(FileReader, Library::default())
     }
 }
 
-impl<R: Reader> Dslcad<R> {
-    pub fn new(reader: R, library: Library) -> Self {
+impl Dslcad {
+    pub fn new<R: Reader + 'static>(reader: R, library: Library) -> Self {
         Dslcad {
-            reader,
+            store: SourceStore::new(Box::new(reader)),
             library,
             paths: Vec::new(),
         }
     }
 
     pub fn render_file(&mut self, path: &str) -> Result<Vec<Output>, Error> {
-        let parser = parser::Parser::new(path, &self.reader);
+        let id = self
+            .store
+            .forge_id(path.to_string())
+            .map_err(Error::Parse)?;
+        let parser = parser::Parser::new(id, &self.store);
         let ast = parser.parse().map_err(Error::Parse)?;
 
-        self.paths = ast.documents().keys().cloned().collect();
+        self.paths = ast
+            .documents()
+            .keys()
+            .cloned()
+            .map(|id| id.to_str().to_owned())
+            .collect();
 
         let main = ast.root_document();
 
@@ -108,14 +117,15 @@ impl Reader for FileReader {
 mod tests {
     use crate::parser::tests::TestReader;
 
-    use std::collections::HashMap;
-
     use super::*;
     use crate::runtime::{Engine, ScriptInstance};
+    use std::collections::HashMap;
 
-    fn run(code: &str) -> ScriptInstance {
+    fn run(code: &'static str) -> ScriptInstance {
         let reader = TestReader(code);
-        let parser = parser::Parser::new("test", &reader);
+        let store = SourceStore::new(Box::new(reader));
+        let root = store.forge_id("test".to_string()).unwrap();
+        let parser = parser::Parser::new(root, &store);
         let documents = parser.parse().unwrap();
         let lib = Library::new();
         let mut engine = Engine::new(&lib, documents.documents());
@@ -149,12 +159,19 @@ mod tests {
         run("less_or_equal(left=10,right=10);");
         run("pi();");
 
-        let ops = vec![
-            "+", "-", "*", "/", "%", "^", ">", ">=", "==", "!=", "<", "<=",
-        ];
-        for op in ops {
-            run(format!("1 {op} 1;").as_str());
-        }
+        run("1+1;");
+        run("1-1;");
+        run("1*1;");
+        run("1/1;");
+        run("1%1;");
+        run("1^1;");
+
+        run("1>1;");
+        run("1>=1;");
+        run("1==1;");
+        run("1!=1;");
+        run("1<1;");
+        run("1<=1;");
     }
 
     #[test]

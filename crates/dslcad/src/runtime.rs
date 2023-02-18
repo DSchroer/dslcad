@@ -8,7 +8,7 @@ mod types;
 mod value;
 
 use crate::library::{CallSignature, Library};
-use crate::parser::Document;
+use crate::parser::{CallPath, DocId, Document};
 use crate::parser::{Expression, Literal, Statement};
 use crate::runtime::scope::Scope;
 use std::cell::RefCell;
@@ -30,12 +30,12 @@ const MAX_STACK_SIZE: usize = 255;
 
 pub struct Engine<'a> {
     library: &'a Library,
-    documents: &'a HashMap<String, Document>,
+    documents: &'a HashMap<&'a DocId, Document<'a>>,
     stack: Stack<'a>,
 }
 
 impl<'a> Engine<'a> {
-    pub fn new(library: &'a Library, documents: &'a HashMap<String, Document>) -> Self {
+    pub fn new(library: &'a Library, documents: &'a HashMap<&'a DocId, Document>) -> Self {
         Engine {
             library,
             documents,
@@ -122,21 +122,26 @@ impl<'a> Engine<'a> {
                     .map(|(name, value)| (name.as_str(), value.get_type()))
                     .collect();
 
-                let doc = self.documents.get(path);
-                match doc {
-                    None => {
+                match path {
+                    CallPath::String(path) => {
                         let f = self
                             .library
                             .find(CallSignature::new(path, &argument_types))
                             .map_err(|e| WithStack::from_err(e, &self.stack))?;
                         Ok(f(&argument_values).map_err(|e| WithStack::from_err(e, &self.stack))?)
                     }
-                    Some(doc) => {
+                    CallPath::Document(doc) => {
+                        let doc = self.documents.get(doc).ok_or_else(|| {
+                            WithStack::from_err(
+                                RuntimeError::UnknownIdentifier(doc.to_string()),
+                                &self.stack,
+                            )
+                        })?;
                         for name in arguments.keys() {
                             if !doc.has_identifier(name) {
                                 return Err(WithStack::from_err(
                                     RuntimeError::ArgumentDoesNotExist(
-                                        path.to_string(),
+                                        doc.id().to_string(),
                                         name.to_string(),
                                     ),
                                     &self.stack,
