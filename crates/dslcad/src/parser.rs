@@ -382,9 +382,10 @@ impl<'a, T: Reader> Parser<'a, T> {
                 let value = lexer.slice() == "true";
                 Expression::Literal(Literal::Bool(value), lexer.span())
             },
-            Token::String(data) = "string" => {
+            Token::String = "string" => {
                 lexer.next();
-                Expression::Literal(Literal::Text(data), lexer.span())
+                let value = lexer.slice();
+                Expression::Literal(Literal::Text(escape_string(value)), lexer.span())
             },
             Token::Path = "path" => self.parse_call(lexer)?,
             Token::Identifier = "identifier" => {
@@ -505,6 +506,16 @@ impl<'a, T: Reader> Parser<'a, T> {
     }
 }
 
+fn escape_string(input: &str) -> String {
+    let source = input[1..input.len() - 1].to_string();
+    source
+        .replace(r"\r", "\r")
+        .replace(r"\n", "\n")
+        .replace(r"\t", "\t")
+        .replace("\\\"", "\"")
+        .replace(r"\\", r"\")
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -523,6 +534,16 @@ pub mod tests {
             let statement = doc.statements().next();
             statement.unwrap().clone()
         }};
+    }
+
+    #[test]
+    fn it_escapes_strings() {
+        assert_eq!("test", escape_string("\"test\""));
+        assert_eq!("te\tst", escape_string("\"te\\tst\""));
+        assert_eq!("te\nst", escape_string("\"te\\nst\""));
+        assert_eq!("te\rst", escape_string("\"te\\rst\""));
+        assert_eq!("te\\st", escape_string("\"te\\\\st\""));
+        assert_eq!("te\"st", escape_string("\"te\\\"st\""));
     }
 
     #[test]

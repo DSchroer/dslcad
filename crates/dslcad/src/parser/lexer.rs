@@ -1,18 +1,6 @@
-use logos::{Filter, Logos};
+use logos::Logos;
 
 pub type Lexer<'a> = logos::Lexer<'a, Token>;
-
-fn lex_string(lex: &mut logos::Lexer<Token>) -> Filter<String> {
-    let source: String = lex.slice()[1..lex.slice().len() - 1].to_string();
-    Filter::Emit(
-        source
-            .replace(r"\r", "\r")
-            .replace(r"\n", "\n")
-            .replace(r"\t", "\t")
-            .replace("\\\"", "\"")
-            .replace(r"\\", r"\"),
-    )
-}
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 pub enum Token {
@@ -88,8 +76,8 @@ pub enum Token {
     Bool,
     #[regex(r"\d+(\.\d*)?")]
     Number,
-    #[regex("\"((\\\\\")|[^\"])*\"", lex_string)]
-    String(String),
+    #[regex("\"((\\\\\")|[^\"])*\"")]
+    String,
 
     #[token("var")]
     Var,
@@ -119,12 +107,8 @@ mod tests {
 
     #[test]
     fn it_can_lex_strings() {
-        assert_eq!(vec![String("test".to_owned())], tokens("\"test\""));
-        assert_eq!(vec![String("te\tst".to_owned())], tokens("\"te\\tst\""));
-        assert_eq!(vec![String("te\nst".to_owned())], tokens("\"te\\nst\""));
-        assert_eq!(vec![String("te\rst".to_owned())], tokens("\"te\\rst\""));
-        assert_eq!(vec![String("te\\st".to_owned())], tokens("\"te\\\\st\""));
-        assert_eq!(vec![String("te\"st".to_owned())], tokens("\"te\\\"st\""));
+        assert_eq!(vec![String], tokens("\"test\""));
+        assert_eq!(vec![String], tokens("\"te\\\"st\""));
     }
 
     #[test]
