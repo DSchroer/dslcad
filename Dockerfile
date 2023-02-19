@@ -47,4 +47,5 @@ ENV CROSS_CONTAINER_ENGINE_NO_BUILDKIT=1
 
 # Toolchains
 RUN rustup toolchain install nightly
+RUN rustup target add x86_64-pc-windows-gnu
 RUN rustup target add x86_64-apple-darwin
