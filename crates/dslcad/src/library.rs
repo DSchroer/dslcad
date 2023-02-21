@@ -296,7 +296,7 @@ impl Library {
                 variadic: true,
             },
             // 2D
-            bind!(point, faces::point[x=option_number, y=option_number], Category::TwoD, "create a new 2D point"),
+            bind!(point, faces::point[x=option_number, y=option_number, z=option_number], Category::TwoD, "create a new 2D point"),
             bind!(line, faces::line[start=point, end=point], Category::TwoD, "create a line between two points"),
             bind!(square, faces::square[x=option_number, y=option_number, center=option_bool], Category::TwoD, "create a square"),
             bind!(
@@ -313,8 +313,9 @@ impl Library {
                 Category::TwoD,
                 "make a closed face from a list of points, lines and arcs"
             ),
-            bind!(translate, faces::translate[shape=edge, x=option_number, y=option_number], Category::TwoD, "move an edge"),
+            bind!(translate, faces::translate[shape=edge, x=option_number, y=option_number, z=option_number], Category::TwoD, "move an edge"),
             bind!(rotate, faces::rotate[shape=edge, angle=option_number], Category::TwoD, "rotate an edge"),
+            bind!(rotate, faces::rotate_3d[shape=edge, x=option_number, y=option_number, z=option_number], Category::TwoD, "rotate an edge"),
             bind!(scale, faces::scale[shape=edge, scale=number], Category::TwoD, "scale an edge"),
             // 3D
             bind!(extrude, faces::extrude[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),

@@ -56,15 +56,16 @@ to build parts.
 - `floor(number=number)` round down to a whole number
 
 ## 2D
-- `point(x=[number], y=[number])` create a new 2D point
+- `point(x=[number], y=[number], z=[number])` create a new 2D point
 - `line(start=point, end=point)` create a line between two points
 - `square(x=[number], y=[number], center=[bool])` create a square
 - `circle(radius=[number], center=[bool])` create a circle
 - `arc(start=point, center=point, end=point)` create an arcing line between three points
 - `union(left=edge, right=edge)` combine two edges
 - `face(parts=list)` make a closed face from a list of points, lines and arcs
-- `translate(shape=edge, x=[number], y=[number])` move an edge
+- `translate(shape=edge, x=[number], y=[number], z=[number])` move an edge
 - `rotate(shape=edge, angle=[number])` rotate an edge
+- `rotate(shape=edge, x=[number], y=[number], z=[number])` rotate an edge
 - `scale(shape=edge, scale=number)` scale an edge
 
 ## 3D

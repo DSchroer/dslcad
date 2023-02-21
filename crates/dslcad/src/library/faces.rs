@@ -3,11 +3,11 @@ use opencascade::{Axis, DsShape, Edge, Point, Shape, Wire, WireFactory};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub fn point(x: Option<f64>, y: Option<f64>) -> Result<Value, RuntimeError> {
+pub fn point(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
     Ok(Value::Point(Rc::new(RefCell::new(Point::new(
         x.unwrap_or(0.0),
         y.unwrap_or(0.0),
-        0.0,
+        z.unwrap_or(0.0),
     )))))
 }
 
@@ -121,7 +121,7 @@ pub fn union_edge(
 
 pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
     if parts.is_empty() {
-        return point(None, None);
+        return point(None, None, None);
     }
     let parts_len = parts.len();
 
@@ -178,17 +178,32 @@ pub fn translate(
     shape: Rc<RefCell<Wire>>,
     x: Option<f64>,
     y: Option<f64>,
+    z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
     let shape = shape.borrow();
     Ok(Value::Line(Rc::new(RefCell::new(Wire::translate(
         &shape,
-        &Point::new_2d(x.unwrap_or(0.0), y.unwrap_or(0.0)),
+        &Point::new(x.unwrap_or(0.0), y.unwrap_or(0.0), z.unwrap_or(0.0)),
     )?))))
 }
 
 pub fn rotate(shape: Rc<RefCell<Wire>>, angle: Option<f64>) -> Result<Value, RuntimeError> {
     let shape = shape.borrow();
     let shape = Wire::rotate(&shape, Axis::Z, angle.unwrap_or(0.0))?;
+
+    Ok(Value::Line(Rc::new(RefCell::new(shape))))
+}
+
+pub fn rotate_3d(
+    shape: Rc<RefCell<Wire>>,
+    x: Option<f64>,
+    y: Option<f64>,
+    z: Option<f64>,
+) -> Result<Value, RuntimeError> {
+    let shape = shape.borrow();
+    let shape = Wire::rotate(&shape, Axis::X, x.unwrap_or(0.0))?;
+    let shape = Wire::rotate(&shape, Axis::Y, y.unwrap_or(0.0))?;
+    let shape = Wire::rotate(&shape, Axis::Z, z.unwrap_or(0.0))?;
 
     Ok(Value::Line(Rc::new(RefCell::new(shape))))
 }
