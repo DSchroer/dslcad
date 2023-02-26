@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 cxx = "1"
-opencascade-sys = { git = "https://github.com/dschroer/opencascade-rs", rev="abaca79" }
+opencascade-sys = { git = "https://github.com/dschroer/opencascade-rs", rev="d24b4d8" }

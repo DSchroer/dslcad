@@ -12,9 +12,9 @@ use opencascade_sys::ffi::{
     BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
     BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
     BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt, BRep_Tool_Triangulation,
-    HandleGeomCurve_Value, Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum,
-    TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
-    TopoDS_cast_to_face,
+    HandleGeomCurve_Value, Handle_Poly_Triangulation_Get, Poly_Triangulation_Node,
+    TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge,
+    TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_cast_to_face,
 };
 use std::pin::Pin;
 
@@ -124,9 +124,7 @@ impl Shape {
             let mut location = TopLoc_Location_ctor();
 
             let triangulation_handle = BRep_Tool_Triangulation(face, location.pin_mut());
-            if !triangulation_handle.IsNull() {
-                let triangulation = unsafe { &*triangulation_handle.get() };
-
+            if let Ok(triangulation) = Handle_Poly_Triangulation_Get(&triangulation_handle) {
                 let index_offset = mesh.vertices.len();
                 for index in 1..=triangulation.NbNodes() {
                     let node = Poly_Triangulation_Node(triangulation, index);
