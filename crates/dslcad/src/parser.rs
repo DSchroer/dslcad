@@ -366,12 +366,10 @@ impl<'a> Parser<'a> {
         match peek.next() {
             Some(Token::Or) => self.operator(lexer, "or", first, |s, l| s.parse_or(l)),
             Some(_) => Ok(first),
-            None => {
-                return Err(ParseError::UnexpectedEndOfFile(
-                    self.path.clone(),
-                    self.source()?,
-                ))
-            }
+            None => Err(ParseError::UnexpectedEndOfFile(
+                self.path.clone(),
+                self.source()?,
+            )),
         }
     }
 
@@ -381,12 +379,10 @@ impl<'a> Parser<'a> {
         match peek.next() {
             Some(Token::And) => self.operator(lexer, "and", first, |s, l| s.parse_and(l)),
             Some(_) => Ok(first),
-            None => {
-                return Err(ParseError::UnexpectedEndOfFile(
-                    self.path.clone(),
-                    self.source()?,
-                ))
-            }
+            None => Err(ParseError::UnexpectedEndOfFile(
+                self.path.clone(),
+                self.source()?,
+            )),
         }
     }
 
@@ -401,12 +397,10 @@ impl<'a> Parser<'a> {
                 self.operator(lexer, "not_equals", first, |s, l| s.parse_equality(l))
             }
             Some(_) => Ok(first),
-            None => {
-                return Err(ParseError::UnexpectedEndOfFile(
-                    self.path.clone(),
-                    self.source()?,
-                ))
-            }
+            None => Err(ParseError::UnexpectedEndOfFile(
+                self.path.clone(),
+                self.source()?,
+            )),
         }
     }
 
@@ -427,12 +421,10 @@ impl<'a> Parser<'a> {
                 })
             }
             Some(_) => Ok(first),
-            None => {
-                return Err(ParseError::UnexpectedEndOfFile(
-                    self.path.clone(),
-                    self.source()?,
-                ))
-            }
+            None => Err(ParseError::UnexpectedEndOfFile(
+                self.path.clone(),
+                self.source()?,
+            )),
         }
     }
 
@@ -445,12 +437,10 @@ impl<'a> Parser<'a> {
                 self.operator(lexer, "subtract", first, |s, l| s.parse_add_sub(l))
             }
             Some(_) => Ok(first),
-            None => {
-                return Err(ParseError::UnexpectedEndOfFile(
-                    self.path.clone(),
-                    self.source()?,
-                ))
-            }
+            None => Err(ParseError::UnexpectedEndOfFile(
+                self.path.clone(),
+                self.source()?,
+            )),
         }
     }
 
@@ -468,12 +458,10 @@ impl<'a> Parser<'a> {
                 self.operator(lexer, "modulo", first, |s, l| s.parse_mul_div_mod(l))
             }
             Some(_) => Ok(first),
-            None => {
-                return Err(ParseError::UnexpectedEndOfFile(
-                    self.path.clone(),
-                    self.source()?,
-                ))
-            }
+            None => Err(ParseError::UnexpectedEndOfFile(
+                self.path.clone(),
+                self.source()?,
+            )),
         }
     }
 
@@ -483,12 +471,10 @@ impl<'a> Parser<'a> {
         match peek.next() {
             Some(Token::Power) => self.operator(lexer, "power", first, |s, l| s.parse_pow(l)),
             Some(_) => Ok(first),
-            None => {
-                return Err(ParseError::UnexpectedEndOfFile(
-                    self.path.clone(),
-                    self.source()?,
-                ))
-            }
+            None => Err(ParseError::UnexpectedEndOfFile(
+                self.path.clone(),
+                self.source()?,
+            )),
         }
     }
 
@@ -530,12 +516,10 @@ impl<'a> Parser<'a> {
                 }
             }
             Some(_) => Ok(first),
-            None => {
-                return Err(ParseError::UnexpectedEndOfFile(
-                    self.path.clone(),
-                    self.source()?,
-                ))
-            }
+            None => Err(ParseError::UnexpectedEndOfFile(
+                self.path.clone(),
+                self.source()?,
+            )),
         }
     }
 
@@ -562,12 +546,10 @@ impl<'a> Parser<'a> {
                 })
             }
             Some(_) => Ok(first),
-            None => {
-                return Err(ParseError::UnexpectedEndOfFile(
-                    self.path.clone(),
-                    self.source()?,
-                ))
-            }
+            None => Err(ParseError::UnexpectedEndOfFile(
+                self.path.clone(),
+                self.source()?,
+            )),
         }
     }
 
