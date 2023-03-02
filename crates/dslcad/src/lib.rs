@@ -140,6 +140,11 @@ mod tests {
     }
 
     #[test]
+    fn it_supports_order_of_operations() {
+        assert_eq!("6", &run("5 / 5 + 5;").to_string());
+    }
+
+    #[test]
     fn it_has_boolean_algebra() {
         assert_eq!("true", &run("true;").to_string());
         assert_eq!("false", &run("false;").to_string());
