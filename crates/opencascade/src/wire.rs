@@ -3,7 +3,8 @@ use crate::edge::Edge;
 use crate::{DsShape, Error, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
-    BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor, BRep_Tool_Curve, HandleGeomCurve_Value,
+    BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor, BRepGProp_LinearProperties,
+    BRep_Tool_Curve, GProp_GProps_CentreOfMass, GProp_GProps_ctor, HandleGeomCurve_Value,
     TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
     TopoDS_Wire, TopoDS_cast_to_edge, TopoDS_cast_to_wire,
 };
@@ -139,6 +140,12 @@ impl Wire {
         let end = HandleGeomCurve_Value(&curve, last).into();
 
         (start, end)
+    }
+
+    pub fn center_of_mass(&self) -> Point {
+        let mut props = GProp_GProps_ctor();
+        BRepGProp_LinearProperties(self.shape(), props.pin_mut());
+        GProp_GProps_CentreOfMass(&props).into()
     }
 }
 

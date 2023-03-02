@@ -24,6 +24,12 @@ pub enum Value {
     Shape(Rc<RefCell<Shape>>),
 }
 
+impl From<Point> for Value {
+    fn from(value: Point) -> Self {
+        Value::Point(Rc::new(RefCell::new(value)))
+    }
+}
+
 impl From<Shape> for Value {
     fn from(value: Shape) -> Self {
         Value::Shape(Rc::new(RefCell::new(value)))

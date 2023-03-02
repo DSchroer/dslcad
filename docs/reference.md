@@ -58,8 +58,8 @@ to build parts.
 ## 2D
 - `point(x=[number], y=[number], z=[number])` create a new 2D point
 - `line(start=point, end=point)` create a line between two points
-- `square(x=[number], y=[number], center=[bool])` create a square
-- `circle(radius=[number], center=[bool])` create a circle
+- `square(x=[number], y=[number])` create a square
+- `circle(radius=[number])` create a circle
 - `arc(start=point, center=point, end=point)` create an arcing line between three points
 - `union(left=edge, right=edge)` combine two edges
 - `face(parts=list)` make a closed face from a list of points, lines and arcs
@@ -67,13 +67,14 @@ to build parts.
 - `rotate(shape=edge, angle=[number])` rotate an edge
 - `rotate(shape=edge, x=[number], y=[number], z=[number])` rotate an edge
 - `scale(shape=edge, scale=number)` scale an edge
+- `center(shape=edge)` center an edge
 
 ## 3D
 - `extrude(shape=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
 - `revolve(shape=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape around an axis
-- `cube(x=[number], y=[number], z=[number], center=[bool])` create a cube
-- `sphere(radius=[number], center=[bool])` create a sphere
-- `cylinder(radius=[number], height=[number], center=[bool])` create a cylinder
+- `cube(x=[number], y=[number], z=[number])` create a cube
+- `sphere(radius=[number])` create a sphere
+- `cylinder(radius=[number], height=[number])` create a cylinder
 - `union(left=shape, right=shape)` combine two shapes
 - `chamfer(shape=shape, radius=number)` chamfer edges
 - `fillet(shape=shape, radius=number)` fillet edges
@@ -82,6 +83,7 @@ to build parts.
 - `translate(shape=shape, x=[number], y=[number], z=[number])` move a shape
 - `rotate(shape=shape, x=[number], y=[number], z=[number])` rotate a shape
 - `scale(shape=shape, scale=number)` scale a shape
+- `center(shape=shape)` center a shape
 
 ## Lists
 - `length(list=list)` get the length of a list

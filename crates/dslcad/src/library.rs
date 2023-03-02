@@ -298,10 +298,10 @@ impl Library {
             // 2D
             bind!(point, faces::point[x=option_number, y=option_number, z=option_number], Category::TwoD, "create a new 2D point"),
             bind!(line, faces::line[start=point, end=point], Category::TwoD, "create a line between two points"),
-            bind!(square, faces::square[x=option_number, y=option_number, center=option_bool], Category::TwoD, "create a square"),
+            bind!(square, faces::square[x=option_number, y=option_number], Category::TwoD, "create a square"),
             bind!(
                 circle,
-                faces::circle[radius = option_number, center=option_bool],
+                faces::circle[radius = option_number],
                 Category::TwoD,
                 "create a circle"
             ),
@@ -317,17 +317,23 @@ impl Library {
             bind!(rotate, faces::rotate[shape=edge, angle=option_number], Category::TwoD, "rotate an edge"),
             bind!(rotate, faces::rotate_3d[shape=edge, x=option_number, y=option_number, z=option_number], Category::TwoD, "rotate an edge"),
             bind!(scale, faces::scale[shape=edge, scale=number], Category::TwoD, "scale an edge"),
+            bind!(
+                center,
+                faces::center[shape = edge],
+                Category::TwoD,
+                "center an edge"
+            ),
             // 3D
             bind!(extrude, faces::extrude[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),
-            bind!(cube, shapes::cube[x=option_number, y=option_number, z=option_number, center=option_bool], Category::ThreeD, "create a cube"),
+            bind!(cube, shapes::cube[x=option_number, y=option_number, z=option_number], Category::ThreeD, "create a cube"),
             bind!(
                 sphere,
-                shapes::sphere[radius = option_number, center=option_bool],
+                shapes::sphere[radius = option_number],
                 Category::ThreeD,
                 "create a sphere"
             ),
-            bind!(cylinder, shapes::cylinder[radius=option_number, height=option_number, center=option_bool], Category::ThreeD, "create a cylinder"),
+            bind!(cylinder, shapes::cylinder[radius=option_number, height=option_number], Category::ThreeD, "create a cylinder"),
             bind!(union, shapes::union_shape[left=shape, right=shape], Category::ThreeD, "combine two shapes"),
             bind!(chamfer, shapes::chamfer[shape=shape, radius=number], Category::ThreeD, "chamfer edges"),
             bind!(fillet, shapes::fillet[shape=shape, radius=number], Category::ThreeD, "fillet edges"),
@@ -336,6 +342,12 @@ impl Library {
             bind!(translate, shapes::translate[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "move a shape"),
             bind!(rotate, shapes::rotate[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "rotate a shape"),
             bind!(scale, shapes::scale[shape=shape, scale=number], Category::ThreeD, "scale a shape"),
+            bind!(
+                center,
+                shapes::center[shape = shape],
+                Category::ThreeD,
+                "center a shape"
+            ),
             // Lists
             bind!(
                 length,

@@ -31,11 +31,11 @@ pub fn arc(
     Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
-pub fn square(x: Option<f64>, y: Option<f64>, center: bool) -> Result<Value, RuntimeError> {
+pub fn square(x: Option<f64>, y: Option<f64>) -> Result<Value, RuntimeError> {
     let mut edge = WireFactory::new();
 
-    let x0 = if center { -x.unwrap_or(1.0) / 2.0 } else { 0.0 };
-    let y0 = if center { -y.unwrap_or(1.0) / 2.0 } else { 0.0 };
+    let x0 = 0.0;
+    let y0 = 0.0;
 
     let a = Point::new_2d(x0, y0);
     let b = Point::new_2d(x0, y0 + y.unwrap_or(1.0));
@@ -50,13 +50,13 @@ pub fn square(x: Option<f64>, y: Option<f64>, center: bool) -> Result<Value, Run
     Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
-pub fn circle(radius: Option<f64>, center: bool) -> Result<Value, RuntimeError> {
+pub fn circle(radius: Option<f64>) -> Result<Value, RuntimeError> {
     let mut edge = WireFactory::new();
 
     let r = radius.unwrap_or(0.5);
 
-    let x0 = if center { -r } else { 0.0 };
-    let y0 = if center { -r } else { 0.0 };
+    let x0 = 0.0;
+    let y0 = 0.0;
 
     let a = Point::new_2d(x0, y0 + r);
     let b = Point::new_2d(x0 + r, y0 + (r * 2.0));
@@ -213,4 +213,14 @@ pub fn scale(shape: Rc<RefCell<Wire>>, size: f64) -> Result<Value, RuntimeError>
     Ok(Value::Line(Rc::new(RefCell::new(Wire::scale(
         &shape, size,
     )?))))
+}
+
+pub fn center(shape: Rc<RefCell<Wire>>) -> Result<Value, RuntimeError> {
+    let center = shape.borrow().center_of_mass();
+    translate(
+        shape,
+        Some(-center.x()),
+        Some(-center.y()),
+        Some(-center.z()),
+    )
 }

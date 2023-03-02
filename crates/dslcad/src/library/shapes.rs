@@ -5,55 +5,29 @@ use std::rc::Rc;
 
 use opencascade::{Axis, DsShape, Point, Shape};
 
-pub fn cube(
-    x: Option<f64>,
-    y: Option<f64>,
-    z: Option<f64>,
-    center: bool,
-) -> Result<Value, RuntimeError> {
+pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
     let x = x.unwrap_or(1.0);
     let y = y.unwrap_or(1.0);
     let z = z.unwrap_or(1.0);
 
     let cube = Shape::cube(x, y, z)?;
-    let aligned = if center {
-        cube.translate(&Point::new(-x / 2., -y / 2., -z / 2.))?
-    } else {
-        cube
-    };
-
-    Ok(aligned.into())
+    Ok(cube.into())
 }
 
-pub fn sphere(radius: Option<f64>, center: bool) -> Result<Value, RuntimeError> {
+pub fn sphere(radius: Option<f64>) -> Result<Value, RuntimeError> {
     let r = radius.unwrap_or(0.5);
 
     let base = Shape::sphere(r)?;
-    let aligned = if center {
-        base
-    } else {
-        base.translate(&Point::new(r, r, r))?
-    };
-
+    let aligned = base.translate(&Point::new(r, r, r))?;
     Ok(aligned.into())
 }
 
-pub fn cylinder(
-    radius: Option<f64>,
-    height: Option<f64>,
-    center: bool,
-) -> Result<Value, RuntimeError> {
+pub fn cylinder(radius: Option<f64>, height: Option<f64>) -> Result<Value, RuntimeError> {
     let radius = radius.unwrap_or(0.5);
     let height = height.unwrap_or(1.0);
 
     let base = Shape::cylinder(radius, height)?;
-    let aligned = if center {
-        base.translate(&Point::new(-radius, -radius, -height / 2.))?
-    } else {
-        base
-    };
-
-    Ok(aligned.into())
+    Ok(base.into())
 }
 
 pub fn union_shape(
@@ -127,4 +101,14 @@ pub fn rotate(
 pub fn scale(shape: Rc<RefCell<Shape>>, size: f64) -> Result<Value, RuntimeError> {
     let shape = shape.borrow();
     Ok(Shape::scale(&shape, size)?.into())
+}
+
+pub fn center(shape: Rc<RefCell<Shape>>) -> Result<Value, RuntimeError> {
+    let center = shape.borrow().center_of_mass();
+    translate(
+        shape,
+        Some(-center.x()),
+        Some(-center.y()),
+        Some(-center.z()),
+    )
 }
