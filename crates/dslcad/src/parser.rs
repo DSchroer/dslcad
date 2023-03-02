@@ -339,12 +339,239 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_expression(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
-        let first = self.parse_expression_lhs(lexer)?;
-        self.parse_expression_rhs(first, lexer)
+    fn operator(
+        &mut self,
+        lexer: &mut Lexer<'a>,
+        name: &'static str,
+        left: Expression<'a>,
+        parse_right: impl Fn(&mut Self, &mut Lexer<'a>) -> Result<Expression<'a>, ParseError>,
+    ) -> Result<Expression<'a>, ParseError> {
+        lexer.next();
+        let sb = SpanBuilder::from(lexer);
+        let right = parse_right(self, lexer)?;
+        Ok(Expression::Invocation {
+            path: CallPath::String(name),
+            arguments: HashMap::from([("left", left.into()), ("right", right.into())]),
+            span: sb.to(lexer),
+        })
     }
 
-    fn parse_expression_lhs(
+    fn parse_expression(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+        self.parse_or(lexer)
+    }
+
+    fn parse_or(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+        let first = self.parse_and(lexer)?;
+        let mut peek = lexer.clone();
+        match peek.next() {
+            Some(Token::Or) => self.operator(lexer, "or", first, |s, l| s.parse_or(l)),
+            Some(_) => Ok(first),
+            None => {
+                return Err(ParseError::UnexpectedEndOfFile(
+                    self.path.clone(),
+                    self.source()?,
+                ))
+            }
+        }
+    }
+
+    fn parse_and(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+        let first = self.parse_equality(lexer)?;
+        let mut peek = lexer.clone();
+        match peek.next() {
+            Some(Token::And) => self.operator(lexer, "and", first, |s, l| s.parse_and(l)),
+            Some(_) => Ok(first),
+            None => {
+                return Err(ParseError::UnexpectedEndOfFile(
+                    self.path.clone(),
+                    self.source()?,
+                ))
+            }
+        }
+    }
+
+    fn parse_equality(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+        let first = self.parse_comparison(lexer)?;
+        let mut peek = lexer.clone();
+        match peek.next() {
+            Some(Token::Equals) => {
+                self.operator(lexer, "equals", first, |s, l| s.parse_equality(l))
+            }
+            Some(Token::NotEquals) => {
+                self.operator(lexer, "not_equals", first, |s, l| s.parse_equality(l))
+            }
+            Some(_) => Ok(first),
+            None => {
+                return Err(ParseError::UnexpectedEndOfFile(
+                    self.path.clone(),
+                    self.source()?,
+                ))
+            }
+        }
+    }
+
+    fn parse_comparison(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+        let first = self.parse_add_sub(lexer)?;
+        let mut peek = lexer.clone();
+        match peek.next() {
+            Some(Token::Less) => self.operator(lexer, "less", first, |s, l| s.parse_comparison(l)),
+            Some(Token::LessEquals) => {
+                self.operator(lexer, "less_or_equal", first, |s, l| s.parse_comparison(l))
+            }
+            Some(Token::Greater) => {
+                self.operator(lexer, "greater", first, |s, l| s.parse_comparison(l))
+            }
+            Some(Token::GreaterEquals) => {
+                self.operator(lexer, "greater_or_equal", first, |s, l| {
+                    s.parse_comparison(l)
+                })
+            }
+            Some(_) => Ok(first),
+            None => {
+                return Err(ParseError::UnexpectedEndOfFile(
+                    self.path.clone(),
+                    self.source()?,
+                ))
+            }
+        }
+    }
+
+    fn parse_add_sub(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+        let first = self.parse_mul_div_mod(lexer)?;
+        let mut peek = lexer.clone();
+        match peek.next() {
+            Some(Token::Plus) => self.operator(lexer, "add", first, |s, l| s.parse_add_sub(l)),
+            Some(Token::Minus) => {
+                self.operator(lexer, "subtract", first, |s, l| s.parse_add_sub(l))
+            }
+            Some(_) => Ok(first),
+            None => {
+                return Err(ParseError::UnexpectedEndOfFile(
+                    self.path.clone(),
+                    self.source()?,
+                ))
+            }
+        }
+    }
+
+    fn parse_mul_div_mod(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+        let first = self.parse_pow(lexer)?;
+        let mut peek = lexer.clone();
+        match peek.next() {
+            Some(Token::Divide) => {
+                self.operator(lexer, "divide", first, |s, l| s.parse_mul_div_mod(l))
+            }
+            Some(Token::Multiply) => {
+                self.operator(lexer, "multiply", first, |s, l| s.parse_mul_div_mod(l))
+            }
+            Some(Token::Modulo) => {
+                self.operator(lexer, "modulo", first, |s, l| s.parse_mul_div_mod(l))
+            }
+            Some(_) => Ok(first),
+            None => {
+                return Err(ParseError::UnexpectedEndOfFile(
+                    self.path.clone(),
+                    self.source()?,
+                ))
+            }
+        }
+    }
+
+    fn parse_pow(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+        let first = self.parse_inject(lexer)?;
+        let mut peek = lexer.clone();
+        match peek.next() {
+            Some(Token::Power) => self.operator(lexer, "power", first, |s, l| s.parse_pow(l)),
+            Some(_) => Ok(first),
+            None => {
+                return Err(ParseError::UnexpectedEndOfFile(
+                    self.path.clone(),
+                    self.source()?,
+                ))
+            }
+        }
+    }
+
+    fn parse_inject(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+        let first = self.parse_spanning(lexer)?;
+        self.try_add_inject(lexer, first)
+    }
+
+    fn try_add_inject(
+        &mut self,
+        lexer: &mut Lexer<'a>,
+        first: Expression<'a>,
+    ) -> Result<Expression<'a>, ParseError> {
+        let mut peek = lexer.clone();
+        match peek.next() {
+            Some(Token::Inject) => {
+                lexer.next();
+                let first_span = first.span().clone();
+                let sb = SpanBuilder::from(lexer);
+                let prop = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
+                let expr = self.parse_call(lexer)?;
+                match expr {
+                    Expression::Invocation {
+                        path,
+                        mut arguments,
+                        ..
+                    } => {
+                        arguments.insert(prop, Box::new(first));
+                        self.try_add_inject(
+                            lexer,
+                            Expression::Invocation {
+                                path,
+                                arguments,
+                                span: first_span.start..sb.to(lexer).end,
+                            },
+                        )
+                    }
+                    _ => panic!("parse_call failed to return invocation"),
+                }
+            }
+            Some(_) => Ok(first),
+            None => {
+                return Err(ParseError::UnexpectedEndOfFile(
+                    self.path.clone(),
+                    self.source()?,
+                ))
+            }
+        }
+    }
+
+    fn parse_spanning(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+        let first = self.parse_terminal_expression(lexer)?;
+        let mut peek = lexer.clone();
+        match peek.next() {
+            Some(Token::Period) => {
+                lexer.next();
+                let sb = SpanBuilder::from(lexer);
+                let l = Box::new(first);
+                let r = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
+                Ok(Expression::Access(l, r, sb.to(lexer)))
+            }
+            Some(Token::OpenList) => {
+                lexer.next();
+                let sb = SpanBuilder::from(lexer);
+                let r = self.parse_expression(lexer)?;
+                take!(self, lexer, Token::CloseList = "]");
+                Ok(Expression::Index {
+                    target: first.into(),
+                    index: r.into(),
+                    span: sb.to(lexer),
+                })
+            }
+            Some(_) => Ok(first),
+            None => {
+                return Err(ParseError::UnexpectedEndOfFile(
+                    self.path.clone(),
+                    self.source()?,
+                ))
+            }
+        }
+    }
+
+    fn parse_terminal_expression(
         &mut self,
         lexer: &mut Lexer<'a>,
     ) -> Result<Expression<'a>, ParseError> {
@@ -353,7 +580,7 @@ impl<'a> Parser<'a> {
             Token::Minus = "-" => {
                 lexer.next();
                 let sb = SpanBuilder::from(lexer);
-                let expr = self.parse_expression_lhs(lexer)?;
+                let expr = self.parse_terminal_expression(lexer)?;
                 let span = sb.to(lexer);
                 Expression::Invocation {
                     path: CallPath::String("subtract"),
@@ -370,7 +597,7 @@ impl<'a> Parser<'a> {
             Token::Not = "not" => {
                 lexer.next();
                 let sb = SpanBuilder::from(lexer);
-                let expr = self.parse_expression_lhs(lexer)?;
+                let expr = self.parse_terminal_expression(lexer)?;
                 let span = sb.to(lexer);
                 Expression::Invocation {
                     path: CallPath::String("not"),
@@ -420,94 +647,6 @@ impl<'a> Parser<'a> {
                 self.parse_if(lexer)?
             }
         ))
-    }
-
-    fn parse_expression_rhs(
-        &mut self,
-        lhs: Expression<'a>,
-        lexer: &mut Lexer<'a>,
-    ) -> Result<Expression<'a>, ParseError> {
-        let first = lhs;
-
-        macro_rules! op_shorthand {
-            ($name: literal, $left: ident, $lexer: ident) => {{
-                $lexer.next();
-                let sb = SpanBuilder::from($lexer);
-                let l = Box::new($left);
-                let r = Box::new(self.parse_expression(lexer)?);
-                Ok(Expression::Invocation {
-                    path: CallPath::String($name),
-                    arguments: HashMap::from([("left", l), ("right", r)]),
-                    span: sb.to($lexer),
-                })
-            }};
-        }
-
-        let mut peek = lexer.clone();
-        match peek.next() {
-            Some(Token::Period) => {
-                lexer.next();
-                let sb = SpanBuilder::from(lexer);
-                let l = Box::new(first);
-                let r = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
-                self.parse_expression_rhs(Expression::Access(l, r, sb.to(lexer)), lexer)
-            }
-            Some(Token::OpenList) => {
-                lexer.next();
-                let sb = SpanBuilder::from(lexer);
-                let r = self.parse_expression(lexer)?;
-                take!(self, lexer, Token::CloseList = "]");
-                self.parse_expression_rhs(
-                    Expression::Index {
-                        target: first.into(),
-                        index: r.into(),
-                        span: sb.to(lexer),
-                    },
-                    lexer,
-                )
-            }
-            Some(Token::Inject) => {
-                lexer.next();
-                let first_span = first.span().clone();
-                let sb = SpanBuilder::from(lexer);
-                let prop = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
-
-                let expr = self.parse_call(lexer)?;
-                match expr {
-                    Expression::Invocation {
-                        path,
-                        mut arguments,
-                        ..
-                    } => {
-                        arguments.insert(prop, Box::new(first));
-                        self.parse_expression_rhs(
-                            Expression::Invocation {
-                                path,
-                                arguments,
-                                span: first_span.start..sb.to(lexer).end,
-                            },
-                            lexer,
-                        )
-                    }
-                    _ => panic!("parse_call failed to return invocation"),
-                }
-            }
-            Some(Token::Plus) => op_shorthand!("add", first, lexer),
-            Some(Token::Minus) => op_shorthand!("subtract", first, lexer),
-            Some(Token::Multiply) => op_shorthand!("multiply", first, lexer),
-            Some(Token::Divide) => op_shorthand!("divide", first, lexer),
-            Some(Token::Modulo) => op_shorthand!("modulo", first, lexer),
-            Some(Token::Power) => op_shorthand!("power", first, lexer),
-            Some(Token::Less) => op_shorthand!("less", first, lexer),
-            Some(Token::LessEquals) => op_shorthand!("less_or_equal", first, lexer),
-            Some(Token::Equals) => op_shorthand!("equals", first, lexer),
-            Some(Token::NotEquals) => op_shorthand!("not_equals", first, lexer),
-            Some(Token::Greater) => op_shorthand!("greater", first, lexer),
-            Some(Token::GreaterEquals) => op_shorthand!("greater_or_equal", first, lexer),
-            Some(Token::And) => op_shorthand!("and", first, lexer),
-            Some(Token::Or) => op_shorthand!("or", first, lexer),
-            _ => Ok(first),
-        }
     }
 }
 
@@ -618,7 +757,7 @@ pub mod tests {
             a.unwrap();
         });
 
-        parse_statement("5 ->value cube() ->test cube();", |p| {
+        parse_statement("5 ->value a() ->test b();", |p| {
             assert!(matches!(p, Statement::Return(
             Expression::Invocation { arguments: x, .. }
             , ..

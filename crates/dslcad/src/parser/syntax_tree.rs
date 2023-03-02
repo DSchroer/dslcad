@@ -3,7 +3,7 @@ use logos::Span;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Statement<'a> {
     Variable {
         name: &'a str,
@@ -22,13 +22,13 @@ impl Statement<'_> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CallPath<'a> {
     String(&'a str),
     Document(&'a DocId),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expression<'a> {
     Literal(Literal<'a>, Span),
     Reference(&'a str, Span),
@@ -80,7 +80,7 @@ impl Expression<'_> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Literal<'a> {
     Number(f64),
     Bool(bool),
