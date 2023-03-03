@@ -39,7 +39,8 @@ steps:
       - apk add git
       - git config user.name "Drone"
       - git config user.email "dominick@schroer.ca"
-      - mkdocs gh-deploy --shell
+      - mkdocs build
+      - ghp-import site
 #    when:
 #      event:
 #        - tag
