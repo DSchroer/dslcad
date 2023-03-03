@@ -35,12 +35,16 @@ steps:
 
   - name: build docs
     image: minidocks/mkdocs
+    environment:
+      DOCS_TOKEN:
+        from_secret: drone_docs
     commands:
       - apk add git
       - git config user.name "Drone"
       - git config user.email "dominick@schroer.ca"
+      - git remote add docs http://dschroer:${DOCS_TOKEN}@gitea.swhome.ca
       - mkdocs build
-      - ghp-import site -p -b gh-pages
+      - ghp-import site -p -b gh-pages -r docs
   #    when:
 #      event:
 #        - tag
