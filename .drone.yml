@@ -37,8 +37,8 @@ steps:
     image: minidocks/mkdocs
     commands:
       - apk add git
-      - git config --global user.name "Drone"
-      - git config --global user.email "dominick@schroer.ca"
+      - git config user.name "Drone"
+      - git config user.email "dominick@schroer.ca"
       - mkdocs gh-deploy --force
 #    when:
 #      event:
