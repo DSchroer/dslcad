@@ -36,8 +36,8 @@ steps:
   - name: build docs
     image: minidocks/mkdocs
     commands:
+      - ping gitea.swhome.ca
       - apk add git
-      - ping http://gitea.swhome.ca
       - mkdocs gh-deploy --force
 #    when:
 #      event:
