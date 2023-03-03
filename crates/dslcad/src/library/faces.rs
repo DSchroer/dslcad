@@ -215,12 +215,15 @@ pub fn scale(shape: Rc<RefCell<Wire>>, size: f64) -> Result<Value, RuntimeError>
     )?))))
 }
 
-pub fn center(shape: Rc<RefCell<Wire>>) -> Result<Value, RuntimeError> {
+pub fn center(
+    shape: Rc<RefCell<Wire>>,
+    x: Option<bool>,
+    y: Option<bool>,
+    z: Option<bool>,
+) -> Result<Value, RuntimeError> {
     let center = shape.borrow().center_of_mass();
-    translate(
-        shape,
-        Some(-center.x()),
-        Some(-center.y()),
-        Some(-center.z()),
-    )
+    let x = if x.unwrap_or(true) { -center.x() } else { 0.0 };
+    let y = if y.unwrap_or(true) { -center.y() } else { 0.0 };
+    let z = if z.unwrap_or(true) { -center.z() } else { 0.0 };
+    translate(shape, Some(x), Some(y), Some(z))
 }

@@ -67,7 +67,7 @@ to build parts.
 - `rotate(shape=edge, angle=[number])` rotate an edge
 - `rotate(shape=edge, x=[number], y=[number], z=[number])` rotate an edge
 - `scale(shape=edge, scale=number)` scale an edge
-- `center(shape=edge)` center an edge
+- `center(shape=edge, x=[bool], y=[bool], z=[bool])` center an edge
 
 ## 3D
 - `extrude(shape=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
@@ -83,7 +83,7 @@ to build parts.
 - `translate(shape=shape, x=[number], y=[number], z=[number])` move a shape
 - `rotate(shape=shape, x=[number], y=[number], z=[number])` rotate a shape
 - `scale(shape=shape, scale=number)` scale a shape
-- `center(shape=shape)` center a shape
+- `center(shape=shape, x=[bool], y=[bool], z=[bool])` center a shape
 
 ## Lists
 - `length(list=list)` get the length of a list

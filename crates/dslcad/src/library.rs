@@ -99,10 +99,10 @@ macro_rules! invoke {
     }};
     ($map: ident, $name: ident=option_bool) => {{
         match $map.get(stringify!($name)) {
-            Some(value) => value
+            Some(value) => Some(value
                 .to_bool()
-                .unwrap_or_else(||false),
-            None => false,
+                .ok_or(RuntimeError::UnexpectedType(value.get_type()))?),
+            None => None,
         }
     }};
     ($map: ident, $name: ident=text) => {{
@@ -319,7 +319,7 @@ impl Library {
             bind!(scale, faces::scale[shape=edge, scale=number], Category::TwoD, "scale an edge"),
             bind!(
                 center,
-                faces::center[shape = edge],
+                faces::center[shape = edge, x=option_bool, y=option_bool, z=option_bool],
                 Category::TwoD,
                 "center an edge"
             ),
@@ -344,7 +344,7 @@ impl Library {
             bind!(scale, shapes::scale[shape=shape, scale=number], Category::ThreeD, "scale a shape"),
             bind!(
                 center,
-                shapes::center[shape = shape],
+                shapes::center[shape = shape, x=option_bool, y=option_bool, z=option_bool],
                 Category::ThreeD,
                 "center a shape"
             ),
