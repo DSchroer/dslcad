@@ -33,6 +33,14 @@ steps:
       event:
         - tag
 
+  - name: build docs
+    image: mkdocs
+    commands:
+      - mkdocs gh-deploy --force
+#    when:
+#      event:
+#        - tag
+
   - template: github-mirror
     repo: git@github.com:DSchroer/dslcad.git
 
