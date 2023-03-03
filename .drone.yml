@@ -40,8 +40,8 @@ steps:
       - git config user.name "Drone"
       - git config user.email "dominick@schroer.ca"
       - mkdocs build
-      - ghp-import site
-#    when:
+      - ghp-import site -p -b gh-pages
+  #    when:
 #      event:
 #        - tag
 
