@@ -12,13 +12,13 @@ steps:
     commands:
       - docker build . -t modelscriptci
 
-#  - name: build and test
-#    image: modelscriptci
-#    pull: never
-#    commands:
-#      - cargo +nightly fmt --check
-#      - cargo clippy -- -Dwarnings
-#      - cargo test
+  - name: build and test
+    image: modelscriptci
+    pull: never
+    commands:
+      - cargo +nightly fmt --check
+      - cargo clippy -- -Dwarnings
+      - cargo test
 
   - name: build releases
     image: modelscriptci
@@ -45,9 +45,9 @@ steps:
       - git remote add docs http://dschroer:$${DOCS_TOKEN}@gitea.swhome.ca/dschroer/model-script.git
       - mkdocs build
       - ghp-import site -p -b gh-pages -r docs --force
-  #    when:
-#      event:
-#        - tag
+    when:
+      event:
+        - tag
 
   - template: github-mirror
     repo: git@github.com:DSchroer/dslcad.git
