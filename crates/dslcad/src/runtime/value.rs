@@ -106,6 +106,7 @@ impl Value {
     pub fn to_accessible(&self) -> Option<Ref<dyn Access>> {
         match self {
             Value::Script(i) => Some(i.borrow()),
+            Value::Line(w) => Some(w.borrow()),
             Value::Shape(s) => Some(s.borrow()),
             Value::Point(p) => Some(p.borrow()),
             _ => None,
