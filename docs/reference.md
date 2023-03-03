@@ -54,6 +54,7 @@ to build parts.
 - `round(number=number)` round to the nearest whole number
 - `ceil(number=number)` round up to a whole number
 - `floor(number=number)` round down to a whole number
+- `sqrt(number=number)` square root of a number
 
 ## 2D
 - `point(x=[number], y=[number], z=[number])` create a new 2D point

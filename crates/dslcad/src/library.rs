@@ -262,6 +262,12 @@ impl Library {
                 Category::Math,
                 "round down to a whole number"
             ),
+            bind!(
+                sqrt,
+                math::sqrt[number = number],
+                Category::Math,
+                "square root of a number"
+            ),
             // Boolean
             bind!(and, boolean::and[left=bool, right=bool], Category::Hidden, "logical and"),
             bind!(or, boolean::or[left=bool, right=bool], Category::Hidden, "logical or"),

@@ -97,6 +97,10 @@ pub fn tan_rad(radians: f64) -> Result<f64, RuntimeError> {
     Ok(f64::tan(radians))
 }
 
+pub fn sqrt(number: f64) -> Result<f64, RuntimeError> {
+    Ok(f64::sqrt(number))
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
