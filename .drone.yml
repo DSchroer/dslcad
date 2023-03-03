@@ -34,7 +34,7 @@ steps:
         - tag
 
   - name: build docs
-    image: mkdocs
+    image: minidocks/mkdocs
     commands:
       - mkdocs gh-deploy --force
 #    when:
