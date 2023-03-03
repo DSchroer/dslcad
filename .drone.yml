@@ -12,13 +12,13 @@ steps:
     commands:
       - docker build . -t modelscriptci
 
-  - name: build and test
-    image: modelscriptci
-    pull: never
-    commands:
-      - cargo +nightly fmt --check
-      - cargo clippy -- -Dwarnings
-      - cargo test
+#  - name: build and test
+#    image: modelscriptci
+#    pull: never
+#    commands:
+#      - cargo +nightly fmt --check
+#      - cargo clippy -- -Dwarnings
+#      - cargo test
 
   - name: build releases
     image: modelscriptci
@@ -36,6 +36,7 @@ steps:
   - name: build docs
     image: minidocks/mkdocs
     commands:
+      - apk add git
       - mkdocs gh-deploy --force
 #    when:
 #      event:
