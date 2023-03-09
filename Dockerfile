@@ -38,6 +38,9 @@ RUN ln -s /osxcross/target/bin/x86_64-apple-darwin20.4-ld /osxcross/target/bin/x
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
+# Remove win32 dlls to force static linking
+RUN rm /usr/lib/gcc/x86_64-w64-mingw32/12-win32/*.dll.a
+
 # Toolchains
 RUN rustup toolchain install nightly
 RUN rustup target add x86_64-pc-windows-gnu
