@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Use system UI scale factor
 - Use Create, Modify and Remove events for file watcher
+- Order of operations
+- Windows builds crashing randomly
 
 ## [v0.0.1] - 2023-02-10
 

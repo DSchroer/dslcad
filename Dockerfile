@@ -1,4 +1,4 @@
-FROM debian
+FROM debian:unstable-slim
 RUN apt-get update; apt-get install -y \
     clang \
     cmake \
@@ -22,11 +22,8 @@ RUN apt-get update; apt-get install -y \
     gnupg2 \
     apt-transport-https  \
     ca-certificates  \
-    software-properties-common
-
-RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
-RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
-RUN apt-get update; apt-get install -y docker-ce
+    software-properties-common \
+    bash
 
 # OSXCross for Mac Builds
 RUN git clone https://github.com/tpoechtrager/osxcross
@@ -39,11 +36,6 @@ RUN ln -s /osxcross/target/bin/x86_64-apple-darwin20.4-ld /osxcross/target/bin/x
 # Rustup
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Cross
-RUN cargo install cross --git https://github.com/cross-rs/cross
-ENV CROSS_CONTAINER_IN_CONTAINER=true
-ENV CROSS_CONTAINER_ENGINE_NO_BUILDKIT=1
 
 # Toolchains
 RUN rustup toolchain install nightly
