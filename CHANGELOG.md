@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use Create, Modify and Remove events for file watcher
 - Order of operations
 - Windows builds crashing randomly
+- Crash on opencascade operations with invalid arguments
 
 ## [v0.0.1] - 2023-02-10
 

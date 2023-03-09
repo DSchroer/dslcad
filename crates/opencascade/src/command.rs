@@ -22,7 +22,11 @@ pub trait Builder<T>: Command {
             pin.pin_mut().build(&progress);
         }
 
-        // SAFETY: safe since is_done and build were checked
-        Ok(unsafe { pin.pin_mut().value() })
+        if !pin.is_done() {
+            Err("opencascade operation failed".into())
+        } else {
+            // SAFETY: safe since is_done and build were checked
+            Ok(unsafe { pin.pin_mut().value() })
+        }
     }
 }
