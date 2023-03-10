@@ -484,6 +484,11 @@ impl Display for Library {
 - `a and b` logical and
 - `a or b` logical or
 - `not a` logical not
+
+## Properties
+- `point.{{x,y,z}}` properties of points
+- `2d_value.{{center}}` properties of 2D objects
+- `3d_value.{{center}}` properties of 3D objects
 "
         )?;
 

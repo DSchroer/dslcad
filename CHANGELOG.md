@@ -7,13 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.0.2] - 2023-03-10
+
 ### Added
-- New `center` option for 3D primitives
+- New `center()` function for 2D & 3D primitives
 - Export to `txt` file support
-- Trig functions for `sin`, `cos`, `tan`
+- Trig functions for `sin`, `cos`, `tan`, `sqrt`
 - Text operations `format` and `formatln`
 - Math `ceil` and `floor`
 - Escape sequences for `\r`, `\n`, `\"`, `\\`, `\t`
+
+### Changed
+- Removed the `center` parameter from 2D primitives. Instead of 
+`square(center=true)` use `square() ->shape center()`.
 
 ### Fixed
 - Use system UI scale factor
@@ -21,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Order of operations
 - Windows builds crashing randomly
 - Crash on opencascade operations with invalid arguments
+- Files not static linking on win32
+- Docs update CI process
 
 ## [v0.0.1] - 2023-02-10
 
