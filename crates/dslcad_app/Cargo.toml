@@ -11,12 +11,12 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.1", features = ["derive"] }
-bevy = "0.9.0"
-bevy_egui = "0.17.1"
-smooth-bevy-cameras = "0.6.0"
+bevy = "0.10"
+bevy_egui = "0.20.0"
+smooth-bevy-cameras = "0.8.0"
 path-absolutize = "3.0.14"
-rfd = "0.10.0"
+rfd = "0.11.2"
 dslcad = { path = "../dslcad" }
 notify = "5.0.0-pre.15"
-bevy_polyline = "0.4.0"
-bevy_points = "0.1.1"
+bevy_polyline = { git = "https://github.com/Aceeri/bevy_polyline.git" }
+bevy_points = "0.2"

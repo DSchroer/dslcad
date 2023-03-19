@@ -1,6 +1,7 @@
 use crate::editor::stl::stl_to_triangle_mesh;
 use crate::editor::Blueprint;
 use bevy::prelude::*;
+use bevy_points::material::PointsShaderSettings;
 use bevy_points::prelude::*;
 
 use bevy_polyline::material::PolylineMaterial;
@@ -50,8 +51,8 @@ fn mesh_renderer(
                 continue;
             }
 
-            let mut entity = if let Some(e) = render_state.model {
-                commands.get_entity(e).unwrap()
+            let entity = if let Some(e) = render_state.model {
+                e
             } else {
                 return;
             };
@@ -60,13 +61,13 @@ fn mesh_renderer(
                 for model in models {
                     let mesh = stl_to_triangle_mesh(model.mesh());
 
-                    entity.add_children(|builder| {
-                        builder.spawn(PbrBundle {
+                    commands
+                        .spawn(PbrBundle {
                             mesh: meshes.add(mesh),
                             material: materials.add(Blueprint::white().into()),
                             ..Default::default()
-                        });
-                    });
+                        })
+                        .set_parent(entity);
                 }
             }
         }
@@ -87,16 +88,16 @@ fn point_renderer(
                 continue;
             }
 
-            let mut entity = if let Some(e) = render_state.model {
-                commands.get_entity(e).unwrap()
+            let entity = if let Some(e) = render_state.model {
+                e
             } else {
                 return;
             };
 
             if let Some(Ok(models)) = &state.output {
                 for model in models {
-                    entity.add_children(|builder| {
-                        builder.spawn(MaterialMeshBundle {
+                    commands
+                        .spawn(MaterialMeshBundle {
                             mesh: meshes.add(
                                 PointsMesh::from_iter(
                                     model
@@ -107,15 +108,18 @@ fn point_renderer(
                                 .into(),
                             ),
                             material: point_materials.add(PointsMaterial {
-                                point_size: 10.0,
+                                settings: PointsShaderSettings {
+                                    point_size: 10.0,
+                                    color: Blueprint::black(),
+                                    ..Default::default()
+                                },
                                 perspective: false,
                                 circle: true,
-                                color: Blueprint::black(),
                                 ..Default::default()
                             }),
                             ..Default::default()
-                        });
-                    });
+                        })
+                        .set_parent(entity);
                 }
             }
         }
@@ -136,8 +140,8 @@ fn line_renderer(
                 continue;
             }
 
-            let mut entity = if let Some(e) = render_state.model {
-                commands.get_entity(e).unwrap()
+            let entity = if let Some(e) = render_state.model {
+                e
             } else {
                 return;
             };
@@ -145,8 +149,8 @@ fn line_renderer(
             if let Some(Ok(models)) = &state.output {
                 for model in models {
                     for line in model.lines() {
-                        entity.add_children(|builder| {
-                            builder.spawn(PolylineBundle {
+                        commands
+                            .spawn(PolylineBundle {
                                 polyline: polylines.add(Polyline {
                                     vertices: line
                                         .iter()
@@ -160,8 +164,8 @@ fn line_renderer(
                                     ..Default::default()
                                 }),
                                 ..Default::default()
-                            });
-                        });
+                            })
+                            .set_parent(entity);
                     }
                 }
             }

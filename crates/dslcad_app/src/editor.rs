@@ -34,14 +34,14 @@ impl Blueprint {
 
 pub fn main() -> Result<(), Box<dyn Error>> {
     App::new()
-        .insert_resource(Msaa { samples: 4 })
+        .insert_resource(Msaa::default())
         .insert_resource(ClearColor(Blueprint::blue()))
         .insert_resource(State::new())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
-            window: WindowDescriptor {
+            primary_window: Some(Window {
                 title: dslcad::constants::FULL_NAME.to_string(),
-                ..default()
-            },
+                ..Default::default()
+            }),
             ..default()
         }))
         .add_plugin(PolylinePlugin)

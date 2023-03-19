@@ -2,6 +2,7 @@ use crate::editor::rendering::RenderCommand;
 use crate::editor::State;
 use bevy::app::AppExit;
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use dslcad::Dslcad;
 
@@ -40,13 +41,13 @@ fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
 }
 
 fn main_ui(
-    mut egui_context: ResMut<EguiContext>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
     mut events: EventWriter<UiEvent>,
     mut render_events: EventWriter<RenderCommand>,
     mut state: ResMut<State>,
     mut exit: EventWriter<AppExit>,
 ) {
-    egui::TopBottomPanel::top("Tools").show(egui_context.ctx_mut(), |ui| {
+    egui::TopBottomPanel::top("Tools").show(egui_ctx.single_mut().get_mut(), |ui| {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("File", |ui| {
                 if ui.button("New (n)").clicked() {
@@ -102,10 +103,10 @@ fn main_ui(
     });
 }
 
-fn about(mut egui_context: ResMut<EguiContext>, mut state: ResMut<State>) {
+fn about(mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>, mut state: ResMut<State>) {
     egui::Window::new("About")
         .open(&mut state.about_window)
-        .show(egui_context.ctx_mut(), |ui| {
+        .show(egui_ctx.single_mut().get_mut(), |ui| {
             ui.label(dslcad::constants::FULL_NAME);
             ui.separator();
             ui.label(format!("Version: {}", env!("CARGO_PKG_VERSION")));
@@ -113,18 +114,21 @@ fn about(mut egui_context: ResMut<EguiContext>, mut state: ResMut<State>) {
         });
 }
 
-fn cheatsheet(mut egui_context: ResMut<EguiContext>, mut state: ResMut<State>) {
+fn cheatsheet(
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut state: ResMut<State>,
+) {
     egui::Window::new("Cheat Sheet")
         .open(&mut state.cheatsheet_window)
-        .show(egui_context.ctx_mut(), |ui| {
+        .show(egui_ctx.single_mut().get_mut(), |ui| {
             egui::ScrollArea::vertical()
                 .max_height(512.)
                 .show(ui, |ui| ui.monospace(Dslcad::default().cheat_sheet()));
         });
 }
 
-fn console_panel(state: Res<State>, mut egui_context: ResMut<EguiContext>) {
-    egui::TopBottomPanel::bottom("Console").show(egui_context.ctx_mut(), |ui| {
+fn console_panel(state: Res<State>, mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>) {
+    egui::TopBottomPanel::bottom("Console").show(egui_ctx.single_mut().get_mut(), |ui| {
         ui.heading("Console:");
         ui.separator();
 
