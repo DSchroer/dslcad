@@ -17,11 +17,15 @@ impl Server<Message> for DslcadApi {
             Message::Render { path } => {
                 let mut cad = Dslcad::default();
                 let res = cad.render_file(&path);
+                let metadata = RenderMetadata { files: cad.paths };
                 match res {
-                    Ok(outputs) => Message::RenderResults(Render { parts: outputs }),
-                    Err(e) => Message::Error(CadError::System {
-                        error: e.to_string(),
-                    }),
+                    Ok(outputs) => Message::RenderResults(Ok(Render { parts: outputs }), metadata),
+                    Err(e) => Message::RenderResults(
+                        Err(CadError::System {
+                            error: e.to_string(),
+                        }),
+                        metadata,
+                    ),
                 }
             }
             Message::Export { render, name, path } => match export(render, name, path) {

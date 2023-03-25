@@ -189,17 +189,21 @@ fn file_dialog_ext(state: &State, ext: Option<&str>) -> FileDialog {
 }
 
 fn render_file(state: &mut ResMut<State>) -> Option<Vec<PathBuf>> {
+    let mut paths = Vec::new();
+
     if let Some(file) = &state.file {
         let client: Client<Message> = Client::new(server);
         let result = client.send(Message::Render {
             path: format!("{}", file.display()),
         });
         state.output = Some(match result {
-            Message::RenderResults(render) => Ok(render),
-            Message::Error(e) => Err(e),
+            Message::RenderResults(result, meta) => {
+                paths = meta.files.iter().map(PathBuf::from).collect();
+                result
+            }
             _ => panic!("unexpected message {:?}", result),
         });
     }
 
-    Some(vec![])
+    Some(paths)
 }

@@ -7,7 +7,7 @@ pub enum Message {
     Render {
         path: String,
     },
-    RenderResults(Render),
+    RenderResults(Result<Render, CadError>, RenderMetadata),
     Export {
         render: Render,
         name: String,
@@ -46,6 +46,11 @@ pub struct Mesh {
     pub vertices: Vec<Point>,
     pub triangles: Vec<Vec3<usize>>,
     pub normals: Vec<Point>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RenderMetadata {
+    pub files: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

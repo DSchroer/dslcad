@@ -26,7 +26,8 @@ pub(crate) fn main() -> Result<(), Box<dyn Error>> {
     });
 
     let export = match output {
-        Message::RenderResults(render) => {
+        Message::RenderResults(render, _) => {
+            let render = render?;
             let file_name = PathBuf::from(&args.source);
             client.send(Message::Export {
                 render,
@@ -34,7 +35,6 @@ pub(crate) fn main() -> Result<(), Box<dyn Error>> {
                 path: args.out,
             })
         }
-        Message::Error(e) => return Err(e.into()),
         _ => panic!("unexpected message {:?}", output),
     };
 
