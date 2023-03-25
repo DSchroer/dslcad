@@ -14,5 +14,6 @@ logos = "0.12"
 thiserror = "1.0.38"
 path-absolutize = "3"
 opencascade = { path = "../opencascade" }
+dslcad_api = { path = "../dslcad_api" }
 indexmap = "1.9.2"
 stl_io = "0.7.0"

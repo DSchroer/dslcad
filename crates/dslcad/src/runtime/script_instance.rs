@@ -24,15 +24,6 @@ impl ScriptInstance {
     }
 }
 
-impl Display for ScriptInstance {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.value
-            .to_output()
-            .map_err(|_| std::fmt::Error::default())?
-            .fmt(f)
-    }
-}
-
 impl Access for ScriptInstance {
     fn get(&self, identifier: &str) -> Option<Value> {
         let val = self

@@ -1,124 +1,85 @@
 use super::Value;
-use opencascade::{Mesh, Point, Shape, Wire};
+use dslcad_api::protocol::Part;
+use opencascade::{Error, Mesh, Point, Shape, Wire};
 use std::cell::{Ref, RefMut};
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone)]
-pub struct Output {
-    text: String,
-    points: Vec<[f64; 3]>,
-    lines: Vec<Vec<[f64; 3]>>,
-    mesh: Mesh,
+pub trait IntoPart {
+    fn into_part(self) -> Result<Part, Error>;
 }
 
-impl Output {
-    pub fn text(&self) -> &str {
-        &self.text
-    }
-
-    pub fn points(&self) -> &Vec<[f64; 3]> {
-        &self.points
-    }
-
-    pub fn lines(&self) -> &Vec<Vec<[f64; 3]>> {
-        &self.lines
-    }
-
-    pub fn mesh(&self) -> &Mesh {
-        &self.mesh
+impl IntoPart for &f64 {
+    fn into_part(self) -> Result<Part, Error> {
+        Ok(Part::Data {
+            text: self.to_string(),
+        })
     }
 }
 
-impl From<&f64> for Output {
-    fn from(value: &f64) -> Self {
-        Output {
-            text: value.to_string(),
-            ..Default::default()
-        }
+impl IntoPart for &bool {
+    fn into_part(self) -> Result<Part, Error> {
+        Ok(Part::Data {
+            text: self.to_string(),
+        })
     }
 }
 
-impl From<&bool> for Output {
-    fn from(value: &bool) -> Self {
-        Output {
-            text: value.to_string(),
-            ..Default::default()
-        }
+impl IntoPart for &str {
+    fn into_part(self) -> Result<Part, Error> {
+        Ok(Part::Data {
+            text: self.to_string(),
+        })
     }
 }
 
-impl From<&String> for Output {
-    fn from(value: &String) -> Self {
-        Output {
-            text: value.to_string(),
-            ..Default::default()
-        }
+impl IntoPart for &Vec<Value> {
+    fn into_part(self) -> Result<Part, Error> {
+        Ok(Part::Data {
+            text: format!("[{}]", self.len()),
+        })
     }
 }
 
-impl From<&Vec<Value>> for Output {
-    fn from(value: &Vec<Value>) -> Self {
-        Output {
-            text: format!("[{}]", value.len()),
-            ..Default::default()
-        }
+impl IntoPart for Ref<'_, Point> {
+    fn into_part(self) -> Result<Part, Error> {
+        Ok(Part::Planar {
+            points: vec![[self.x(), self.y(), self.z()]],
+            lines: Vec::new(),
+        })
     }
 }
 
-impl From<Ref<'_, Point>> for Output {
-    fn from(value: Ref<Point>) -> Self {
-        Output {
-            points: vec![[value.x(), value.y(), value.z()]],
-            ..Default::default()
-        }
-    }
-}
-
-impl TryFrom<RefMut<'_, Wire>> for Output {
-    type Error = opencascade::Error;
-
-    fn try_from(mut value: RefMut<'_, Wire>) -> Result<Self, Self::Error> {
-        Ok(Output {
-            points: [value.start()?, value.end()?]
+impl IntoPart for RefMut<'_, Wire> {
+    fn into_part(mut self) -> Result<Part, Error> {
+        Ok(Part::Planar {
+            points: [self.start()?, self.end()?]
                 .into_iter()
                 .flatten()
                 .map(|p| p.into())
                 .collect(),
-            lines: value.points()?,
-            ..Default::default()
+            lines: self.points()?,
         })
     }
 }
 
-impl TryFrom<RefMut<'_, Shape>> for Output {
-    type Error = opencascade::Error;
+impl IntoPart for RefMut<'_, Shape> {
+    fn into_part(mut self) -> Result<Part, Error> {
+        let original = self.mesh()?;
+        let mut mesh = dslcad_api::protocol::Mesh {
+            vertices: original.vertices,
+            triangles: vec![],
+            normals: vec![],
+        };
 
-    fn try_from(mut value: RefMut<'_, Shape>) -> Result<Self, Self::Error> {
-        Ok(Output {
-            points: value.points()?,
-            lines: value.lines()?,
-            mesh: value.mesh()?,
-            ..Default::default()
-        })
-    }
-}
-
-impl Default for Output {
-    fn default() -> Self {
-        Output {
-            text: String::new(),
-            points: Vec::new(),
-            lines: Vec::new(),
-            mesh: Mesh {
-                triangles: Vec::new(),
-                vertices: Vec::new(),
-            },
+        for (tri, normal) in self.mesh()?.triangles_with_normals() {
+            mesh.triangles.push(tri.clone());
+            mesh.normals.push(normal);
         }
-    }
-}
 
-impl Display for Output {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.text)
+        Ok(Part::Object {
+            points: self.points()?,
+            lines: self.lines()?,
+            mesh,
+        })
     }
 }

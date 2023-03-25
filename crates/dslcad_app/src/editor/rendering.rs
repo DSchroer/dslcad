@@ -6,6 +6,7 @@ use bevy_points::prelude::*;
 
 use bevy_polyline::material::PolylineMaterial;
 use bevy_polyline::polyline::{Polyline, PolylineBundle};
+use dslcad_api::protocol::{Part, Point};
 
 pub struct ModelRenderingPlugin;
 
@@ -57,17 +58,22 @@ fn mesh_renderer(
                 return;
             };
 
-            if let Some(Ok(models)) = &state.output {
-                for model in models {
-                    let mesh = stl_to_triangle_mesh(model.mesh());
+            if let Some(Ok(render)) = &state.output {
+                for part in &render.parts {
+                    match part {
+                        Part::Object { mesh, .. } => {
+                            let mesh = stl_to_triangle_mesh(mesh);
 
-                    commands
-                        .spawn(PbrBundle {
-                            mesh: meshes.add(mesh),
-                            material: materials.add(Blueprint::white().into()),
-                            ..Default::default()
-                        })
-                        .set_parent(entity);
+                            commands
+                                .spawn(PbrBundle {
+                                    mesh: meshes.add(mesh),
+                                    material: materials.add(Blueprint::white().into()),
+                                    ..Default::default()
+                                })
+                                .set_parent(entity);
+                        }
+                        _ => {}
+                    }
                 }
             }
         }
@@ -94,36 +100,61 @@ fn point_renderer(
                 return;
             };
 
-            if let Some(Ok(models)) = &state.output {
-                for model in models {
-                    commands
-                        .spawn(MaterialMeshBundle {
-                            mesh: meshes.add(
-                                PointsMesh::from_iter(
-                                    model
-                                        .points()
-                                        .iter()
-                                        .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32)),
-                                )
-                                .into(),
-                            ),
-                            material: point_materials.add(PointsMaterial {
-                                settings: PointsShaderSettings {
-                                    point_size: 10.0,
-                                    color: Blueprint::black(),
-                                    ..Default::default()
-                                },
-                                perspective: false,
-                                circle: true,
-                                ..Default::default()
-                            }),
-                            ..Default::default()
-                        })
-                        .set_parent(entity);
+            if let Some(Ok(render)) = &state.output {
+                for part in &render.parts {
+                    match part {
+                        Part::Planar { points, .. } => render_points(
+                            &mut commands,
+                            &mut meshes,
+                            &mut point_materials,
+                            &points,
+                            entity,
+                        ),
+                        Part::Object { points, .. } => render_points(
+                            &mut commands,
+                            &mut meshes,
+                            &mut point_materials,
+                            &points,
+                            entity,
+                        ),
+                        _ => {}
+                    }
                 }
             }
         }
     }
+}
+
+fn render_points(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    point_materials: &mut ResMut<Assets<PointsMaterial>>,
+    points: &Vec<Point>,
+    parent: Entity,
+) {
+    commands
+        .spawn(MaterialMeshBundle {
+            mesh: meshes.add(
+                PointsMesh::from_iter(
+                    points
+                        .iter()
+                        .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32)),
+                )
+                .into(),
+            ),
+            material: point_materials.add(PointsMaterial {
+                settings: PointsShaderSettings {
+                    point_size: 10.0,
+                    color: Blueprint::black(),
+                    ..Default::default()
+                },
+                perspective: false,
+                circle: true,
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
+        .set_parent(parent);
 }
 
 fn line_renderer(
@@ -146,30 +177,56 @@ fn line_renderer(
                 return;
             };
 
-            if let Some(Ok(models)) = &state.output {
-                for model in models {
-                    for line in model.lines() {
-                        commands
-                            .spawn(PolylineBundle {
-                                polyline: polylines.add(Polyline {
-                                    vertices: line
-                                        .iter()
-                                        .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))
-                                        .collect(),
-                                }),
-                                material: polyline_materials.add(PolylineMaterial {
-                                    width: 2.0,
-                                    color: Blueprint::black(),
-                                    perspective: false,
-                                    ..Default::default()
-                                }),
-                                ..Default::default()
-                            })
-                            .set_parent(entity);
+            if let Some(Ok(render)) = &state.output {
+                for part in &render.parts {
+                    match part {
+                        Part::Planar { lines, .. } => render_lines(
+                            &mut commands,
+                            &mut polylines,
+                            &mut polyline_materials,
+                            &lines,
+                            entity,
+                        ),
+                        Part::Object { lines, .. } => render_lines(
+                            &mut commands,
+                            &mut polylines,
+                            &mut polyline_materials,
+                            &lines,
+                            entity,
+                        ),
+                        _ => {}
                     }
                 }
             }
         }
+    }
+}
+
+fn render_lines(
+    commands: &mut Commands,
+    polylines: &mut ResMut<Assets<Polyline>>,
+    polyline_materials: &mut ResMut<Assets<PolylineMaterial>>,
+    lines: &Vec<Vec<Point>>,
+    parent: Entity,
+) {
+    for line in lines {
+        commands
+            .spawn(PolylineBundle {
+                polyline: polylines.add(Polyline {
+                    vertices: line
+                        .iter()
+                        .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))
+                        .collect(),
+                }),
+                material: polyline_materials.add(PolylineMaterial {
+                    width: 2.0,
+                    color: Blueprint::black(),
+                    perspective: false,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .set_parent(parent);
     }
 }
 

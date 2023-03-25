@@ -1,18 +1,33 @@
-use crate::Output;
+use dslcad_api::protocol::{Mesh, Part};
 use std::io::Write;
 use stl_io::{Normal, Triangle, Vector};
 
-pub fn export_stl(out: &Output, writer: &mut impl Write) -> Result<(), std::io::Error> {
+pub fn export_stl(mesh: &Mesh, writer: &mut impl Write) -> Result<(), std::io::Error> {
     let mut triangles = Vec::new();
-    let mesh = out.mesh();
-    for (face, normal) in mesh.triangles_with_normals() {
+    for (i, triangle) in mesh.triangles.iter().enumerate() {
         triangles.push(Triangle {
             vertices: [
-                Vector::new(mesh.vertex_f32(face[0])),
-                Vector::new(mesh.vertex_f32(face[1])),
-                Vector::new(mesh.vertex_f32(face[2])),
+                Vector::new([
+                    mesh.vertices[triangle[0]][0] as f32,
+                    mesh.vertices[triangle[0]][1] as f32,
+                    mesh.vertices[triangle[0]][2] as f32,
+                ]),
+                Vector::new([
+                    mesh.vertices[triangle[1]][0] as f32,
+                    mesh.vertices[triangle[1]][1] as f32,
+                    mesh.vertices[triangle[1]][2] as f32,
+                ]),
+                Vector::new([
+                    mesh.vertices[triangle[2]][0] as f32,
+                    mesh.vertices[triangle[2]][1] as f32,
+                    mesh.vertices[triangle[2]][2] as f32,
+                ]),
             ],
-            normal: Normal::new(normal.map(|n| n as f32)),
+            normal: Normal::new([
+                mesh.normals[i][0] as f32,
+                mesh.normals[i][1] as f32,
+                mesh.normals[i][2] as f32,
+            ]),
         })
     }
 

@@ -17,7 +17,6 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 pub use access::Access;
-pub use output::Output;
 pub use stack::WithStack;
 pub use types::Type;
 pub use value::Value;

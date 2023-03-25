@@ -3,5 +3,6 @@ resolver = "2"
 members = [
     "crates/dslcad",
     "crates/dslcad_app",
-    "crates/opencascade"
+    "crates/opencascade",
+    "crates/dslcad_api"
 ]

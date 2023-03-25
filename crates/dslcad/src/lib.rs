@@ -1,5 +1,4 @@
-extern crate core;
-
+mod api_server;
 pub mod constants;
 pub mod export;
 mod library;
@@ -17,8 +16,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+pub use api_server::server;
+use dslcad_api::protocol::Part;
 pub use opencascade::Mesh;
-pub use runtime::Output;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -58,7 +58,7 @@ impl Dslcad {
         }
     }
 
-    pub fn render_file(&mut self, path: &str) -> Result<Vec<Output>, Error> {
+    pub fn render_file(&mut self, path: &str) -> Result<Vec<Part>, Error> {
         let id = self
             .store
             .forge_id(path.to_string())

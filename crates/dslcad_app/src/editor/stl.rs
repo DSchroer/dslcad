@@ -1,7 +1,7 @@
 use bevy::prelude::Mesh;
 use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 
-pub fn stl_to_triangle_mesh(stl: &dslcad::Mesh) -> Mesh {
+pub fn stl_to_triangle_mesh(stl: &dslcad_api::protocol::Mesh) -> Mesh {
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
 
     let vertex_count = stl.triangles.len() * 3;
@@ -10,11 +10,10 @@ pub fn stl_to_triangle_mesh(stl: &dslcad::Mesh) -> Mesh {
     let mut normals = Vec::with_capacity(vertex_count);
     let mut indices = Vec::with_capacity(vertex_count);
 
-    for (i, (triangle, normal)) in stl.triangles_with_normals().enumerate() {
-        for (j, vertex_index) in triangle.iter().enumerate().take(3) {
-            let vertex = stl.vertices[*vertex_index];
-            positions.push([vertex[0] as f32, vertex[1] as f32, vertex[2] as f32]);
-            normals.push([normal[0] as f32, normal[1] as f32, normal[2] as f32]);
+    for i in 0..stl.triangles.len() {
+        for (j, vertex) in stl.triangles[i].iter().enumerate() {
+            positions.push(stl.vertices[*vertex].map(|v| v as f32));
+            normals.push(stl.normals[i].map(|v| v as f32));
             indices.push((i * 3 + j) as u32);
         }
     }

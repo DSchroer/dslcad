@@ -1,10 +1,11 @@
 use std::cell::{Ref, RefCell};
 
+use crate::runtime::output::IntoPart;
+use dslcad_api::protocol::Part;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
 use super::Access;
-use super::Output;
 use super::Type;
 use crate::runtime::ScriptInstance;
 use opencascade::{Point, Shape, Wire};
@@ -64,18 +65,18 @@ impl Debug for Value {
 }
 
 impl Value {
-    pub fn to_output(&self) -> Result<Output, opencascade::Error> {
+    pub fn to_output(&self) -> Result<Part, opencascade::Error> {
         Ok(match self {
-            Value::Number(v) => v.into(),
-            Value::Bool(v) => v.into(),
-            Value::Text(v) => v.into(),
-            Value::List(v) => v.into(),
+            Value::Number(v) => v.into_part()?,
+            Value::Bool(v) => v.into_part()?,
+            Value::Text(v) => v.into_part()?,
+            Value::List(v) => v.into_part()?,
 
             Value::Script(s) => s.borrow().value().to_output()?,
 
-            Value::Point(p) => p.borrow().into(),
-            Value::Line(l) => l.borrow_mut().try_into()?,
-            Value::Shape(s) => s.borrow_mut().try_into()?,
+            Value::Point(p) => p.borrow().into_part()?,
+            Value::Line(l) => l.borrow_mut().into_part()?,
+            Value::Shape(s) => s.borrow_mut().into_part()?,
         })
     }
 

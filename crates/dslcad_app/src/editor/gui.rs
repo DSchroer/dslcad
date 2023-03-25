@@ -5,6 +5,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use dslcad::Dslcad;
+use dslcad_api::protocol::Part;
 
 pub struct GuiPlugin;
 impl Plugin for GuiPlugin {
@@ -141,9 +142,12 @@ fn console_panel(state: Res<State>, mut egui_ctx: Query<&mut EguiContext, With<P
                 Some(output) => {
                     match output {
                         Ok(o) => {
-                            for o in o {
-                                if !o.text().is_empty() {
-                                    ui.monospace(o.text());
+                            for part in &o.parts {
+                                match part {
+                                    Part::Data { text } => {
+                                        ui.monospace(text);
+                                    }
+                                    _ => {}
                                 }
                             }
                         }

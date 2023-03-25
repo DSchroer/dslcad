@@ -1,10 +1,12 @@
 use clap::Parser;
 use dslcad::export;
-use dslcad::{Dslcad, Output};
+use dslcad::server;
+use dslcad_api::protocol::{Message, Part};
+use dslcad_api::Client;
 use std::error::Error;
 use std::fs;
 use std::fs::OpenOptions;
-use std::path::Path;
+use std::path::PathBuf;
 
 /// model_script cad compiler
 #[derive(Parser, Debug)]
@@ -20,62 +22,28 @@ struct Args {
 
 pub(crate) fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-    let mut cad = Dslcad::default();
-    let source = Path::new(&args.source);
-    let root = Path::new(&args.out);
 
-    write_outputs(
-        &cad.render_file(source.to_str().unwrap())?,
-        root,
-        source.file_stem().unwrap().to_str().unwrap(),
-    )?;
+    let client: Client<Message> = Client::new(server);
+    let output = client.send(Message::Render {
+        path: args.source.clone(),
+    });
 
-    Ok(())
-}
+    let export = match output {
+        Message::RenderResults(render) => {
+            let file_name = PathBuf::from(&args.source);
+            client.send(Message::Export {
+                render,
+                name: file_name.file_stem().unwrap().to_str().unwrap().to_string(),
+                path: args.out.clone(),
+            })
+        }
+        Message::Error(e) => return Err(e.into()),
+        _ => panic!("unexpected message {:?}", output),
+    };
 
-pub fn write_outputs(outputs: &[Output], dir: &Path, name: &str) -> Result<(), Box<dyn Error>> {
-    for (index, model) in outputs.iter().enumerate() {
-        let full_name = if index == 0 {
-            name.to_string()
-        } else {
-            format!("{name}_{index}")
-        };
-        let file = dir.join(Path::new(&full_name));
-
-        write_txt_to_file(model, &file)?;
-        write_stl_to_file(model, &file)?;
+    match export {
+        Message::ExportResults() => Ok(()),
+        Message::Error(e) => return Err(e.into()),
+        _ => panic!("unexpected message {:?}", export),
     }
-    Ok(())
-}
-
-fn write_txt_to_file(output: &Output, path: &Path) -> Result<(), Box<dyn Error>> {
-    if output.text().is_empty() {
-        return Ok(());
-    }
-
-    let path = Path::new(path).with_extension("txt");
-    if path.exists() {
-        fs::remove_file(&path)?;
-    }
-
-    let mut file = OpenOptions::new().create_new(true).write(true).open(path)?;
-
-    export::export_txt(output, &mut file)?;
-    Ok(())
-}
-
-fn write_stl_to_file(output: &Output, path: &Path) -> Result<(), Box<dyn Error>> {
-    if output.mesh().triangles.is_empty() {
-        return Ok(());
-    }
-
-    let path = Path::new(path).with_extension("stl");
-    if path.exists() {
-        fs::remove_file(&path)?;
-    }
-
-    let mut file = OpenOptions::new().create_new(true).write(true).open(path)?;
-
-    export::export_stl(output, &mut file)?;
-    Ok(())
 }

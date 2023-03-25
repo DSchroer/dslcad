@@ -8,13 +8,17 @@ mod xyz;
 use crate::editor::rendering::RenderCommand;
 use bevy::prelude::*;
 use bevy_polyline::prelude::*;
-use dslcad::{Dslcad, Output};
+use dslcad::server;
+use dslcad_api::protocol::{CadError, Message, Render};
+use dslcad_api::Client;
 use file_watcher::{FileWatcher, FileWatcherPlugin};
 use gui::UiEvent;
 use rfd::FileDialog;
 use std::env;
 use std::error::Error;
+use std::fmt::format;
 use std::fs::File;
+use std::os::linux::raw::stat;
 use std::path::PathBuf;
 
 struct Blueprint;
@@ -58,7 +62,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 #[derive(Resource)]
 struct State {
     file: Option<PathBuf>,
-    output: Option<Result<Vec<Output>, dslcad::Error>>,
+    output: Option<Result<Render, CadError>>,
     autowatch: bool,
     watcher: Option<FileWatcher>,
 
@@ -114,15 +118,25 @@ fn controller(
                 render.send(RenderCommand::Redraw);
             }
             UiEvent::Export() => {
-                if let Some(Ok(model)) = &state.output {
+                if let Some(Ok(render)) = &state.output {
                     if let Some(path) = file_dialog_ext(&state, None).pick_folder() {
                         let origin = state.file.clone();
-                        crate::cli::write_outputs(
-                            model,
-                            &path,
-                            origin.unwrap().file_stem().unwrap().to_str().unwrap(),
-                        )
-                        .expect("unable to save stl");
+                        let client: Client<Message> = Client::new(server);
+                        let result = client.send(Message::Export {
+                            render: render.clone(),
+                            name: format!(
+                                "{}",
+                                origin.unwrap().file_stem().unwrap().to_str().unwrap()
+                            ),
+                            path: format!("{}", path.display()),
+                        });
+                        match result {
+                            Message::ExportResults() => {}
+                            Message::Error(e) => {
+                                panic!("{}", e);
+                            }
+                            _ => panic!("unexpected message {:?}", result),
+                        };
                     }
                 }
             }
@@ -172,14 +186,17 @@ fn file_dialog_ext(state: &State, ext: Option<&str>) -> FileDialog {
 }
 
 fn render_file(state: &mut ResMut<State>) -> Option<Vec<PathBuf>> {
-    let mut files = None;
-
     if let Some(file) = &state.file {
-        let mut cad = Dslcad::default();
-        let model = cad.render_file(file.to_str().unwrap());
-        files = Some(cad.documents().map(PathBuf::from).collect());
-        state.output = Some(model);
+        let client: Client<Message> = Client::new(server);
+        let result = client.send(Message::Render {
+            path: format!("{}", file.display()),
+        });
+        state.output = Some(match result {
+            Message::RenderResults(render) => Ok(render),
+            Message::Error(e) => Err(e),
+            _ => panic!("unexpected message {:?}", result),
+        });
     }
 
-    files
+    Some(vec![])
 }
