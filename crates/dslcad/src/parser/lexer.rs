@@ -178,6 +178,6 @@ mod tests {
     }
 
     fn tokens(input: &str) -> Vec<Token> {
-        Token::lexer(input).into_iter().collect()
+        Token::lexer(input).collect()
     }
 }

@@ -5,7 +5,7 @@ pub mod protocol;
 
 use serde::{Deserialize, Serialize};
 use serde_binary::binary_stream::Endian;
-use std::fmt::Debug;
+
 use std::ptr::slice_from_raw_parts;
 
 pub use client::Client;
@@ -42,8 +42,8 @@ mod tests {
 
     struct PrintServer;
     impl Server<Message> for PrintServer {
-        fn on_message(message: Result<Message, Error>) -> Message {
-            assert_eq!(42, message.unwrap().secret);
+        fn on_message(message: Message) -> Message {
+            assert_eq!(42, message.secret);
             Message { secret: 1 }
         }
     }
@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn it_can_send_and_receive_messages() {
         let client = Client::new(printer);
-        let res = client.send(Message { secret: 42 }).unwrap();
+        let res = client.send(Message { secret: 42 });
         assert_eq!(1, res.secret)
     }
 }

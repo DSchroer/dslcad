@@ -1,6 +1,5 @@
 use crate::{decode, encode, ClientFn};
 use serde::{Deserialize, Serialize};
-use serde_binary::Error;
 
 #[macro_export]
 macro_rules! server_fn {

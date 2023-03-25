@@ -1,5 +1,6 @@
 use super::{Access, Value};
 use crate::runtime::scope::Scope;
+use dslcad_api::protocol::Part;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
@@ -21,6 +22,20 @@ impl ScriptInstance {
 
     pub fn value(&self) -> &Value {
         &self.value
+    }
+}
+
+impl Display for ScriptInstance {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let part = self
+            .value
+            .to_output()
+            .map_err(|_| std::fmt::Error::default())?;
+        match part {
+            Part::Data { text } => f.write_str(&text),
+            Part::Planar { .. } => panic!("can not display 2d as text"),
+            Part::Object { .. } => panic!("can not display 3d as text"),
+        }
     }
 }
 

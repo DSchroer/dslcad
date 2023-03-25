@@ -60,19 +60,16 @@ fn mesh_renderer(
 
             if let Some(Ok(render)) = &state.output {
                 for part in &render.parts {
-                    match part {
-                        Part::Object { mesh, .. } => {
-                            let mesh = stl_to_triangle_mesh(mesh);
+                    if let Part::Object { mesh, .. } = part {
+                        let mesh = stl_to_triangle_mesh(mesh);
 
-                            commands
-                                .spawn(PbrBundle {
-                                    mesh: meshes.add(mesh),
-                                    material: materials.add(Blueprint::white().into()),
-                                    ..Default::default()
-                                })
-                                .set_parent(entity);
-                        }
-                        _ => {}
+                        commands
+                            .spawn(PbrBundle {
+                                mesh: meshes.add(mesh),
+                                material: materials.add(Blueprint::white().into()),
+                                ..Default::default()
+                            })
+                            .set_parent(entity);
                     }
                 }
             }
@@ -107,14 +104,14 @@ fn point_renderer(
                             &mut commands,
                             &mut meshes,
                             &mut point_materials,
-                            &points,
+                            points,
                             entity,
                         ),
                         Part::Object { points, .. } => render_points(
                             &mut commands,
                             &mut meshes,
                             &mut point_materials,
-                            &points,
+                            points,
                             entity,
                         ),
                         _ => {}
@@ -129,7 +126,7 @@ fn render_points(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     point_materials: &mut ResMut<Assets<PointsMaterial>>,
-    points: &Vec<Point>,
+    points: &[Point],
     parent: Entity,
 ) {
     commands
@@ -184,14 +181,14 @@ fn line_renderer(
                             &mut commands,
                             &mut polylines,
                             &mut polyline_materials,
-                            &lines,
+                            lines,
                             entity,
                         ),
                         Part::Object { lines, .. } => render_lines(
                             &mut commands,
                             &mut polylines,
                             &mut polyline_materials,
-                            &lines,
+                            lines,
                             entity,
                         ),
                         _ => {}

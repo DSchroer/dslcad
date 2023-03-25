@@ -1,4 +1,4 @@
-use dslcad_api::protocol::{Mesh, Part};
+use dslcad_api::protocol::Mesh;
 use std::io::Write;
 use stl_io::{Normal, Triangle, Vector};
 

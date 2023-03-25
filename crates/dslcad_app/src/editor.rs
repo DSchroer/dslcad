@@ -16,9 +16,9 @@ use gui::UiEvent;
 use rfd::FileDialog;
 use std::env;
 use std::error::Error;
-use std::fmt::format;
+
 use std::fs::File;
-use std::os::linux::raw::stat;
+
 use std::path::PathBuf;
 
 struct Blueprint;
@@ -124,10 +124,13 @@ fn controller(
                         let client: Client<Message> = Client::new(server);
                         let result = client.send(Message::Export {
                             render: render.clone(),
-                            name: format!(
-                                "{}",
-                                origin.unwrap().file_stem().unwrap().to_str().unwrap()
-                            ),
+                            name: origin
+                                .unwrap()
+                                .file_stem()
+                                .unwrap()
+                                .to_str()
+                                .unwrap()
+                                .to_string(),
                             path: format!("{}", path.display()),
                         });
                         match result {

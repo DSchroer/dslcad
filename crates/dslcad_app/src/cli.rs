@@ -1,11 +1,8 @@
 use clap::Parser;
-use dslcad::export;
 use dslcad::server;
-use dslcad_api::protocol::{Message, Part};
+use dslcad_api::protocol::Message;
 use dslcad_api::Client;
 use std::error::Error;
-use std::fs;
-use std::fs::OpenOptions;
 use std::path::PathBuf;
 
 /// model_script cad compiler
@@ -34,7 +31,7 @@ pub(crate) fn main() -> Result<(), Box<dyn Error>> {
             client.send(Message::Export {
                 render,
                 name: file_name.file_stem().unwrap().to_str().unwrap().to_string(),
-                path: args.out.clone(),
+                path: args.out,
             })
         }
         Message::Error(e) => return Err(e.into()),
@@ -43,7 +40,7 @@ pub(crate) fn main() -> Result<(), Box<dyn Error>> {
 
     match export {
         Message::ExportResults() => Ok(()),
-        Message::Error(e) => return Err(e.into()),
+        Message::Error(e) => Err(e.into()),
         _ => panic!("unexpected message {:?}", export),
     }
 }

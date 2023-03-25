@@ -58,9 +58,9 @@ pub enum CadError {
 impl Display for CadError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            CadError::Parsing { error } => f.write_str(&error),
+            CadError::Parsing { error } => f.write_str(error),
             CadError::Runtime { error, stack } => f.write_fmt(format_args!("{}\n{}", error, stack)),
-            CadError::System { error } => f.write_str(&error),
+            CadError::System { error } => f.write_str(error),
         }
     }
 }

@@ -3,7 +3,7 @@ use crate::Dslcad;
 use dslcad_api::protocol::*;
 use dslcad_api::{server_fn, Server};
 use std::error::Error;
-use std::fmt::format;
+
 use std::fs;
 use std::fs::OpenOptions;
 use std::path::PathBuf;

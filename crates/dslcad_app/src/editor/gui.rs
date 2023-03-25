@@ -143,11 +143,8 @@ fn console_panel(state: Res<State>, mut egui_ctx: Query<&mut EguiContext, With<P
                     match output {
                         Ok(o) => {
                             for part in &o.parts {
-                                match part {
-                                    Part::Data { text } => {
-                                        ui.monospace(text);
-                                    }
-                                    _ => {}
+                                if let Part::Data { text } = part {
+                                    ui.monospace(text);
                                 }
                             }
                         }

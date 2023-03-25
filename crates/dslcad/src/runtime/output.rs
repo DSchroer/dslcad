@@ -1,8 +1,7 @@
 use super::Value;
 use dslcad_api::protocol::Part;
-use opencascade::{Error, Mesh, Point, Shape, Wire};
+use opencascade::{Error, Point, Shape, Wire};
 use std::cell::{Ref, RefMut};
-use std::fmt::{Display, Formatter};
 
 pub trait IntoPart {
     fn into_part(self) -> Result<Part, Error>;
@@ -72,7 +71,7 @@ impl IntoPart for RefMut<'_, Shape> {
         };
 
         for (tri, normal) in self.mesh()?.triangles_with_normals() {
-            mesh.triangles.push(tri.clone());
+            mesh.triangles.push(*tri);
             mesh.normals.push(normal);
         }
 

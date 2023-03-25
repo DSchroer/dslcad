@@ -1,6 +1,6 @@
 use crate::{decode_from_slice, encode, ServerFn};
 use serde::{Deserialize, Serialize};
-use serde_binary::Error;
+
 use std::marker::PhantomData;
 use std::ptr::slice_from_raw_parts;
 
