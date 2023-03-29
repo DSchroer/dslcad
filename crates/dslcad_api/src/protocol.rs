@@ -7,6 +7,9 @@ pub enum Message {
     Render {
         path: String,
     },
+    RenderString {
+        source: String,
+    },
     RenderResults(Result<Render, CadError>, RenderMetadata),
     Export {
         render: Render,

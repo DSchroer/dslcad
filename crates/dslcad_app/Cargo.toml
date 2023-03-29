@@ -9,13 +9,7 @@ name = "dslcad"
 path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[features]
-default = ["cli", "editor"]
-cli = []
-editor = []
-
 [dependencies]
-dslcad = { path = "../dslcad" }
 dslcad_api = { path = "../dslcad_api" }
 
 clap = { version = "4.1", features = ["derive"] }
@@ -23,8 +17,11 @@ clap = { version = "4.1", features = ["derive"] }
 bevy = "0.10"
 bevy_egui = "0.20.0"
 smooth-bevy-cameras = "0.8.0"
-path-absolutize = "3.0.14"
-rfd = "0.11.2"
 notify = "5.0.0-pre.15"
 bevy_polyline = "0.6.0"
 bevy_points = "0.2"
+
+[target.'cfg(not(target_arch="wasm32"))'.dependencies]
+dslcad = { path = "../dslcad" }
+rfd = "0.11.2"
+wasm-bindgen = "0.2.84"

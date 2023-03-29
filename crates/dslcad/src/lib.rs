@@ -1,6 +1,5 @@
 mod api_server;
-pub mod constants;
-pub mod export;
+mod export;
 mod library;
 mod parser;
 mod runtime;
@@ -15,13 +14,17 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+use dslcad_api::Server;
 
-pub use api_server::server;
 use dslcad_api::protocol::Part;
-pub use opencascade::Mesh;
+
+#[no_mangle]
+pub unsafe extern "C" fn server(length: usize, message: *const u8, cb: unsafe extern "C" fn(usize, *const u8)) {
+    api_server::DslcadApi::receive(length, message, cb)
+}
 
 #[derive(Error, Debug)]
-pub enum Error {
+pub(crate) enum Error {
     Parse(ParseError),
     Runtime(WithStack<RuntimeError>),
     CantWrite(),
@@ -37,7 +40,7 @@ impl Display for Error {
     }
 }
 
-pub struct Dslcad {
+pub(crate) struct Dslcad {
     store: SourceStore,
     library: Library,
     paths: Vec<String>,
@@ -92,17 +95,9 @@ impl Dslcad {
             Ok(vec![output.to_output().map_err(|_| Error::CantWrite())?])
         }
     }
-
-    pub fn documents(&self) -> impl Iterator<Item = &str> {
-        self.paths.iter().map(|p| p.as_str())
-    }
-
-    pub fn cheat_sheet(&self) -> String {
-        self.library.to_string()
-    }
 }
 
-pub struct FileReader;
+pub(crate) struct FileReader;
 impl Reader for FileReader {
     fn read(&self, name: &Path) -> Result<String, std::io::Error> {
         fs::read_to_string(name)

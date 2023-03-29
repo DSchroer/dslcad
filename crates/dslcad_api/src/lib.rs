@@ -1,7 +1,10 @@
 mod client;
 mod server;
 
+pub mod constants;
 pub mod protocol;
+mod busy_loop;
+mod memory;
 
 use serde::{Deserialize, Serialize};
 use serde_binary::binary_stream::Endian;
@@ -14,8 +17,8 @@ pub use server::Server;
 
 const ENDIAN: Endian = Endian::Big;
 
-pub type ClientFn = extern "C" fn(usize, *const u8);
-pub type ServerFn = extern "C" fn(usize, *const u8, ClientFn);
+pub type ClientFn = unsafe extern "C" fn(usize, *const u8);
+pub type ServerFn = unsafe extern "C" fn(usize, *const u8, ClientFn);
 
 fn encode<T: Serialize>(data: &T) -> Result<Vec<u8>, Error> {
     serde_binary::to_vec(data, ENDIAN)

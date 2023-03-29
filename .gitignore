@@ -8,3 +8,4 @@ packages/arch/*
 !packages/arch/PKGBUILD
 !packages/arch/dslcad.desktop
 site/
+browser/lib

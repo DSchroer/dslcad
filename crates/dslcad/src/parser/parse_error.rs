@@ -6,7 +6,6 @@ use std::path::PathBuf;
 
 pub enum ParseError {
     NoSuchFile(PathBuf),
-    AggregateError(Vec<ParseError>),
     UnexpectedEndOfFile(DocId, String),
     UndeclaredIdentifier(DocId, Span, String),
     DuplicateVariableName(DocId, Span, String),
@@ -28,11 +27,6 @@ impl Display for ParseError {
             ParseError::NoSuchFile(file) => {
                 f.write_fmt(format_args!("error: {}\n", file.display()))?;
                 f.write_str("unable to read file")?;
-            }
-            ParseError::AggregateError(errors) => {
-                for error in errors {
-                    Display::fmt(error, f)?;
-                }
             }
             ParseError::UnexpectedEndOfFile(file, text) => {
                 let last = text.split('\n').enumerate().last();

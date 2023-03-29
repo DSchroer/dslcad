@@ -4,7 +4,6 @@ use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
-use dslcad::Dslcad;
 use dslcad_api::protocol::Part;
 
 pub struct GuiPlugin;
@@ -108,7 +107,7 @@ fn about(mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>, mut state: 
     egui::Window::new("About")
         .open(&mut state.about_window)
         .show(egui_ctx.single_mut().get_mut(), |ui| {
-            ui.label(dslcad::constants::FULL_NAME);
+            ui.label(dslcad_api::constants::FULL_NAME);
             ui.separator();
             ui.label(format!("Version: {}", env!("CARGO_PKG_VERSION")));
             ui.label("Copyright: Dominick Schroer 2022");
@@ -122,9 +121,10 @@ fn cheatsheet(
     egui::Window::new("Cheat Sheet")
         .open(&mut state.cheatsheet_window)
         .show(egui_ctx.single_mut().get_mut(), |ui| {
-            egui::ScrollArea::vertical()
-                .max_height(512.)
-                .show(ui, |ui| ui.monospace(Dslcad::default().cheat_sheet()));
+            todo!("fix cheatsheet")
+            // egui::ScrollArea::vertical()
+            //     .max_height(512.)
+            //     .show(ui, |ui| ui.monospace(Dslcad::default().cheat_sheet()));
         });
 }
 

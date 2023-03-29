@@ -4,5 +4,5 @@ members = [
     "crates/dslcad",
     "crates/dslcad_app",
     "crates/opencascade",
-    "crates/dslcad_api"
+    "crates/dslcad_api",
 ]

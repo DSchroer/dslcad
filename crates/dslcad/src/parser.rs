@@ -163,7 +163,7 @@ impl<'a> Parser<'a> {
                 let mut buf = std::path::PathBuf::new();
                 buf.push(self.path.to_path());
                 let buf = buf.parent().unwrap();
-                let buf = buf.join(path.to_string() + "." + crate::constants::FILE_EXTENSION).canonicalize();
+                let buf = buf.join(path.to_string() + "." + dslcad_api::constants::FILE_EXTENSION).canonicalize();
                 let buf = match &buf {
                     Ok(buf) => buf.to_str().unwrap(),
                     Err(_) => return Err(ParseError::NoSuchFile(PathBuf::from(path)))

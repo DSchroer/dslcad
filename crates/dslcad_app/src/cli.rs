@@ -1,5 +1,5 @@
 use clap::Parser;
-use dslcad::server;
+use crate::dslcad::server;
 use dslcad_api::protocol::Message;
 use dslcad_api::Client;
 use std::error::Error;
@@ -23,7 +23,7 @@ pub(crate) fn main() -> Result<(), Box<dyn Error>> {
     let client: Client<Message> = Client::new(server);
     let output = client.send(Message::Render {
         path: args.source.clone(),
-    });
+    }).busy_loop();
 
     let export = match output {
         Message::RenderResults(render, _) => {
@@ -33,7 +33,7 @@ pub(crate) fn main() -> Result<(), Box<dyn Error>> {
                 render,
                 name: file_name.file_stem().unwrap().to_str().unwrap().to_string(),
                 path: args.out,
-            })
+            }).busy_loop()
         }
         _ => panic!("unexpected message {:?}", output),
     };

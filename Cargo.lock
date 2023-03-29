@@ -1573,9 +1573,9 @@ dependencies = [
  "dslcad",
  "dslcad_api",
  "notify",
- "path-absolutize",
  "rfd",
  "smooth-bevy-cameras",
+ "wasm-bindgen",
 ]
 
 [[package]]

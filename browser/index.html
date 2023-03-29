@@ -1,0 +1,38 @@
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        body {
+            background: linear-gradient(
+                    135deg,
+                    white 0%,
+                    white 49%,
+                    black 49%,
+                    black 51%,
+                    white 51%,
+                    white 100%
+            );
+            background-repeat: repeat;
+            background-size: 20px 20px;
+        }
+        canvas {
+            background-color: white;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<script type="importmap">
+{
+  "imports": {
+    "env": "./env.js"
+  }
+}
+</script>
+<script type="module">
+    import { newServer, run } from "./dslcad.js"
+
+    const server = await newServer();
+    await run(server);
+</script>
+</html>

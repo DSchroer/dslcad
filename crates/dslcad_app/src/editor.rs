@@ -8,14 +8,16 @@ mod xyz;
 use crate::editor::rendering::RenderCommand;
 use bevy::prelude::*;
 use bevy_polyline::prelude::*;
-use dslcad::server;
+use crate::dslcad::server;
 use dslcad_api::protocol::{CadError, Message, Render};
 use dslcad_api::Client;
 use file_watcher::{FileWatcher, FileWatcherPlugin};
 use gui::UiEvent;
-use rfd::FileDialog;
 use std::env;
 use std::error::Error;
+
+#[cfg(not(target_arch="wasm32"))]
+use rfd::FileDialog;
 
 use std::fs::File;
 
@@ -37,13 +39,15 @@ impl Blueprint {
 }
 
 pub fn main() -> Result<(), Box<dyn Error>> {
-    App::new()
+    let mut app = App::new();
+
+    app
         .insert_resource(Msaa::default())
         .insert_resource(ClearColor(Blueprint::blue()))
         .insert_resource(State::new())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                title: dslcad::constants::FULL_NAME.to_string(),
+                title: dslcad_api::constants::FULL_NAME.to_string(),
                 ..Default::default()
             }),
             ..default()
@@ -52,10 +56,15 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .add_plugin(camera::CameraPlugin)
         .add_plugin(gui::GuiPlugin)
         .add_plugin(xyz::XYZPlugin)
-        .add_plugin(FileWatcherPlugin)
-        .add_plugin(rendering::ModelRenderingPlugin)
-        .add_system(controller)
-        .run();
+        .add_plugin(rendering::ModelRenderingPlugin);
+
+    #[cfg(not(target_arch="wasm32"))]
+    app.add_plugin(FileWatcherPlugin).add_system(controller);
+
+    #[cfg(not(target_arch="wasm32"))]
+    app.add_startup_system(test_controller);
+
+    app.run();
     Ok(())
 }
 
@@ -90,6 +99,23 @@ impl State {
     }
 }
 
+fn test_controller(mut render: EventWriter<RenderCommand>, mut state: ResMut<State>) {
+    let client: Client<Message> = Client::new(server);
+    let result = client.send(Message::RenderString {
+        source: r"
+cube() ->shape fillet(radius=0.2);
+        ".to_string()
+    }).busy_loop();
+    state.output = Some(match result {
+        Message::RenderResults(result, _) => {
+            result
+        }
+        _ => panic!("unexpected message {:?}", result),
+    });
+    render.send(RenderCommand::Redraw);
+}
+
+#[cfg(not(target_arch="wasm32"))]
 fn controller(
     mut events: EventReader<UiEvent>,
     mut render: EventWriter<RenderCommand>,
@@ -99,7 +125,7 @@ fn controller(
         match event {
             UiEvent::CreateFile() => {
                 if let Some(file) = file_dialog(&state).save_file() {
-                    let file = file.with_extension(dslcad::constants::FILE_EXTENSION);
+                    let file = file.with_extension(dslcad_api::constants::FILE_EXTENSION);
                     File::create(&file).unwrap();
 
                     load_file(&mut state, file);
@@ -132,7 +158,8 @@ fn controller(
                                 .unwrap()
                                 .to_string(),
                             path: format!("{}", path.display()),
-                        });
+                        }).busy_loop();
+
                         match result {
                             Message::ExportResults() => {}
                             Message::Error(e) => {
@@ -169,10 +196,12 @@ fn load_file(state: &mut ResMut<State>, file: PathBuf) {
     }
 }
 
+#[cfg(not(target_arch="wasm32"))]
 fn file_dialog(state: &State) -> FileDialog {
-    file_dialog_ext(state, Some(dslcad::constants::FILE_EXTENSION))
+    file_dialog_ext(state, Some(dslcad_api::constants::FILE_EXTENSION))
 }
 
+#[cfg(not(target_arch="wasm32"))]
 fn file_dialog_ext(state: &State, ext: Option<&str>) -> FileDialog {
     let dir = if let Some(file) = &state.file {
         file.parent().unwrap().to_path_buf()
@@ -181,7 +210,7 @@ fn file_dialog_ext(state: &State, ext: Option<&str>) -> FileDialog {
     };
     let dialog = FileDialog::new();
     let dialog = if let Some(ext) = ext {
-        dialog.add_filter(&(dslcad::constants::NAME.to_owned() + " Script"), &[ext])
+        dialog.add_filter(&(dslcad_api::constants::NAME.to_owned() + " Script"), &[ext])
     } else {
         dialog
     };
@@ -195,7 +224,7 @@ fn render_file(state: &mut ResMut<State>) -> Option<Vec<PathBuf>> {
         let client: Client<Message> = Client::new(server);
         let result = client.send(Message::Render {
             path: format!("{}", file.display()),
-        });
+        }).busy_loop();
         state.output = Some(match result {
             Message::RenderResults(result, meta) => {
                 paths = meta.files.iter().map(PathBuf::from).collect();

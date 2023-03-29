@@ -1,22 +1,36 @@
 use crate::export::{export_stl, export_txt};
 use crate::Dslcad;
 use dslcad_api::protocol::*;
-use dslcad_api::{server_fn, Server};
+use dslcad_api::Server;
 use std::error::Error;
 
 use std::fs;
 use std::fs::OpenOptions;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use crate::library::Library;
+use crate::parser::Reader;
 
-server_fn!(DslcadApi);
-
-struct DslcadApi;
+pub struct DslcadApi;
 impl Server<Message> for DslcadApi {
     fn on_message(message: Message) -> Message {
         match message {
             Message::Render { path } => {
                 let mut cad = Dslcad::default();
                 let res = cad.render_file(&path);
+                let metadata = RenderMetadata { files: cad.paths };
+                match res {
+                    Ok(outputs) => Message::RenderResults(Ok(Render { parts: outputs }), metadata),
+                    Err(e) => Message::RenderResults(
+                        Err(CadError::System {
+                            error: e.to_string(),
+                        }),
+                        metadata,
+                    ),
+                }
+            }
+            Message::RenderString { source } => {
+                let mut cad = Dslcad::new(StringReader(source), Library::new());
+                let res = cad.render_file("__internal");
                 let metadata = RenderMetadata { files: cad.paths };
                 match res {
                     Ok(outputs) => Message::RenderResults(Ok(Render { parts: outputs }), metadata),
@@ -71,4 +85,15 @@ fn export(render: Render, name: String, path: String) -> Result<(), Box<dyn Erro
     }
 
     Ok(())
+}
+
+pub struct StringReader(String);
+impl Reader for StringReader {
+    fn read(&self, _: &Path) -> Result<String, std::io::Error> {
+        Ok(self.0.to_string())
+    }
+
+    fn normalize(&self, path: &Path) -> PathBuf {
+        PathBuf::from(path)
+    }
 }

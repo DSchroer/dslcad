@@ -1,8 +1,13 @@
+use std::future::Future;
 use crate::{decode_from_slice, encode, ServerFn};
 use serde::{Deserialize, Serialize};
 
 use std::marker::PhantomData;
+use std::mem;
+use std::pin::Pin;
 use std::ptr::slice_from_raw_parts;
+use std::task::{Context, Poll, Waker};
+use crate::busy_loop::busy_loop;
 
 static mut BUFFER: Option<Vec<u8>> = None;
 
@@ -24,12 +29,34 @@ impl<T: Serialize + for<'a> Deserialize<'a>> Client<T> {
         }
     }
 
-    pub fn send(&self, message: T) -> T {
-        let encoded = encode(&message).expect("failed to encode message");
-        (self.server)(encoded.len(), encoded.as_ptr(), client_handler);
+    pub fn send(&self, message: T) -> PendingMessage<T> {
+        let mut encoded = encode(&message).expect("failed to encode message");
+        unsafe {
+            (self.server)(encoded.len(), encoded.as_ptr(), client_handler);
+        }
+        PendingMessage(PhantomData::default())
+    }
+}
 
-        let response = unsafe { BUFFER.take() }.expect("server did not respond");
+pub struct PendingMessage<T>(PhantomData<T>);
 
-        decode_from_slice(&response).expect("failed to decode message")
+impl<T: for<'a> Deserialize<'a>> PendingMessage<T> {
+    pub fn busy_loop(self) -> T {
+        busy_loop(self)
+    }
+}
+
+impl<T: for<'a> Deserialize<'a>> Future for PendingMessage<T> {
+    type Output = T;
+
+    fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {
+        unsafe {
+            match BUFFER.take() {
+                None => Poll::Pending,
+                Some(buff) => {
+                    Poll::Ready(decode_from_slice(&buff).expect("failed to decode message"))
+                }
+            }
+        }
     }
 }
