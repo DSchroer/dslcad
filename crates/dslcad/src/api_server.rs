@@ -4,11 +4,11 @@ use dslcad_api::protocol::*;
 use dslcad_api::Server;
 use std::error::Error;
 
+use crate::library::Library;
+use crate::parser::Reader;
 use std::fs;
 use std::fs::OpenOptions;
 use std::path::{Path, PathBuf};
-use crate::library::Library;
-use crate::parser::Reader;
 
 pub struct DslcadApi;
 impl Server<Message> for DslcadApi {

@@ -120,7 +120,7 @@ fn cheatsheet(
 ) {
     egui::Window::new("Cheat Sheet")
         .open(&mut state.cheatsheet_window)
-        .show(egui_ctx.single_mut().get_mut(), |ui| {
+        .show(egui_ctx.single_mut().get_mut(), |_ui| {
             todo!("fix cheatsheet")
             // egui::ScrollArea::vertical()
             //     .max_height(512.)

@@ -1,13 +1,12 @@
-use std::future::Future;
 use crate::{decode_from_slice, encode, ServerFn};
 use serde::{Deserialize, Serialize};
+use std::future::Future;
 
+use crate::busy_loop::busy_loop;
 use std::marker::PhantomData;
-use std::mem;
 use std::pin::Pin;
 use std::ptr::slice_from_raw_parts;
-use std::task::{Context, Poll, Waker};
-use crate::busy_loop::busy_loop;
+use std::task::{Context, Poll};
 
 static mut BUFFER: Option<Vec<u8>> = None;
 
@@ -30,7 +29,7 @@ impl<T: Serialize + for<'a> Deserialize<'a>> Client<T> {
     }
 
     pub fn send(&self, message: T) -> PendingMessage<T> {
-        let mut encoded = encode(&message).expect("failed to encode message");
+        let encoded = encode(&message).expect("failed to encode message");
         unsafe {
             (self.server)(encoded.len(), encoded.as_ptr(), client_handler);
         }

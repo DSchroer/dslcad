@@ -2,7 +2,7 @@ use std::future::*;
 use std::pin::pin;
 use std::task::*;
 
-const PENDING_SLEEP_MS:u64 = 10;
+const PENDING_SLEEP_MS: u64 = 10;
 
 unsafe fn rwclone(_p: *const ()) -> RawWaker {
     make_raw_waker()
@@ -18,7 +18,7 @@ fn make_raw_waker() -> RawWaker {
     RawWaker::new(&DATA, &VTABLE)
 }
 
-pub(crate) fn busy_loop<T>(future: impl Future<Output=T>) -> T {
+pub(crate) fn busy_loop<T>(future: impl Future<Output = T>) -> T {
     let mut pin = pin!(future);
     let waker = unsafe { Waker::from_raw(make_raw_waker()) };
     let mut ctx = Context::from_waker(&waker);
@@ -27,9 +27,7 @@ pub(crate) fn busy_loop<T>(future: impl Future<Output=T>) -> T {
             Poll::Ready(x) => {
                 return x;
             }
-            Poll::Pending => {
-                std::thread::sleep(std::time::Duration::from_millis(PENDING_SLEEP_MS))
-            }
+            Poll::Pending => std::thread::sleep(std::time::Duration::from_millis(PENDING_SLEEP_MS)),
         }
     }
 }

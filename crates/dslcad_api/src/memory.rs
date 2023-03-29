@@ -10,6 +10,6 @@ pub unsafe extern "C" fn new_buffer(length: usize) -> *mut u8 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn drop_buffer(length: usize, pointer: *mut u8)  {
+pub unsafe extern "C" fn drop_buffer(length: usize, pointer: *mut u8) {
     drop(Vec::from_raw_parts(pointer, length, length));
 }

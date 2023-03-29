@@ -1,10 +1,10 @@
 mod client;
 mod server;
 
-pub mod constants;
-pub mod protocol;
 mod busy_loop;
+pub mod constants;
 mod memory;
+pub mod protocol;
 
 use serde::{Deserialize, Serialize};
 use serde_binary::binary_stream::Endian;
@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn it_can_send_and_receive_messages() {
         let client = Client::new(printer);
-        let res = client.send(Message { secret: 42 });
+        let res = client.send(Message { secret: 42 }).busy_loop();
         assert_eq!(1, res.secret)
     }
 }

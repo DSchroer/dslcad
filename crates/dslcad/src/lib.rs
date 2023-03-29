@@ -6,6 +6,7 @@ mod runtime;
 
 use crate::parser::{ParseError, SourceStore};
 use crate::runtime::{RuntimeError, WithStack};
+use dslcad_api::Server;
 use library::Library;
 use parser::Reader;
 use path_absolutize::Absolutize;
@@ -14,17 +15,22 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use dslcad_api::Server;
 
 use dslcad_api::protocol::Part;
 
+/// # Safety
+/// user must ensure that length & message are valid and accessible within the memory of the app
 #[no_mangle]
-pub unsafe extern "C" fn server(length: usize, message: *const u8, cb: unsafe extern "C" fn(usize, *const u8)) {
+pub unsafe extern "C" fn server(
+    length: usize,
+    message: *const u8,
+    cb: unsafe extern "C" fn(usize, *const u8),
+) {
     api_server::DslcadApi::receive(length, message, cb)
 }
 
 #[derive(Error, Debug)]
-pub(crate) enum Error {
+pub enum Error {
     Parse(ParseError),
     Runtime(WithStack<RuntimeError>),
     CantWrite(),
@@ -40,7 +46,7 @@ impl Display for Error {
     }
 }
 
-pub(crate) struct Dslcad {
+pub struct Dslcad {
     store: SourceStore,
     library: Library,
     paths: Vec<String>,
@@ -94,6 +100,10 @@ impl Dslcad {
         } else {
             Ok(vec![output.to_output().map_err(|_| Error::CantWrite())?])
         }
+    }
+
+    pub fn cheat_sheet(&self) -> String {
+        self.library.to_string()
     }
 }
 

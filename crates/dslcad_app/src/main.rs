@@ -2,8 +2,8 @@
 
 extern crate core;
 
-mod dslcad;
 mod cli;
+mod dslcad;
 mod editor;
 
 use std::env;
