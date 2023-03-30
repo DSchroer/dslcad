@@ -34,15 +34,14 @@ export function newServer() {
             onRuntimeInitialized: function () {
                 let message;
                 const cb = this.addFunction((length, buffer) => {
-                    const tmp = new Int8Array(this.asm.memory.buffer, buffer, length);
+                    const tmp = this.HEAP8.subarray(buffer, buffer + length);
                     message = Int8Array.from(tmp);
                 }, "vii");
 
                 resolve({
                     send: (data) => {
                         let buffer = this._new_buffer(data.length);
-
-                        const array = new Int8Array(this.asm.memory.buffer, buffer, data.length)
+                        const array = this.HEAP8.subarray(buffer, buffer + data.length);
                         array.set(data);
                         this._server(array.length, array.byteOffset, cb);
 
