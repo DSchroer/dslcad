@@ -18,6 +18,7 @@ You can find pre-built binaries for:
 - Windows
 - MacOS
 - Linux
+- Browsers (WebAssembly)
 
 ## FAQ
 
