@@ -27,7 +27,6 @@ set -ex
 
 # Build WASM
 (
-  CARGO_ARGS="--release" ./scripts/wasm.sh
+  CARGO_ARGS="--release -vv" ./scripts/wasm.sh
   zip browser.zip -r browser
 )
-
