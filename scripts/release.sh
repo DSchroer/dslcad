@@ -24,3 +24,10 @@ cargo run --bin cheat_sheet > cheatsheet.md
   cargo build --release --target x86_64-apple-darwin
   (cd target/x86_64-apple-darwin/release/ && zip ../../../macosx.zip dslcad)
 )
+
+# Build WASM
+(
+  CARGO_ARGS="--release" ./scripts/wasm.sh
+  zip browser.zip -r browser
+)
+

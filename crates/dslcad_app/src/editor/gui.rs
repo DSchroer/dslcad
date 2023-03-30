@@ -1,16 +1,34 @@
+mod file_window;
+
+use crate::editor::gui::file_window::{file_window, FileWindowPlugin, FileWindowState};
 use crate::editor::rendering::RenderCommand;
 use crate::editor::State;
 use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+use bevy_egui::egui::Widget;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use clap::builder::Str;
 use dslcad_api::protocol::Part;
 
-pub struct GuiPlugin;
+pub struct GuiPlugin {
+    cheetsheet: String,
+}
+
+impl GuiPlugin {
+    pub fn new(cheetsheet: String) -> Self {
+        Self { cheetsheet }
+    }
+}
+
 impl Plugin for GuiPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<UiEvent>()
+            .insert_resource(CheatSheet {
+                cheetsheet: self.cheetsheet.clone(),
+            })
             .add_plugin(EguiPlugin)
+            .add_plugin(FileWindowPlugin)
             .add_system(main_ui)
             .add_system(about)
             .add_system(cheatsheet)
@@ -19,23 +37,32 @@ impl Plugin for GuiPlugin {
     }
 }
 
+#[derive(Resource)]
+struct CheatSheet {
+    cheetsheet: String,
+}
+
 pub enum UiEvent {
     CreateFile(),
     OpenFile(),
     Render(),
+    RenderString(String),
     Export(),
 }
 
 fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>) {
-    if keys.just_released(KeyCode::N) {
+    #[cfg(not(target_arch = "wasm32"))]
+    if keys.pressed(KeyCode::LControl) && keys.just_released(KeyCode::N) {
         events.send(UiEvent::CreateFile())
     }
 
-    if keys.just_released(KeyCode::O) {
+    #[cfg(not(target_arch = "wasm32"))]
+    if keys.pressed(KeyCode::LControl) && keys.just_released(KeyCode::O) {
         events.send(UiEvent::OpenFile())
     }
 
-    if keys.just_released(KeyCode::F5) {
+    #[cfg(not(target_arch = "wasm32"))]
+    if keys.pressed(KeyCode::LControl) && keys.just_released(KeyCode::F5) {
         events.send(UiEvent::Render())
     }
 }
@@ -45,10 +72,12 @@ fn main_ui(
     mut events: EventWriter<UiEvent>,
     mut render_events: EventWriter<RenderCommand>,
     mut state: ResMut<State>,
+    mut file_window: ResMut<FileWindowState>,
     mut exit: EventWriter<AppExit>,
 ) {
     egui::TopBottomPanel::top("Tools").show(egui_ctx.single_mut().get_mut(), |ui| {
         egui::menu::bar(ui, |ui| {
+            #[cfg(not(target_arch = "wasm32"))]
             ui.menu_button("File", |ui| {
                 if ui.button("New (n)").clicked() {
                     events.send(UiEvent::CreateFile());
@@ -64,6 +93,7 @@ fn main_ui(
                     ui.close_menu();
                 }
             });
+
             ui.menu_button("View", |ui| {
                 if ui.checkbox(&mut state.show_points, "Points").clicked() {
                     render_events.send(RenderCommand::Redraw);
@@ -75,6 +105,8 @@ fn main_ui(
                     render_events.send(RenderCommand::Redraw);
                 }
             });
+
+            #[cfg(not(target_arch = "wasm32"))]
             ui.menu_button("Rendering", |ui| {
                 if ui.button("Render (F5)").clicked() {
                     events.send(UiEvent::Render());
@@ -83,12 +115,22 @@ fn main_ui(
                 ui.separator();
                 ui.checkbox(&mut state.autowatch, "Auto Render");
             });
+
+            #[cfg(not(target_arch = "wasm32"))]
             ui.menu_button("Export", |ui| {
                 if ui.button("To folder").clicked() {
                     events.send(UiEvent::Export());
                     ui.close_menu();
                 }
             });
+
+            ui.menu_button("Window", |ui| {
+                if ui.button("Editor").clicked() {
+                    file_window.open();
+                    ui.close_menu();
+                }
+            });
+
             ui.menu_button("Help", |ui| {
                 if ui.button("Cheat Sheet").clicked() {
                     state.cheatsheet_window = true;
@@ -117,14 +159,14 @@ fn about(mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>, mut state: 
 fn cheatsheet(
     mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
     mut state: ResMut<State>,
+    cheetsheet: Res<CheatSheet>,
 ) {
     egui::Window::new("Cheat Sheet")
         .open(&mut state.cheatsheet_window)
-        .show(egui_ctx.single_mut().get_mut(), |_ui| {
-            todo!("fix cheatsheet")
-            // egui::ScrollArea::vertical()
-            //     .max_height(512.)
-            //     .show(ui, |ui| ui.monospace(Dslcad::default().cheat_sheet()));
+        .show(egui_ctx.single_mut().get_mut(), |ui| {
+            egui::ScrollArea::vertical()
+                .max_height(512.)
+                .show(ui, |ui| ui.monospace(&cheetsheet.cheetsheet));
         });
 }
 

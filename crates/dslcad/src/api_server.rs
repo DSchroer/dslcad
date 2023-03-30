@@ -48,6 +48,11 @@ impl Server<Message> for DslcadApi {
                     error: e.to_string(),
                 }),
             },
+            Message::CheatSheet() => {
+                let cad = Dslcad::default();
+                let cheatsheet = cad.cheat_sheet();
+                Message::CheatSheetResults { cheatsheet }
+            }
             _ => panic!("Unexpected message: {:#?}", message),
         }
     }

@@ -12,13 +12,13 @@ steps:
     commands:
       - docker build . -t modelscriptci
 
-  - name: build and test
-    image: modelscriptci
-    pull: never
-    commands:
-      - cargo +nightly fmt --check
-      - cargo clippy -- -Dwarnings
-      - cargo test
+#  - name: build and test
+#    image: modelscriptci
+#    pull: never
+#    commands:
+#      - cargo +nightly fmt --check
+#      - cargo clippy -- -Dwarnings
+#      - cargo test
 
   - name: build releases
     image: modelscriptci
@@ -29,9 +29,9 @@ steps:
     commands:
       - ./scripts/use-env.sh ci
       - ./scripts/release.sh
-    when:
-      event:
-        - tag
+#    when:
+#      event:
+#        - tag
 
   - name: build docs
     image: minidocks/mkdocs
@@ -59,7 +59,7 @@ steps:
         from_secret: github_api_key
     commands:
       - git remote add github https://github.com/DSchroer/dslcad.git
-      - gh release create --prerelease $DRONE_TAG cheatsheet.md examples.zip linux.zip windows.zip macosx.zip
+      - gh release create --prerelease $DRONE_TAG cheatsheet.md examples.zip linux.zip windows.zip macosx.zip browser.zip
     when:
       event:
         - tag

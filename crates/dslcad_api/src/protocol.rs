@@ -18,6 +18,10 @@ pub enum Message {
     },
     ExportResults(),
     Error(CadError),
+    CheatSheet(),
+    CheatSheetResults {
+        cheatsheet: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

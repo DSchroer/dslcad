@@ -41,6 +41,8 @@ impl Blueprint {
 pub fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new();
 
+    let cheatsheet = load_cheetsheet();
+
     app.insert_resource(Msaa::default())
         .insert_resource(ClearColor(Blueprint::blue()))
         .insert_resource(State::new())
@@ -53,18 +55,26 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         }))
         .add_plugin(PolylinePlugin)
         .add_plugin(camera::CameraPlugin)
-        .add_plugin(gui::GuiPlugin)
+        .add_plugin(gui::GuiPlugin::new(cheatsheet))
         .add_plugin(xyz::XYZPlugin)
-        .add_plugin(rendering::ModelRenderingPlugin);
+        .add_plugin(rendering::ModelRenderingPlugin)
+        .add_system(controller);
 
     #[cfg(not(target_arch = "wasm32"))]
-    app.add_plugin(FileWatcherPlugin).add_system(controller);
-
-    #[cfg(not(target_arch = "wasm32"))]
-    app.add_startup_system(test_controller);
+    app.add_plugin(FileWatcherPlugin);
 
     app.run();
     Ok(())
+}
+
+fn load_cheetsheet() -> String {
+    let client: Client<Message> = Client::new(server);
+    let result = client.send(Message::CheatSheet()).busy_loop();
+    let cheatsheet = match result {
+        Message::CheatSheetResults { cheatsheet } => cheatsheet,
+        _ => panic!("unexpected message {:?}", result),
+    };
+    cheatsheet
 }
 
 #[derive(Resource)]
@@ -80,6 +90,7 @@ struct State {
 
     about_window: bool,
     cheatsheet_window: bool,
+    editor_window: bool,
 }
 
 impl State {
@@ -94,28 +105,11 @@ impl State {
             show_mesh: true,
             about_window: false,
             cheatsheet_window: false,
+            editor_window: true,
         }
     }
 }
 
-fn test_controller(mut render: EventWriter<RenderCommand>, mut state: ResMut<State>) {
-    let client: Client<Message> = Client::new(server);
-    let result = client
-        .send(Message::RenderString {
-            source: r"
-cube() ->shape fillet(radius=0.2);
-        "
-            .to_string(),
-        })
-        .busy_loop();
-    state.output = Some(match result {
-        Message::RenderResults(result, _) => result,
-        _ => panic!("unexpected message {:?}", result),
-    });
-    render.send(RenderCommand::Redraw);
-}
-
-#[cfg(not(target_arch = "wasm32"))]
 fn controller(
     mut events: EventReader<UiEvent>,
     mut render: EventWriter<RenderCommand>,
@@ -123,6 +117,20 @@ fn controller(
 ) {
     for event in events.iter() {
         match event {
+            UiEvent::RenderString(string) => {
+                let client: Client<Message> = Client::new(server);
+                let result = client
+                    .send(Message::RenderString {
+                        source: string.clone(),
+                    })
+                    .busy_loop();
+                state.output = Some(match result {
+                    Message::RenderResults(result, _) => result,
+                    _ => panic!("unexpected message {:?}", result),
+                });
+                render.send(RenderCommand::Redraw);
+            }
+            #[cfg(not(target_arch = "wasm32"))]
             UiEvent::CreateFile() => {
                 if let Some(file) = file_dialog(&state).save_file() {
                     let file = file.with_extension(dslcad_api::constants::FILE_EXTENSION);
@@ -132,6 +140,7 @@ fn controller(
                     render.send(RenderCommand::Redraw);
                 }
             }
+            #[cfg(not(target_arch = "wasm32"))]
             UiEvent::OpenFile() => {
                 let file = file_dialog(&state).pick_file();
                 if let Some(file) = file {
@@ -139,10 +148,12 @@ fn controller(
                     render.send(RenderCommand::Redraw);
                 }
             }
+            #[cfg(not(target_arch = "wasm32"))]
             UiEvent::Render() => {
                 render_file(&mut state);
                 render.send(RenderCommand::Redraw);
             }
+            #[cfg(not(target_arch = "wasm32"))]
             UiEvent::Export() => {
                 if let Some(Ok(render)) = &state.output {
                     if let Some(path) = file_dialog_ext(&state, None).pick_folder() {
@@ -172,6 +183,7 @@ fn controller(
                     }
                 }
             }
+            _ => todo!(),
         }
     }
 }
