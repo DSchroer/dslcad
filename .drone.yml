@@ -12,13 +12,14 @@ steps:
     commands:
       - docker build . -t modelscriptci
 
-#  - name: build and test
-#    image: modelscriptci
-#    pull: never
-#    commands:
-#      - cargo +nightly fmt --check
-#      - cargo clippy -- -Dwarnings
-#      - cargo test
+  - name: build and test
+    image: modelscriptci
+    pull: never
+    commands:
+      - export CMAKE_BUILD_PARALLEL_LEVEL=12
+      - cargo +nightly fmt --check
+      - cargo clippy -- -Dwarnings
+      - cargo test
 
   - name: build releases
     image: modelscriptci
@@ -29,9 +30,9 @@ steps:
     commands:
       - ./scripts/use-env.sh ci
       - ./scripts/release.sh
-#    when:
-#      event:
-#        - tag
+    when:
+      event:
+        - tag
 
   - name: build docs
     image: minidocks/mkdocs
