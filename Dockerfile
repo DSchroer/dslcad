@@ -46,6 +46,7 @@ RUN rm /usr/lib/gcc/x86_64-w64-mingw32/12-win32/*.dll.a
 RUN rustup toolchain install nightly
 RUN rustup target add x86_64-pc-windows-gnu
 RUN rustup target add x86_64-apple-darwin
-RUN rustup target add x86_64-apple-darwin
 RUN rustup target add wasm32-unknown-unknown
 RUN rustup target add wasm32-unknown-emscripten
+RUN cargo install wasm-bindgen-cli
+
