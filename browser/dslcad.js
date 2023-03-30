@@ -41,6 +41,7 @@ export function newServer() {
                 resolve({
                     send: (data) => {
                         let buffer = this._new_buffer(data.length);
+
                         const array = this.HEAP8.subarray(buffer, buffer + data.length);
                         array.set(data);
                         this._server(array.length, array.byteOffset, cb);
