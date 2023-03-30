@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -ex
+export CMAKE_BUILD_PARALLEL_LEVEL=12
 
 #cargo run --bin cheat_sheet > cheatsheet.md
 #(cd examples && zip -r ../examples.zip *)
