@@ -70,11 +70,11 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 fn load_cheetsheet() -> String {
     let client: Client<Message> = Client::new(server);
     let result = client.send(Message::CheatSheet()).busy_loop();
-    let cheatsheet = match result {
+
+    match result {
         Message::CheatSheetResults { cheatsheet } => cheatsheet,
         _ => panic!("unexpected message {:?}", result),
-    };
-    cheatsheet
+    }
 }
 
 #[derive(Resource)]
@@ -90,7 +90,6 @@ struct State {
 
     about_window: bool,
     cheatsheet_window: bool,
-    editor_window: bool,
 }
 
 impl State {
@@ -105,7 +104,6 @@ impl State {
             show_mesh: true,
             about_window: false,
             cheatsheet_window: false,
-            editor_window: true,
         }
     }
 }
@@ -183,6 +181,7 @@ fn controller(
                     }
                 }
             }
+            #[cfg(target_arch = "wasm32")]
             _ => todo!(),
         }
     }

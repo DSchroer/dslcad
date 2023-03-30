@@ -1,14 +1,14 @@
 mod file_window;
 
-use crate::editor::gui::file_window::{file_window, FileWindowPlugin, FileWindowState};
+use crate::editor::gui::file_window::{FileWindowPlugin, FileWindowState};
 use crate::editor::rendering::RenderCommand;
 use crate::editor::State;
 use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use bevy_egui::egui::Widget;
+
 use bevy_egui::{egui, EguiContext, EguiPlugin};
-use clap::builder::Str;
+
 use dslcad_api::protocol::Part;
 
 pub struct GuiPlugin {
