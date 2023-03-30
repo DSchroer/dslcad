@@ -24,6 +24,7 @@ RUN apt-get update; apt-get install -y \
     ca-certificates  \
     software-properties-common \
     xz-utils \
+    emscripten \
     bash
 
 # OSXCross for Mac Builds
