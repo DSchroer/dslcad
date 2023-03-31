@@ -4,5 +4,10 @@ theme:
   name: material
 nav:
   - Getting Started: index.md
+  - Web Editor: editor.md
   - Concepts: concepts.md
   - Syntax Reference: reference.md
+hooks:
+  - ./docs/web_editor.py
+extra:
+  editor_dir: ./browser

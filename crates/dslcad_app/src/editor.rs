@@ -49,6 +49,8 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: dslcad_api::constants::FULL_NAME.to_string(),
+                canvas: Some("#dslcad".to_string()),
+                fit_canvas_to_parent: true,
                 ..Default::default()
             }),
             ..default()

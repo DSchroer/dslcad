@@ -9,3 +9,4 @@ packages/arch/*
 !packages/arch/dslcad.desktop
 site/
 browser/lib
+__pycache__

@@ -5,7 +5,7 @@ use crate::editor::rendering::RenderCommand;
 use crate::editor::State;
 use bevy::app::AppExit;
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
+use bevy::window::{PrimaryWindow, WindowMode};
 
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 
