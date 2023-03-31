@@ -45,6 +45,7 @@ steps:
       - git config user.email "dominick@schroer.ca"
       - git remote add docs http://dschroer:$${DOCS_TOKEN}@gitea.swhome.ca/dschroer/model-script.git
       - mkdocs build
+      - echo 'dslcad.com' > ./site/CNAME
       - ghp-import site -p -b gh-pages -r docs --force
     when:
       event:
