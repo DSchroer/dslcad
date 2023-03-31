@@ -18,7 +18,7 @@ steps:
     commands:
       - export CMAKE_BUILD_PARALLEL_LEVEL=12
       - cargo +nightly fmt --check
-      - cargo clippy -- -Dwarnings
+      - cargo clippy --all-targets -- -Dwarnings
       - cargo test
 
   - name: build releases
