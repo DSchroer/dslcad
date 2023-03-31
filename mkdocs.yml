@@ -2,6 +2,7 @@ site_name: DSLCAD (Pronounced DieselCAD)
 repo_url: https://github.com/DSchroer/dslcad/
 theme:
   name: material
+  custom_dir: docs_theme
 nav:
   - Getting Started: index.md
   - Web Editor: editor.md
