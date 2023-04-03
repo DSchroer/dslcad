@@ -21,6 +21,8 @@ use rfd::FileDialog;
 
 use std::fs::File;
 
+use crate::reader::FileReader;
+use dslcad_parser::DocId;
 use std::path::PathBuf;
 
 struct Blueprint;
@@ -117,19 +119,6 @@ fn controller(
 ) {
     for event in events.iter() {
         match event {
-            UiEvent::RenderString(string) => {
-                let client: Client<Message> = Client::new(server);
-                let result = client
-                    .send(Message::RenderString {
-                        source: string.clone(),
-                    })
-                    .busy_loop();
-                state.output = Some(match result {
-                    Message::RenderResults(result, _) => result,
-                    _ => panic!("unexpected message {:?}", result),
-                });
-                render.send(RenderCommand::Redraw);
-            }
             #[cfg(not(target_arch = "wasm32"))]
             UiEvent::CreateFile() => {
                 if let Some(file) = file_dialog(&state).save_file() {
@@ -239,17 +228,19 @@ fn render_file(state: &mut ResMut<State>) -> Option<Vec<PathBuf>> {
     let mut paths = Vec::new();
 
     if let Some(file) = &state.file {
+        let parser =
+            dslcad_parser::Parser::new(FileReader, DocId::new(file.to_str().unwrap().to_string()));
+        let ast = parser.parse().unwrap();
+        paths = ast
+            .documents
+            .keys()
+            .map(|d| d.to_path().to_path_buf())
+            .collect();
+
         let client: Client<Message> = Client::new(server);
-        let result = client
-            .send(Message::Render {
-                path: format!("{}", file.display()),
-            })
-            .busy_loop();
+        let result = client.send(Message::Render { ast }).busy_loop();
         state.output = Some(match result {
-            Message::RenderResults(result, meta) => {
-                paths = meta.files.iter().map(PathBuf::from).collect();
-                result
-            }
+            Message::RenderResults(result, _) => result,
             _ => panic!("unexpected message {:?}", result),
         });
     }

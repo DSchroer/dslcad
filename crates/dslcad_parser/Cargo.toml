@@ -1,11 +1,10 @@
 [package]
-name = "dslcad_api"
+name = "dslcad_parser"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+logos = "0.12"
 serde = { version = "1.0", features = ["derive"] }
-serde-binary = "0.5.0"
-dslcad_parser = { path = "../dslcad_parser" }

@@ -1,8 +1,6 @@
-mod document;
 mod lexer;
 mod parse_error;
 mod reader;
-mod source_store;
 mod span_builder;
 mod syntax_tree;
 
@@ -10,73 +8,74 @@ use lexer::{Lexer, Token};
 use logos::Logos;
 
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::parser::span_builder::SpanBuilder;
-pub use document::Document;
-pub use parse_error::ParseError;
+use crate::span_builder::SpanBuilder;
+pub use parse_error::{DocumentParseError, ParseError};
 pub use reader::Reader;
-pub use source_store::{DocId, SourceStore};
-pub use syntax_tree::{CallPath, Expression, Literal, Statement};
+pub use syntax_tree::*;
 
-pub struct Parser<'a> {
-    store: &'a SourceStore,
-    path: &'a DocId,
-    documents: HashMap<&'a DocId, Document<'a>>,
-    variables: HashSet<&'a str>,
-}
-
-#[derive(Debug)]
-pub struct Ast<'a> {
-    root: &'a DocId,
-    documents: HashMap<&'a DocId, Document<'a>>,
-}
-
-impl<'a> Ast<'a> {
-    pub fn root_document(&self) -> &Document {
-        self.documents.get(&self.root).unwrap()
-    }
-
-    pub fn documents(&self) -> &HashMap<&'a DocId, Document> {
-        &self.documents
-    }
+pub struct Parser<R> {
+    reader: R,
+    current_id: DocId,
+    variables: HashSet<String>,
+    to_parse: Vec<DocId>,
 }
 
 macro_rules! take {
     ($self: ident, $lexer: ident, $token: pat = $name: literal) => {
         match $lexer.next() {
             Some($token) => {},
-            Some(_) => return Err(ParseError::Expected($name, $self.path.clone(), $lexer.span(), $self.source()?)),
-            None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone(), $self.source()?)),
+            Some(_) => return Err(DocumentParseError::Expected($name, $lexer.span())),
+            None => return Err(DocumentParseError::UnexpectedEndOfFile()),
         };
     };
     ($self: ident, $lexer: ident, $($token: pat = $name: literal => $case: expr), *) => {
         match $lexer.next() {
             $(Some($token) => $case,)*
             #[allow(unreachable_patterns)]
-            Some(_) => return Err(ParseError::ExpectedOneOf(vec![$($name,)*], $self.path.clone(), $lexer.span(), $self.source()?)),
-            None => return Err(ParseError::UnexpectedEndOfFile($self.path.clone(), $self.source()?)),
+            Some(_) => return Err(DocumentParseError::ExpectedOneOf(vec![$($name,)*], $lexer.span())),
+            None => return Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     };
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(path: &'a DocId, store: &'a SourceStore) -> Self {
+impl<R: Reader> Parser<R> {
+    pub fn new(reader: R, root: DocId) -> Self {
         Parser {
-            store,
-            path,
-            documents: HashMap::new(),
+            reader,
+            current_id: root,
             variables: HashSet::new(),
+            to_parse: Vec::new(),
         }
     }
 
-    fn source(&self) -> Result<String, ParseError> {
-        Ok(self.store.read(self.path).to_string())
+    pub fn parse(mut self) -> Result<Ast, ParseError> {
+        self.to_parse.push(self.current_id.clone());
+        let mut ast = Ast::new(self.current_id.clone());
+
+        while let Some(doc) = self.to_parse.pop() {
+            if ast.documents.contains_key(&doc) {
+                continue;
+            }
+
+            self.current_id = doc.clone();
+            self.variables.clear();
+            let source = self
+                .reader
+                .read(doc.to_path())
+                .map_err(|_| ParseError::NoSuchFile { file: doc.clone() })?;
+            let document = self
+                .parse_document(&source)
+                .map_err(|e| e.with_source(doc.clone(), source))?;
+            ast.documents.insert(doc, document);
+        }
+
+        Ok(ast)
     }
 
-    pub fn parse(mut self) -> Result<Ast<'a>, ParseError> {
-        let mut lex = Token::lexer(self.store.read(self.path));
+    fn parse_document(&mut self, source: &str) -> Result<Vec<Statement>, DocumentParseError> {
+        let mut lex = Token::lexer(source);
 
         let mut statements = Vec::new();
         while let Some(_) = lex.clone().next() {
@@ -84,37 +83,22 @@ impl<'a> Parser<'a> {
             statements.push(statement);
         }
 
-        self.documents.insert(
-            self.path,
-            Document::new(
-                self.path,
-                self.store.read(self.path),
-                self.variables,
-                statements,
-            ),
-        );
-        Ok(Ast {
-            root: self.path,
-            documents: self.documents,
-        })
+        Ok(statements)
     }
 
-    fn parse_statement(&mut self, lexer: &mut Lexer<'a>) -> Result<Statement<'a>, ParseError> {
+    fn parse_statement(&mut self, lexer: &mut Lexer) -> Result<Statement, DocumentParseError> {
         let mut peek = lexer.clone();
         match peek.next() {
             Some(Token::Var) => self.parse_variable_statement(lexer),
             Some(_) => self.parse_return_statement(lexer),
-            None => Err(ParseError::UnexpectedEndOfFile(
-                self.path.clone(),
-                self.source()?,
-            )),
+            None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     }
 
     fn parse_return_statement(
         &mut self,
-        lexer: &mut Lexer<'a>,
-    ) -> Result<Statement<'a>, ParseError> {
+        lexer: &mut Lexer,
+    ) -> Result<Statement, DocumentParseError> {
         let expr = self.parse_expression(lexer)?;
         let sb = SpanBuilder::from_expr(&expr);
         take!(self, lexer, Token::Semicolon = "semicolon");
@@ -123,20 +107,16 @@ impl<'a> Parser<'a> {
 
     fn parse_variable_statement(
         &mut self,
-        lexer: &mut Lexer<'a>,
-    ) -> Result<Statement<'a>, ParseError> {
+        lexer: &mut Lexer,
+    ) -> Result<Statement, DocumentParseError> {
         take!(self, lexer, Token::Var = "var");
         let sb = SpanBuilder::from(lexer);
         let name = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
 
         if !self.variables.contains(name) {
-            self.variables.insert(name);
+            self.variables.insert(name.to_string());
         } else {
-            return Err(ParseError::DuplicateVariableName(
-                self.path.clone(),
-                lexer.span(),
-                self.source()?,
-            ));
+            return Err(DocumentParseError::DuplicateVariableName(lexer.span()));
         }
 
         let expr = take!(self, lexer,
@@ -148,34 +128,25 @@ impl<'a> Parser<'a> {
             }
         );
         Ok(Statement::Variable {
-            name,
+            name: name.to_string(),
             value: expr,
             span: sb.to(lexer),
         })
     }
 
-    fn parse_call(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_call(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let path = take!(self, lexer,
-            Token::Identifier = "identifier" => CallPath::String(lexer.slice()),
+            Token::Identifier = "identifier" => CallPath::String(lexer.slice().to_string()),
             Token::Path = "path" => {
                 let path =  lexer.slice();
 
                 let mut buf = std::path::PathBuf::new();
-                buf.push(self.path.to_path());
+                buf.push(self.current_id.to_path());
                 let buf = buf.parent().unwrap();
-                let buf = buf.join(path.to_string() + "." + dslcad_api::constants::FILE_EXTENSION).canonicalize();
-                let buf = match &buf {
-                    Ok(buf) => buf.to_str().unwrap(),
-                    Err(_) => return Err(ParseError::NoSuchFile(PathBuf::from(path)))
-                };
+                let buf = buf.join(path.to_string() + ".ds");
 
-                let id = self.store.forge_id(buf.to_string())?;
-                if !self.documents.contains_key(&id) && self.path.to_str() != buf {
-                    let ast = Parser::new(id, self.store).parse()?;
-                    for (path, document) in ast.documents {
-                        self.documents.insert(path, document);
-                    }
-                }
+                let id = DocId::new(buf.to_str().unwrap().to_string());
+                self.to_parse.push(id.clone());
                 CallPath::Document(id)
             }
         );
@@ -193,7 +164,7 @@ impl<'a> Parser<'a> {
                 },
                 Token::Identifier = "identifier" => {
                     let (name, expression) = self.parse_argument(lexer)?;
-                    args.insert(name, Box::new(expression));
+                    args.insert(name.to_string(), Box::new(expression));
                     take!(self, lexer,
                         Token::Comma = "," => {},
                         Token::CloseBracket = ")" => break
@@ -211,30 +182,26 @@ impl<'a> Parser<'a> {
 
     fn parse_argument(
         &mut self,
-        lexer: &mut Lexer<'a>,
-    ) -> Result<(&'a str, Expression<'a>), ParseError> {
+        lexer: &mut Lexer,
+    ) -> Result<(String, Expression), DocumentParseError> {
         let name = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
         take!(self, lexer, Token::Equal = "=");
         let expr = self.parse_expression(lexer)?;
-        Ok((name, expr))
+        Ok((name.to_string(), expr))
     }
 
-    fn parse_reference(&self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_reference(&self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let name = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
         let sb = SpanBuilder::from(lexer);
 
         if !self.variables.contains(name) {
-            return Err(ParseError::UndeclaredIdentifier(
-                self.path.clone(),
-                lexer.span(),
-                self.source()?,
-            ));
+            return Err(DocumentParseError::UndeclaredIdentifier(lexer.span()));
         }
 
-        Ok(Expression::Reference(name, sb.to(lexer)))
+        Ok(Expression::Reference(name.to_string(), sb.to(lexer)))
     }
 
-    fn parse_list(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_list(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         take!(self, lexer, Token::OpenList = "[");
         let sb = SpanBuilder::from(lexer);
 
@@ -258,7 +225,7 @@ impl<'a> Parser<'a> {
         Ok(Expression::Literal(Literal::List(items), sb.to(lexer)))
     }
 
-    fn parse_map(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_map(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         take!(self, lexer, Token::Map = "map");
         let sb = SpanBuilder::from(lexer);
 
@@ -267,19 +234,19 @@ impl<'a> Parser<'a> {
         let ident = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
         take!(self, lexer, Token::Colon = ":");
 
-        self.variables.insert(ident);
+        self.variables.insert(ident.to_string());
         let action = self.parse_expression(lexer)?;
         self.variables.remove(ident);
 
         Ok(Expression::Map {
-            identifier: ident,
+            identifier: ident.to_string(),
             range: Box::new(range),
             action: Box::new(action),
             span: sb.to(lexer),
         })
     }
 
-    fn parse_reduce(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_reduce(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         take!(self, lexer, Token::Reduce = "reduce");
         let sb = SpanBuilder::from(lexer);
 
@@ -297,15 +264,15 @@ impl<'a> Parser<'a> {
         let right = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
         take!(self, lexer, Token::Colon = ":");
 
-        self.variables.insert(left);
-        self.variables.insert(right);
+        self.variables.insert(left.to_string());
+        self.variables.insert(right.to_string());
         let action = self.parse_expression(lexer)?;
         self.variables.remove(left);
         self.variables.remove(right);
 
         Ok(Expression::Reduce {
-            left,
-            right,
+            left: left.to_string(),
+            right: right.to_string(),
             root,
             range: Box::new(range),
             action: Box::new(action),
@@ -313,7 +280,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_if(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_if(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         take!(self, lexer, Token::If = "if");
         let sb = SpanBuilder::from(lexer);
 
@@ -341,52 +308,49 @@ impl<'a> Parser<'a> {
 
     fn operator(
         &mut self,
-        lexer: &mut Lexer<'a>,
+        lexer: &mut Lexer,
         name: &'static str,
-        left: Expression<'a>,
-        parse_right: impl Fn(&mut Self, &mut Lexer<'a>) -> Result<Expression<'a>, ParseError>,
-    ) -> Result<Expression<'a>, ParseError> {
+        left: Expression,
+        parse_right: impl Fn(&mut Self, &mut Lexer) -> Result<Expression, DocumentParseError>,
+    ) -> Result<Expression, DocumentParseError> {
         lexer.next();
         let sb = SpanBuilder::from(lexer);
         let right = parse_right(self, lexer)?;
         Ok(Expression::Invocation {
-            path: CallPath::String(name),
-            arguments: HashMap::from([("left", left.into()), ("right", right.into())]),
+            path: CallPath::String(name.to_string()),
+            arguments: HashMap::from([
+                ("left".to_string(), left.into()),
+                ("right".to_string(), right.into()),
+            ]),
             span: sb.to(lexer),
         })
     }
 
-    fn parse_expression(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         self.parse_or(lexer)
     }
 
-    fn parse_or(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_or(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_and(lexer)?;
         let mut peek = lexer.clone();
         match peek.next() {
             Some(Token::Or) => self.operator(lexer, "or", first, |s, l| s.parse_or(l)),
             Some(_) => Ok(first),
-            None => Err(ParseError::UnexpectedEndOfFile(
-                self.path.clone(),
-                self.source()?,
-            )),
+            None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     }
 
-    fn parse_and(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_and(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_equality(lexer)?;
         let mut peek = lexer.clone();
         match peek.next() {
             Some(Token::And) => self.operator(lexer, "and", first, |s, l| s.parse_and(l)),
             Some(_) => Ok(first),
-            None => Err(ParseError::UnexpectedEndOfFile(
-                self.path.clone(),
-                self.source()?,
-            )),
+            None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     }
 
-    fn parse_equality(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_equality(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_comparison(lexer)?;
         let mut peek = lexer.clone();
         match peek.next() {
@@ -397,14 +361,11 @@ impl<'a> Parser<'a> {
                 self.operator(lexer, "not_equals", first, |s, l| s.parse_equality(l))
             }
             Some(_) => Ok(first),
-            None => Err(ParseError::UnexpectedEndOfFile(
-                self.path.clone(),
-                self.source()?,
-            )),
+            None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     }
 
-    fn parse_comparison(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_comparison(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_add_sub(lexer)?;
         let mut peek = lexer.clone();
         match peek.next() {
@@ -421,14 +382,11 @@ impl<'a> Parser<'a> {
                 })
             }
             Some(_) => Ok(first),
-            None => Err(ParseError::UnexpectedEndOfFile(
-                self.path.clone(),
-                self.source()?,
-            )),
+            None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     }
 
-    fn parse_add_sub(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_add_sub(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_mul_div_mod(lexer)?;
         let mut peek = lexer.clone();
         match peek.next() {
@@ -437,14 +395,11 @@ impl<'a> Parser<'a> {
                 self.operator(lexer, "subtract", first, |s, l| s.parse_add_sub(l))
             }
             Some(_) => Ok(first),
-            None => Err(ParseError::UnexpectedEndOfFile(
-                self.path.clone(),
-                self.source()?,
-            )),
+            None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     }
 
-    fn parse_mul_div_mod(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_mul_div_mod(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_pow(lexer)?;
         let mut peek = lexer.clone();
         match peek.next() {
@@ -458,36 +413,30 @@ impl<'a> Parser<'a> {
                 self.operator(lexer, "modulo", first, |s, l| s.parse_mul_div_mod(l))
             }
             Some(_) => Ok(first),
-            None => Err(ParseError::UnexpectedEndOfFile(
-                self.path.clone(),
-                self.source()?,
-            )),
+            None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     }
 
-    fn parse_pow(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_pow(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_inject(lexer)?;
         let mut peek = lexer.clone();
         match peek.next() {
             Some(Token::Power) => self.operator(lexer, "power", first, |s, l| s.parse_pow(l)),
             Some(_) => Ok(first),
-            None => Err(ParseError::UnexpectedEndOfFile(
-                self.path.clone(),
-                self.source()?,
-            )),
+            None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     }
 
-    fn parse_inject(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_inject(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_spanning(lexer)?;
         self.try_add_inject(lexer, first)
     }
 
     fn try_add_inject(
         &mut self,
-        lexer: &mut Lexer<'a>,
-        first: Expression<'a>,
-    ) -> Result<Expression<'a>, ParseError> {
+        lexer: &mut Lexer,
+        first: Expression,
+    ) -> Result<Expression, DocumentParseError> {
         let mut peek = lexer.clone();
         match peek.next() {
             Some(Token::Inject) => {
@@ -502,7 +451,7 @@ impl<'a> Parser<'a> {
                         mut arguments,
                         ..
                     } => {
-                        arguments.insert(prop, Box::new(first));
+                        arguments.insert(prop.to_string(), Box::new(first));
                         self.try_add_inject(
                             lexer,
                             Expression::Invocation {
@@ -516,14 +465,11 @@ impl<'a> Parser<'a> {
                 }
             }
             Some(_) => Ok(first),
-            None => Err(ParseError::UnexpectedEndOfFile(
-                self.path.clone(),
-                self.source()?,
-            )),
+            None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     }
 
-    fn parse_spanning(&mut self, lexer: &mut Lexer<'a>) -> Result<Expression<'a>, ParseError> {
+    fn parse_spanning(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_terminal_expression(lexer)?;
         let mut peek = lexer.clone();
         match peek.next() {
@@ -532,7 +478,7 @@ impl<'a> Parser<'a> {
                 let sb = SpanBuilder::from(lexer);
                 let l = Box::new(first);
                 let r = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
-                Ok(Expression::Access(l, r, sb.to(lexer)))
+                Ok(Expression::Access(l, r.to_string(), sb.to(lexer)))
             }
             Some(Token::OpenList) => {
                 lexer.next();
@@ -546,17 +492,14 @@ impl<'a> Parser<'a> {
                 })
             }
             Some(_) => Ok(first),
-            None => Err(ParseError::UnexpectedEndOfFile(
-                self.path.clone(),
-                self.source()?,
-            )),
+            None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     }
 
     fn parse_terminal_expression(
         &mut self,
-        lexer: &mut Lexer<'a>,
-    ) -> Result<Expression<'a>, ParseError> {
+        lexer: &mut Lexer,
+    ) -> Result<Expression, DocumentParseError> {
         let mut peek = lexer.clone();
         Ok(take!(self, peek,
             Token::Minus = "-" => {
@@ -565,13 +508,13 @@ impl<'a> Parser<'a> {
                 let expr = self.parse_terminal_expression(lexer)?;
                 let span = sb.to(lexer);
                 Expression::Invocation {
-                    path: CallPath::String("subtract"),
+                    path: CallPath::String("subtract".to_string()),
                     arguments: HashMap::from([
                         (
-                            "left",
+                            "left".to_string(),
                             Box::new(Expression::Literal(Literal::Number(0.0), span.clone())),
                         ),
-                        ("right", Box::new(expr)),
+                        ("right".to_string(), Box::new(expr)),
                     ]),
                     span
                 }
@@ -582,9 +525,9 @@ impl<'a> Parser<'a> {
                 let expr = self.parse_terminal_expression(lexer)?;
                 let span = sb.to(lexer);
                 Expression::Invocation {
-                    path: CallPath::String("not"),
+                    path: CallPath::String("not".to_string()),
                     arguments: HashMap::from([
-                         ("value", Box::new(expr)),
+                         ("value".to_string(), Box::new(expr)),
                     ]),
                     span
                 }
@@ -651,18 +594,16 @@ pub mod tests {
         ($code: literal) => {{}};
     }
 
-    fn parse(code: &'static str, action: impl for<'a> FnOnce(Result<Ast<'a>, ParseError>)) {
-        let store = SourceStore::new(Box::new(TestReader(code)));
-        let res = Parser::new(store.forge_id("test".to_string()).unwrap(), &store).parse();
+    fn parse(code: &'static str, action: impl for<'a> FnOnce(Result<Ast, ParseError>)) {
+        let res = Parser::new(TestReader(code), DocId::new("test".to_string())).parse();
         action(res)
     }
 
-    fn parse_statement(code: &'static str, action: impl for<'a> FnOnce(&Statement<'a>)) {
-        let store = SourceStore::new(Box::new(TestReader(code)));
-        let root_id = store.forge_id("test".to_string()).unwrap();
-        let parsed = Parser::new(root_id, &store).parse().unwrap();
+    fn parse_statement(code: &'static str, action: impl for<'a> FnOnce(&Statement)) {
+        let root_id = DocId::new("test".to_string());
+        let parsed = Parser::new(TestReader(code), root_id).parse().unwrap();
         let doc = parsed.root_document();
-        let statement = doc.statements().next();
+        let statement = doc.iter().next();
         action(statement.unwrap());
     }
 

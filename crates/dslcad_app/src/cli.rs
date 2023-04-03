@@ -1,7 +1,9 @@
 use crate::dslcad::server;
+use crate::reader::FileReader;
 use clap::Parser;
 use dslcad_api::protocol::Message;
 use dslcad_api::Client;
+use dslcad_parser::DocId;
 use std::error::Error;
 use std::path::PathBuf;
 
@@ -20,12 +22,10 @@ struct Args {
 pub(crate) fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
+    let parser = dslcad_parser::Parser::new(FileReader, DocId::new(args.source.clone()));
+    let ast = parser.parse()?;
     let client: Client<Message> = Client::new(server);
-    let output = client
-        .send(Message::Render {
-            path: args.source.clone(),
-        })
-        .busy_loop();
+    let output = client.send(Message::Render { ast }).busy_loop();
 
     let export = match output {
         Message::RenderResults(render, _) => {

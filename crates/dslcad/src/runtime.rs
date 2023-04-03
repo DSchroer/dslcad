@@ -8,9 +8,8 @@ mod types;
 mod value;
 
 use crate::library::{CallSignature, Library};
-use crate::parser::{CallPath, DocId, Document};
-use crate::parser::{Expression, Literal, Statement};
 use crate::runtime::scope::Scope;
+use dslcad_parser::{Ast, CallPath, DocId, Expression, Literal, Statement};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -29,29 +28,46 @@ const MAX_STACK_SIZE: usize = 255;
 
 pub struct Engine<'a> {
     library: &'a Library,
-    documents: &'a HashMap<&'a DocId, Document<'a>>,
-    stack: Stack<'a>,
+    ast: Ast,
+    stack: Stack,
 }
 
 impl<'a> Engine<'a> {
-    pub fn new(library: &'a Library, documents: &'a HashMap<&'a DocId, Document>) -> Self {
+    pub fn new(library: &'a Library, ast: Ast) -> Self {
         Engine {
             library,
-            documents,
+            ast,
             stack: Stack::new(),
         }
     }
 
-    pub fn eval(
+    pub fn eval_root(
         &mut self,
-        doc: &'a Document,
+        arguments: HashMap<&str, Value>,
+    ) -> Result<ScriptInstance, WithStack<RuntimeError>> {
+        let root = self.ast.root().clone();
+        self.eval(root, arguments)
+    }
+
+    fn eval(
+        &mut self,
+        id: DocId,
         arguments: HashMap<&str, Value>,
     ) -> Result<ScriptInstance, WithStack<RuntimeError>> {
         let mut scope = Scope::new(arguments);
 
+        let statements = self
+            .ast
+            .documents
+            .get(&id)
+            .ok_or_else(|| {
+                WithStack::from_err(RuntimeError::UnknownIdentifier(id.to_string()), &self.stack)
+            })?
+            .clone();
+
         let mut ret = None;
-        for statement in doc.statements() {
-            self.stack.push(StackFrame::from_statement(doc, statement));
+        for statement in &statements {
+            self.stack.push(StackFrame::from_statement(&id, statement));
 
             if self.stack.len() >= MAX_STACK_SIZE {
                 return Err(WithStack::from_err(
@@ -105,16 +121,16 @@ impl<'a> Engine<'a> {
     fn expression(
         &mut self,
         instance: &Scope,
-        expression: &Expression<'a>,
+        expression: &Expression,
     ) -> Result<Value, WithStack<RuntimeError>> {
         match expression {
             Expression::Invocation {
                 path, arguments, ..
             } => {
                 let mut argument_values = HashMap::new();
-                for (name, argument) in arguments.clone().into_iter() {
+                for (name, argument) in arguments.iter() {
                     let value = self.expression(instance, argument.deref())?;
-                    argument_values.insert(name, value);
+                    argument_values.insert(name.as_str(), value);
                 }
                 let argument_types = argument_values
                     .iter()
@@ -129,26 +145,8 @@ impl<'a> Engine<'a> {
                             .map_err(|e| WithStack::from_err(e, &self.stack))?;
                         Ok(f(&argument_values).map_err(|e| WithStack::from_err(e, &self.stack))?)
                     }
-                    CallPath::Document(doc) => {
-                        let doc = self.documents.get(doc).ok_or_else(|| {
-                            WithStack::from_err(
-                                RuntimeError::UnknownIdentifier(doc.to_string()),
-                                &self.stack,
-                            )
-                        })?;
-                        for name in arguments.keys() {
-                            if !doc.has_identifier(name) {
-                                return Err(WithStack::from_err(
-                                    RuntimeError::ArgumentDoesNotExist(
-                                        doc.id().to_string(),
-                                        name.to_string(),
-                                    ),
-                                    &self.stack,
-                                ));
-                            }
-                        }
-
-                        let v = self.eval(doc, argument_values)?;
+                    CallPath::Document(id) => {
+                        let v = self.eval(id.clone(), argument_values)?;
                         Ok(Value::Script(Rc::new(RefCell::new(v))))
                     }
                 }
@@ -265,7 +263,7 @@ impl<'a> Engine<'a> {
     fn access(
         &mut self,
         instance: &Scope,
-        l: &Expression<'a>,
+        l: &Expression,
         name: &str,
     ) -> Result<Value, WithStack<RuntimeError>> {
         let l = self.expression(instance, l.deref())?;

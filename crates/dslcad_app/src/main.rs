@@ -5,6 +5,7 @@ extern crate core;
 mod cli;
 mod dslcad;
 mod editor;
+mod reader;
 
 use std::env;
 use std::error::Error;

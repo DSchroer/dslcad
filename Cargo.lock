@@ -1545,8 +1545,8 @@ name = "dslcad"
 version = "0.1.0"
 dependencies = [
  "dslcad_api",
+ "dslcad_parser",
  "indexmap",
- "logos",
  "opencascade",
  "path-absolutize",
  "stl_io",
@@ -1557,6 +1557,7 @@ dependencies = [
 name = "dslcad_api"
 version = "0.1.0"
 dependencies = [
+ "dslcad_parser",
  "serde",
  "serde-binary",
 ]
@@ -1572,10 +1573,19 @@ dependencies = [
  "clap",
  "dslcad",
  "dslcad_api",
+ "dslcad_parser",
  "notify",
  "rfd",
  "smooth-bevy-cameras",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "dslcad_parser"
+version = "0.1.0"
+dependencies = [
+ "logos",
+ "serde",
 ]
 
 [[package]]

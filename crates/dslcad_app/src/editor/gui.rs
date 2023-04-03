@@ -46,7 +46,6 @@ pub enum UiEvent {
     CreateFile(),
     OpenFile(),
     Render(),
-    RenderString(String),
     Export(),
 }
 

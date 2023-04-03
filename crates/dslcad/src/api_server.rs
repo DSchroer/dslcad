@@ -1,41 +1,27 @@
 use crate::export::{export_stl, export_txt};
-use crate::Dslcad;
 use dslcad_api::protocol::*;
 use dslcad_api::Server;
+use std::collections::HashMap;
 use std::error::Error;
 
 use crate::library::Library;
-use crate::parser::Reader;
+use crate::runtime::Engine;
+use dslcad_parser::Ast;
 use std::fs;
 use std::fs::OpenOptions;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub struct DslcadApi;
 impl Server<Message> for DslcadApi {
     fn on_message(message: Message) -> Message {
         match message {
-            Message::Render { path } => {
-                let mut cad = Dslcad::default();
-                let res = cad.render_file(&path);
-                let metadata = RenderMetadata { files: cad.paths };
+            Message::Render { ast } => {
+                let res = render_ast(ast);
+                let metadata = RenderMetadata {};
                 match res {
                     Ok(outputs) => Message::RenderResults(Ok(Render { parts: outputs }), metadata),
                     Err(e) => Message::RenderResults(
-                        Err(CadError::System {
-                            error: e.to_string(),
-                        }),
-                        metadata,
-                    ),
-                }
-            }
-            Message::RenderString { source } => {
-                let mut cad = Dslcad::new(StringReader(source), Library::new());
-                let res = cad.render_file("__internal");
-                let metadata = RenderMetadata { files: cad.paths };
-                match res {
-                    Ok(outputs) => Message::RenderResults(Ok(Render { parts: outputs }), metadata),
-                    Err(e) => Message::RenderResults(
-                        Err(CadError::System {
+                        Err(CadError {
                             error: e.to_string(),
                         }),
                         metadata,
@@ -44,17 +30,34 @@ impl Server<Message> for DslcadApi {
             }
             Message::Export { render, name, path } => match export(render, name, path) {
                 Ok(()) => Message::ExportResults(),
-                Err(e) => Message::Error(CadError::System {
+                Err(e) => Message::Error(CadError {
                     error: e.to_string(),
                 }),
             },
             Message::CheatSheet() => {
-                let cad = Dslcad::default();
-                let cheatsheet = cad.cheat_sheet();
+                let cad = Library::default();
+                let cheatsheet = cad.to_string();
                 Message::CheatSheetResults { cheatsheet }
             }
             _ => panic!("Unexpected message: {:#?}", message),
         }
+    }
+}
+
+fn render_ast(ast: Ast) -> Result<Vec<Part>, Box<dyn Error>> {
+    let library = Library::default();
+    let mut engine = Engine::new(&library, ast);
+    let instance = engine.eval_root(HashMap::new())?;
+    let value = instance.value();
+
+    if let Some(parts) = value.to_list() {
+        let mut outputs = Vec::new();
+        for part in parts {
+            outputs.push(part.to_output()?);
+        }
+        Ok(outputs)
+    } else {
+        Ok(vec![value.to_output()?])
     }
 }
 
@@ -90,15 +93,4 @@ fn export(render: Render, name: String, path: String) -> Result<(), Box<dyn Erro
     }
 
     Ok(())
-}
-
-pub struct StringReader(String);
-impl Reader for StringReader {
-    fn read(&self, _: &Path) -> Result<String, std::io::Error> {
-        Ok(self.0.to_string())
-    }
-
-    fn normalize(&self, path: &Path) -> PathBuf {
-        PathBuf::from(path)
-    }
 }

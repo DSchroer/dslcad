@@ -1,5 +1,13 @@
-use dslcad::Dslcad;
+use dslcad_api::protocol::Message;
+use dslcad_api::Client;
 
 fn main() {
-    println!("{}", Dslcad::default().cheat_sheet())
+    let client = Client::new(dslcad::server);
+    let result = client.send(Message::CheatSheet()).busy_loop();
+    match result {
+        Message::CheatSheetResults { cheatsheet } => {
+            println!("{}", cheatsheet)
+        }
+        _ => panic!("unexpected response from server"),
+    }
 }

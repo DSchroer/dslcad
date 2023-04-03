@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 dslcad_api = { path = "../dslcad_api" }
+dslcad_parser = { path = "../dslcad_parser" }
 
 clap = { version = "4.1", features = ["derive"] }
 

@@ -34,14 +34,15 @@ pub fn file_window(
     mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
     mut state: ResMut<FileWindowState>,
     mut buffer: ResMut<FileWindowBuffer>,
-    mut events: EventWriter<UiEvent>,
+    mut _events: EventWriter<UiEvent>,
 ) {
     egui::Window::new("Editor")
         .open(&mut state.open)
         .show(egui_ctx.single_mut().get_mut(), |ui| {
             ui.text_edit_multiline(&mut buffer.buffer);
             if ui.button("Save").clicked() {
-                events.send(UiEvent::RenderString(buffer.buffer.clone()));
+                todo!()
+                // events.send(UiEvent::RenderString(buffer.buffer.clone()));
             }
         });
 }

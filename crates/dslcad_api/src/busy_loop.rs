@@ -2,7 +2,7 @@ use std::future::*;
 use std::pin::pin;
 use std::task::*;
 
-const PENDING_SLEEP_MS: u64 = 10;
+const PENDING_SLEEP_MS: u64 = 10_000;
 
 unsafe fn rwclone(_p: *const ()) -> RawWaker {
     make_raw_waker()

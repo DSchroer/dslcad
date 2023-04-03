@@ -1,3 +1,4 @@
+use dslcad_parser::Ast;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -5,10 +6,7 @@ use std::fmt::{Display, Formatter};
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Message {
     Render {
-        path: String,
-    },
-    RenderString {
-        source: String,
+        ast: Ast,
     },
     RenderResults(Result<Render, CadError>, RenderMetadata),
     Export {
@@ -56,24 +54,16 @@ pub struct Mesh {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct RenderMetadata {
-    pub files: Vec<String>,
-}
+pub struct RenderMetadata {}
 
 #[derive(Serialize, Deserialize, Debug)]
-pub enum CadError {
-    Parsing { error: String },
-    Runtime { error: String, stack: String },
-    System { error: String },
+pub struct CadError {
+    pub error: String,
 }
 
 impl Display for CadError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CadError::Parsing { error } => f.write_str(error),
-            CadError::Runtime { error, stack } => f.write_fmt(format_args!("{}\n{}", error, stack)),
-            CadError::System { error } => f.write_str(error),
-        }
+        f.write_fmt(format_args!("{}", self.error))
     }
 }
 
