@@ -1,4 +1,4 @@
-use crate::editor::{State, UiEvent};
+use crate::editor::{Project, State, UiEvent};
 use bevy::prelude::ResMut;
 use bevy::prelude::*;
 use notify::{Error, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
@@ -70,8 +70,8 @@ fn setup_watcher(mut state: ResMut<State>) {
     state.watcher = Some(FileWatcher::new())
 }
 
-fn notify_watch(mut state: ResMut<State>, mut events: EventWriter<UiEvent>) {
+fn notify_watch(mut state: ResMut<State>, mut events: EventWriter<UiEvent>, project: Res<Project>) {
     if state.autowatch && state.watcher.as_mut().unwrap().dirty() {
-        events.send(UiEvent::Render())
+        // events.send(UiEvent::Render{ path: state.file.clone().unwrap().as_path().to_str().unwrap().to_string() })
     }
 }

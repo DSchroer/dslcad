@@ -14,6 +14,7 @@ dslcad_api = { path = "../dslcad_api" }
 dslcad_parser = { path = "../dslcad_parser" }
 
 clap = { version = "4.1", features = ["derive"] }
+vfs = "0.9.0"
 
 bevy = "0.10"
 bevy_egui = "0.20.0"
