@@ -1,3 +1,4 @@
+use crate::editor::gui::menu::MenuAppExt;
 use crate::editor::gui::UiEvent;
 use crate::reader::ProjectReader;
 use bevy::prelude::*;
@@ -16,6 +17,7 @@ impl Plugin for ProjectsPlugin {
             .insert_resource(Popup::default())
             .add_event::<ProjectUiEvent>()
             .add_event::<PopupEvent>()
+            .add_res_menu_button("Window/Project", |p: &mut ProjectWindow| p.show())
             .add_system(popup_system)
             .add_system(project_window)
             .add_system(project_event_handler)
@@ -23,20 +25,14 @@ impl Plugin for ProjectsPlugin {
     }
 }
 
-#[derive(Resource)]
-pub struct ProjectWindow {
+#[derive(Resource, Default)]
+struct ProjectWindow {
     open: bool,
 }
 
 impl ProjectWindow {
     pub fn show(&mut self) {
         self.open = true;
-    }
-}
-
-impl Default for ProjectWindow {
-    fn default() -> Self {
-        Self { open: true }
     }
 }
 

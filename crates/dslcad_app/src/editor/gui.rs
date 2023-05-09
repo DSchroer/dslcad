@@ -1,16 +1,19 @@
+mod help;
+mod menu;
 mod projects;
+mod view_menu;
 
-use crate::editor::rendering::RenderCommand;
 use crate::editor::State;
-use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use bevy_egui::{egui, EguiContext, EguiPlugin};
-use clap::builder::Str;
 
+use crate::editor::gui::help::HelpPlugin;
+use crate::editor::gui::menu::MenuPlugin;
 pub use crate::editor::gui::projects::Project;
-use crate::editor::gui::projects::{ProjectWindow, ProjectsPlugin};
+use crate::editor::gui::projects::ProjectsPlugin;
+use crate::editor::gui::view_menu::ViewMenuPlugin;
 use dslcad_api::protocol::Part;
 
 pub struct GuiPlugin {
@@ -31,11 +34,10 @@ impl Plugin for GuiPlugin {
             })
             .add_plugin(EguiPlugin)
             .add_plugin(ProjectsPlugin)
-            .add_system(main_ui)
-            .add_system(about)
-            .add_system(cheatsheet)
-            .add_system(console_panel)
-            .add_system(keybindings);
+            .add_plugin(MenuPlugin)
+            .add_plugin(ViewMenuPlugin)
+            .add_plugin(HelpPlugin::default())
+            .add_system(console_panel);
     }
 }
 
@@ -45,130 +47,9 @@ struct CheatSheet {
 }
 
 pub enum UiEvent {
-    CreateFile(),
-    OpenFile(),
     Render { path: String },
+    ReRender(),
     Export(),
-}
-
-fn keybindings(keys: Res<Input<KeyCode>>, mut events: EventWriter<UiEvent>, state: Res<State>) {
-    #[cfg(not(target_arch = "wasm32"))]
-    if keys.pressed(KeyCode::LControl) && keys.just_released(KeyCode::N) {
-        events.send(UiEvent::CreateFile())
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    if keys.pressed(KeyCode::LControl) && keys.just_released(KeyCode::O) {
-        events.send(UiEvent::OpenFile())
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    if keys.pressed(KeyCode::LControl) && keys.just_released(KeyCode::F5) {
-        // events.send(UiEvent::Render{ path: state.file.clone().unwrap().to_str().unwrap().to_string() })
-    }
-}
-
-fn main_ui(
-    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
-    mut events: EventWriter<UiEvent>,
-    mut render_events: EventWriter<RenderCommand>,
-    mut state: ResMut<State>,
-    mut project_window: ResMut<ProjectWindow>,
-    mut exit: EventWriter<AppExit>,
-) {
-    egui::TopBottomPanel::top("Tools").show(egui_ctx.single_mut().get_mut(), |ui| {
-        egui::menu::bar(ui, |ui| {
-            #[cfg(not(target_arch = "wasm32"))]
-            ui.menu_button("File", |ui| {
-                if ui.button("Open Part (o)").clicked() {
-                    events.send(UiEvent::OpenFile());
-                    ui.close_menu();
-                }
-                if ui.button("Open Project (o)").clicked() {
-                    events.send(UiEvent::OpenFile());
-                    ui.close_menu();
-                }
-                ui.separator();
-                if ui.button("Exit").clicked() {
-                    exit.send(AppExit);
-                    ui.close_menu();
-                }
-            });
-
-            ui.menu_button("View", |ui| {
-                if ui.checkbox(&mut state.show_points, "Points").clicked() {
-                    render_events.send(RenderCommand::Redraw);
-                }
-                if ui.checkbox(&mut state.show_lines, "Lines").clicked() {
-                    render_events.send(RenderCommand::Redraw);
-                }
-                if ui.checkbox(&mut state.show_mesh, "Mesh").clicked() {
-                    render_events.send(RenderCommand::Redraw);
-                }
-            });
-
-            #[cfg(not(target_arch = "wasm32"))]
-            ui.menu_button("Rendering", |ui| {
-                if ui.button("Render (F5)").clicked() {
-                    // events.send(UiEvent::Render{ path: state.file.clone().unwrap().to_str().unwrap().to_string() });
-                    ui.close_menu();
-                }
-                ui.separator();
-                ui.checkbox(&mut state.autowatch, "Auto Render");
-            });
-
-            #[cfg(not(target_arch = "wasm32"))]
-            ui.menu_button("Export", |ui| {
-                if ui.button("To folder").clicked() {
-                    events.send(UiEvent::Export());
-                    ui.close_menu();
-                }
-            });
-
-            ui.menu_button("Window", |ui| {
-                if ui.button("Project").clicked() {
-                    project_window.show();
-                    ui.close_menu();
-                }
-            });
-
-            ui.menu_button("Help", |ui| {
-                if ui.button("Cheat Sheet").clicked() {
-                    state.cheatsheet_window = true;
-                    ui.close_menu();
-                }
-                if ui.button("About").clicked() {
-                    state.about_window = true;
-                    ui.close_menu();
-                }
-            });
-        });
-    });
-}
-
-fn about(mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>, mut state: ResMut<State>) {
-    egui::Window::new("About")
-        .open(&mut state.about_window)
-        .show(egui_ctx.single_mut().get_mut(), |ui| {
-            ui.label(dslcad_api::constants::FULL_NAME);
-            ui.separator();
-            ui.label(format!("Version: {}", env!("CARGO_PKG_VERSION")));
-            ui.label("Copyright: Dominick Schroer 2022");
-        });
-}
-
-fn cheatsheet(
-    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
-    mut state: ResMut<State>,
-    cheetsheet: Res<CheatSheet>,
-) {
-    egui::Window::new("Cheat Sheet")
-        .open(&mut state.cheatsheet_window)
-        .show(egui_ctx.single_mut().get_mut(), |ui| {
-            egui::ScrollArea::vertical()
-                .max_height(512.)
-                .show(ui, |ui| ui.monospace(&cheetsheet.cheetsheet));
-        });
 }
 
 fn console_panel(state: Res<State>, mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>) {
@@ -180,9 +61,9 @@ fn console_panel(state: Res<State>, mut egui_ctx: Query<&mut EguiContext, With<P
             .max_height(256.)
             .max_width(f32::INFINITY)
             .auto_shrink([false, true])
-            .show(ui, |ui| match &state.output {
-                None => {}
-                Some(output) => {
+            .show(ui, |ui| match state.as_ref() {
+                State::Empty => {}
+                State::Rendered { output, .. } => {
                     match output {
                         Ok(o) => {
                             for part in &o.parts {

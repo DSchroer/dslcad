@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy_points::material::PointsShaderSettings;
 use bevy_points::prelude::*;
 
+use crate::editor::State::Rendered;
 use bevy_polyline::material::PolylineMaterial;
 use bevy_polyline::polyline::{Polyline, PolylineBundle};
 use dslcad_api::protocol::{Part, Point};
@@ -15,7 +16,7 @@ impl Plugin for ModelRenderingPlugin {
         app.add_plugin(PointsPlugin)
             .add_event::<RenderCommand>()
             .add_event::<RenderEvents>()
-            .insert_resource(RenderState { model: None })
+            .insert_resource(RenderState::default())
             .add_system(render_controller)
             .add_system(mesh_renderer)
             .add_system(point_renderer)
@@ -30,6 +31,20 @@ pub enum RenderCommand {
 #[derive(Resource)]
 pub struct RenderState {
     model: Option<Entity>,
+    pub show_points: bool,
+    pub show_lines: bool,
+    pub show_mesh: bool,
+}
+
+impl Default for RenderState {
+    fn default() -> Self {
+        Self {
+            show_points: true,
+            show_lines: true,
+            show_mesh: true,
+            model: None,
+        }
+    }
 }
 
 enum RenderEvents {
@@ -48,7 +63,7 @@ fn mesh_renderer(
 ) {
     for event in events.iter() {
         if let RenderEvents::Mesh = event {
-            if !state.show_mesh {
+            if !render_state.show_mesh {
                 continue;
             }
 
@@ -58,7 +73,10 @@ fn mesh_renderer(
                 return;
             };
 
-            if let Some(Ok(render)) = &state.output {
+            if let Rendered {
+                output: Ok(render), ..
+            } = state.as_ref()
+            {
                 for part in &render.parts {
                     if let Part::Object { mesh, .. } = part {
                         let mesh = stl_to_triangle_mesh(mesh);
@@ -87,7 +105,7 @@ fn point_renderer(
 ) {
     for event in events.iter() {
         if let RenderEvents::Points = event {
-            if !state.show_points {
+            if !render_state.show_points {
                 continue;
             }
 
@@ -97,7 +115,10 @@ fn point_renderer(
                 return;
             };
 
-            if let Some(Ok(render)) = &state.output {
+            if let Rendered {
+                output: Ok(render), ..
+            } = state.as_ref()
+            {
                 for part in &render.parts {
                     match part {
                         Part::Planar { points, .. } => render_points(
@@ -164,7 +185,7 @@ fn line_renderer(
 ) {
     for event in events.iter() {
         if let RenderEvents::Lines = event {
-            if !state.show_lines {
+            if !render_state.show_lines {
                 continue;
             }
 
@@ -174,7 +195,10 @@ fn line_renderer(
                 return;
             };
 
-            if let Some(Ok(render)) = &state.output {
+            if let Rendered {
+                output: Ok(render), ..
+            } = state.as_ref()
+            {
                 for part in &render.parts {
                     match part {
                         Part::Planar { lines, .. } => render_lines(
@@ -227,7 +251,6 @@ fn render_lines(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn render_controller(
     mut commands: Commands,
     mut events: EventReader<RenderCommand>,
