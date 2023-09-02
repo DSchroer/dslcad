@@ -27,10 +27,7 @@ impl ScriptInstance {
 
 impl Display for ScriptInstance {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let part = self
-            .value
-            .to_output()
-            .map_err(|_| std::fmt::Error::default())?;
+        let part = self.value.to_output().map_err(|_| std::fmt::Error)?;
         match part {
             Part::Data { text } => f.write_str(&text),
             Part::Planar { .. } => panic!("can not display 2d as text"),

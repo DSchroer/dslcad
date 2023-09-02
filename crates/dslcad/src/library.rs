@@ -601,7 +601,7 @@ pub mod tests {
                 ("c", Type::Number),
             ]),
         ));
-        assert!(matches!(res, Err(_)))
+        assert!(res.is_err())
     }
 
     #[test]

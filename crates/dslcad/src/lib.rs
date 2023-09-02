@@ -1,7 +1,7 @@
 mod api_server;
-mod export;
-mod library;
-mod runtime;
+pub mod export;
+pub mod library;
+pub mod runtime;
 
 use dslcad_api::Server;
 

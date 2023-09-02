@@ -33,7 +33,7 @@ impl<T: Serialize + for<'a> Deserialize<'a>> Client<T> {
         unsafe {
             (self.server)(encoded.len(), encoded.as_ptr(), client_handler);
         }
-        PendingMessage(PhantomData::default())
+        PendingMessage(PhantomData)
     }
 }
 

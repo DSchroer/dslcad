@@ -22,6 +22,16 @@ You can find pre-built binaries for:
 
 ## FAQ
 
+### What are you focusing on?
+
+Right now there are two apps:
+- DSLCAD CLI
+- DSLCAD Editor
+
+I am focusing on the CLI. Right now I don't have the energy to develop
+for the editor. I would like to do editor work but I do not have enough energy.
+If anyone wants to contribute I would appreciate it. 
+
 ### Why is this different from OpenSCAD?
 
 DSLCAD aims to build upon the formula that was established by OpenSCAD. It is 

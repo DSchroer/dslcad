@@ -15,7 +15,7 @@ impl Plugin for MenuPlugin {
         app.init_resource::<Menu>()
             .add_event::<MenuEvent>()
             .add_event_menu_button("File/Exit", |exit: &mut EventWriter<AppExit>| {
-                exit.send(AppExit::default())
+                exit.send(AppExit)
             })
             .add_event_menu_button("Export/To Folder", |exit: &mut EventWriter<UiEvent>| {
                 exit.send(UiEvent::Export())

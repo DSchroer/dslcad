@@ -75,9 +75,9 @@ pub fn extrude(
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
-    let mut shape = shape.borrow_mut();
+    let shape = shape.borrow();
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::extrude(
-        &mut shape,
+        &shape,
         x.unwrap_or(0.0),
         y.unwrap_or(0.0),
         z.unwrap_or(0.0),
@@ -100,9 +100,9 @@ pub fn revolve(
         return Err(RuntimeError::UnsetParameter(String::from("x, y, or z")));
     };
 
-    let mut shape = shape.borrow_mut();
+    let shape = shape.borrow();
     Ok(Value::Shape(Rc::new(RefCell::new(Shape::extrude_rotate(
-        &mut shape, axis, angle,
+        &shape, axis, angle,
     )?))))
 }
 
@@ -119,14 +119,14 @@ pub fn union_edge(
     Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
-pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
+pub fn face(parts: Vec<Value>) -> Result<Value, RuntimeError> {
     if parts.is_empty() {
         return point(None, None, None);
     }
     let parts_len = parts.len();
 
-    let start = start_point(&mut parts[0])?;
-    let end = end_point(&mut parts[parts_len - 1])?;
+    let start = start_point(&parts[0])?;
+    let end = end_point(&parts[parts_len - 1])?;
 
     if parts_len == 1 && start == end {
         return Ok(parts[0].clone());
@@ -135,8 +135,8 @@ pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
     let mut edge = WireFactory::new();
     for i in 0..parts_len {
         let last = if i == 0 { parts_len - 1 } else { i - 1 };
-        let last_end = end_point(&mut parts[last])?;
-        let current_start = start_point(&mut parts[i])?;
+        let last_end = end_point(&parts[last])?;
+        let current_start = start_point(&parts[i])?;
         let point = &parts[i];
 
         if last_end != current_start {
@@ -154,7 +154,7 @@ pub fn face(mut parts: Vec<Value>) -> Result<Value, RuntimeError> {
     Ok(Value::Line(Rc::new(RefCell::new(edge.build()?))))
 }
 
-fn start_point(value: &mut Value) -> Result<Rc<RefCell<Point>>, RuntimeError> {
+fn start_point(value: &Value) -> Result<Rc<RefCell<Point>>, RuntimeError> {
     match value.get_type() {
         Type::Point => Ok(value.to_point().unwrap()),
         Type::Edge => Ok(Rc::new(RefCell::new(
@@ -164,7 +164,7 @@ fn start_point(value: &mut Value) -> Result<Rc<RefCell<Point>>, RuntimeError> {
     }
 }
 
-fn end_point(value: &mut Value) -> Result<Rc<RefCell<Point>>, RuntimeError> {
+fn end_point(value: &Value) -> Result<Rc<RefCell<Point>>, RuntimeError> {
     match value.get_type() {
         Type::Point => Ok(value.to_point().unwrap()),
         Type::Edge => Ok(Rc::new(RefCell::new(

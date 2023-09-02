@@ -13,9 +13,9 @@ path = "utils/dslcad_wasm_server.rs"
 
 [dependencies]
 thiserror = "1.0.38"
-path-absolutize = "3"
 opencascade = { path = "../opencascade" }
 dslcad_api = { path = "../dslcad_api" }
 dslcad_parser = { path = "../dslcad_parser" }
-indexmap = "1.9.2"
+indexmap = "2.0.0"
 stl_io = "0.7.0"
+proc-macro2 = "1.0.66"

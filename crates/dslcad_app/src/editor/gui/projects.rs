@@ -6,7 +6,9 @@ use bevy_egui::egui::{PointerButton, Response, Sense, Ui};
 use bevy_egui::{egui, EguiContexts};
 use std::io::{Read, Write};
 use std::path::Path;
-use vfs::{FileSystem, MemoryFS, PhysicalFS, VfsFileType};
+#[cfg(target_arch = "wasm32")]
+use vfs::MemoryFS;
+use vfs::{FileSystem, PhysicalFS, VfsFileType};
 
 pub struct ProjectsPlugin;
 
@@ -83,6 +85,7 @@ impl Project {
         self.fs = Some(Box::new(PhysicalFS::new(path)));
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn open_memory_project(&mut self) {
         let fs = MemoryFS::new();
         fs.create_dir("/").unwrap();
@@ -409,7 +412,7 @@ fn root_folder(
 }
 
 fn right_click_menu(
-    ui: &mut Ui,
+    ui: &Ui,
     path: &str,
     folder: &str,
     header_response: &Response,

@@ -54,7 +54,7 @@ impl Shape {
         Ok(Builder::try_build(&mut cylinder)?.into())
     }
 
-    pub fn extrude(wire: &mut Wire, x: f64, y: f64, z: f64) -> Result<Self, Error> {
+    pub fn extrude(wire: &Wire, x: f64, y: f64, z: f64) -> Result<Self, Error> {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.wire(), false);
         let prism_vec = new_vec(x, y, z);
 
@@ -67,7 +67,7 @@ impl Shape {
         Ok(Builder::try_build(&mut body)?.into())
     }
 
-    pub fn extrude_rotate(wire: &mut Wire, axis: Axis, degrees: f64) -> Result<Self, Error> {
+    pub fn extrude_rotate(wire: &Wire, axis: Axis, degrees: f64) -> Result<Self, Error> {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.wire(), false);
 
         let radians = degrees * (std::f64::consts::PI / 180.);

@@ -266,7 +266,7 @@ impl<'a> Engine<'a> {
         l: &Expression,
         name: &str,
     ) -> Result<Value, WithStack<RuntimeError>> {
-        let l = self.expression(instance, l.deref())?;
+        let l = self.expression(instance, l)?;
 
         let script = l.to_accessible();
         if let Some(instance) = script {

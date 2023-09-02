@@ -25,7 +25,7 @@ where
         Explorer {
             explorer: TopExp_Explorer_ctor(shape, Self::shape()),
             first: true,
-            _phantom: PhantomData::default(),
+            _phantom: PhantomData,
         }
     }
 
