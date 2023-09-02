@@ -1,0 +1,55 @@
+mod help;
+mod menu;
+mod view_menu;
+
+use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
+
+use bevy_egui::{egui, EguiContext, EguiPlugin};
+
+use crate::editor::gui::help::HelpPlugin;
+use crate::editor::gui::menu::MenuPlugin;
+use crate::editor::gui::view_menu::ViewMenuPlugin;
+
+pub struct GuiPlugin {
+    cheetsheet: String,
+}
+
+impl GuiPlugin {
+    pub fn new(cheetsheet: String) -> Self {
+        Self { cheetsheet }
+    }
+}
+
+impl Plugin for GuiPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(CheatSheet {
+            cheetsheet: self.cheetsheet.clone(),
+        })
+        .add_plugin(EguiPlugin)
+        .add_plugin(MenuPlugin)
+        .add_plugin(ViewMenuPlugin)
+        .add_plugin(HelpPlugin::default())
+        .add_system(console_panel);
+    }
+}
+
+#[derive(Resource)]
+struct CheatSheet {
+    cheetsheet: String,
+}
+
+fn console_panel(mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>) {
+    egui::TopBottomPanel::bottom("Console").show(egui_ctx.single_mut().get_mut(), |ui| {
+        ui.heading("Console:");
+        ui.separator();
+
+        egui::ScrollArea::vertical()
+            .max_height(256.)
+            .max_width(f32::INFINITY)
+            .auto_shrink([false, true])
+            .show(ui, |ui| {
+                ui.monospace("ToDo");
+            });
+    });
+}

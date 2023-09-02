@@ -4,10 +4,9 @@ use bevy::prelude::*;
 use bevy_points::material::PointsShaderSettings;
 use bevy_points::prelude::*;
 
-use crate::editor::State::Rendered;
 use bevy_polyline::material::PolylineMaterial;
 use bevy_polyline::polyline::{Polyline, PolylineBundle};
-use dslcad_api::protocol::{Part, Point};
+use dslcad_api::protocol::{Part, Point, Render};
 
 pub struct ModelRenderingPlugin;
 
@@ -25,12 +24,13 @@ impl Plugin for ModelRenderingPlugin {
 }
 
 pub enum RenderCommand {
+    Draw(Render),
     Redraw,
 }
 
 #[derive(Resource)]
 pub struct RenderState {
-    model: Option<Entity>,
+    model: Option<(Render, Entity)>,
     pub show_points: bool,
     pub show_lines: bool,
     pub show_mesh: bool,
@@ -55,7 +55,6 @@ enum RenderEvents {
 
 fn mesh_renderer(
     mut commands: Commands,
-    state: Res<super::State>,
     render_state: Res<RenderState>,
     mut events: EventReader<RenderEvents>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -67,28 +66,23 @@ fn mesh_renderer(
                 continue;
             }
 
-            let entity = if let Some(e) = render_state.model {
+            let (render, entity) = if let Some(e) = &render_state.model {
                 e
             } else {
                 return;
             };
 
-            if let Rendered {
-                output: Ok(render), ..
-            } = state.as_ref()
-            {
-                for part in &render.parts {
-                    if let Part::Object { mesh, .. } = part {
-                        let mesh = stl_to_triangle_mesh(mesh);
+            for part in &render.parts {
+                if let Part::Object { mesh, .. } = part {
+                    let mesh = stl_to_triangle_mesh(mesh);
 
-                        commands
-                            .spawn(PbrBundle {
-                                mesh: meshes.add(mesh),
-                                material: materials.add(Blueprint::white().into()),
-                                ..Default::default()
-                            })
-                            .set_parent(entity);
-                    }
+                    commands
+                        .spawn(PbrBundle {
+                            mesh: meshes.add(mesh),
+                            material: materials.add(Blueprint::white().into()),
+                            ..Default::default()
+                        })
+                        .set_parent(*entity);
                 }
             }
         }
@@ -97,7 +91,6 @@ fn mesh_renderer(
 
 fn point_renderer(
     mut commands: Commands,
-    state: Res<super::State>,
     render_state: Res<RenderState>,
     mut events: EventReader<RenderEvents>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -109,34 +102,29 @@ fn point_renderer(
                 continue;
             }
 
-            let entity = if let Some(e) = render_state.model {
+            let (render, entity) = if let Some(e) = &render_state.model {
                 e
             } else {
                 return;
             };
 
-            if let Rendered {
-                output: Ok(render), ..
-            } = state.as_ref()
-            {
-                for part in &render.parts {
-                    match part {
-                        Part::Planar { points, .. } => render_points(
-                            &mut commands,
-                            &mut meshes,
-                            &mut point_materials,
-                            points,
-                            entity,
-                        ),
-                        Part::Object { points, .. } => render_points(
-                            &mut commands,
-                            &mut meshes,
-                            &mut point_materials,
-                            points,
-                            entity,
-                        ),
-                        _ => {}
-                    }
+            for part in &render.parts {
+                match part {
+                    Part::Planar { points, .. } => render_points(
+                        &mut commands,
+                        &mut meshes,
+                        &mut point_materials,
+                        points,
+                        *entity,
+                    ),
+                    Part::Object { points, .. } => render_points(
+                        &mut commands,
+                        &mut meshes,
+                        &mut point_materials,
+                        points,
+                        *entity,
+                    ),
+                    _ => {}
                 }
             }
         }
@@ -177,7 +165,6 @@ fn render_points(
 
 fn line_renderer(
     mut commands: Commands,
-    state: Res<super::State>,
     render_state: Res<RenderState>,
     mut events: EventReader<RenderEvents>,
     mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
@@ -189,34 +176,29 @@ fn line_renderer(
                 continue;
             }
 
-            let entity = if let Some(e) = render_state.model {
+            let (render, entity) = if let Some(e) = &render_state.model {
                 e
             } else {
                 return;
             };
 
-            if let Rendered {
-                output: Ok(render), ..
-            } = state.as_ref()
-            {
-                for part in &render.parts {
-                    match part {
-                        Part::Planar { lines, .. } => render_lines(
-                            &mut commands,
-                            &mut polylines,
-                            &mut polyline_materials,
-                            lines,
-                            entity,
-                        ),
-                        Part::Object { lines, .. } => render_lines(
-                            &mut commands,
-                            &mut polylines,
-                            &mut polyline_materials,
-                            lines,
-                            entity,
-                        ),
-                        _ => {}
-                    }
+            for part in &render.parts {
+                match part {
+                    Part::Planar { lines, .. } => render_lines(
+                        &mut commands,
+                        &mut polylines,
+                        &mut polyline_materials,
+                        lines,
+                        *entity,
+                    ),
+                    Part::Object { lines, .. } => render_lines(
+                        &mut commands,
+                        &mut polylines,
+                        &mut polyline_materials,
+                        lines,
+                        *entity,
+                    ),
+                    _ => {}
                 }
             }
         }
@@ -259,11 +241,12 @@ fn render_controller(
 ) {
     for event in events.iter() {
         match event {
-            RenderCommand::Redraw => {
-                if let Some(id) = render_state.model {
+            RenderCommand::Draw(render) => {
+                if let Some((_, id)) = render_state.model {
                     commands.entity(id).despawn_recursive();
                     render_state.model = None;
                 }
+
                 let bundle = commands.spawn(SpatialBundle {
                     transform: Transform::from_rotation(Quat::from_euler(
                         EulerRot::XYZ,
@@ -273,7 +256,27 @@ fn render_controller(
                     )),
                     ..Default::default()
                 });
-                render_state.model = Some(bundle.id());
+                render_state.model = Some((render.clone(), bundle.id()));
+
+                render_events.send(RenderEvents::Points);
+                render_events.send(RenderEvents::Lines);
+                render_events.send(RenderEvents::Mesh);
+            }
+            RenderCommand::Redraw => {
+                if let Some((render, id)) = &render_state.model {
+                    commands.entity(*id).despawn_recursive();
+
+                    let bundle = commands.spawn(SpatialBundle {
+                        transform: Transform::from_rotation(Quat::from_euler(
+                            EulerRot::XYZ,
+                            -std::f32::consts::FRAC_PI_2,
+                            0.0,
+                            -std::f32::consts::FRAC_PI_2,
+                        )),
+                        ..Default::default()
+                    });
+                    render_state.model = Some((render.clone(), bundle.id()));
+                }
 
                 render_events.send(RenderEvents::Points);
                 render_events.send(RenderEvents::Lines);

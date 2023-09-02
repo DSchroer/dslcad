@@ -4,6 +4,7 @@ use dslcad::parser::DocId;
 use dslcad::reader::FsReader;
 use dslcad::runtime::Engine;
 use dslcad_api::protocol::Render;
+use preview::Preview;
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::Path;
@@ -14,6 +15,8 @@ use std::{env, fs};
 struct Args {
     /// Source path to load
     source: String,
+    #[arg(short, long)]
+    preview: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -40,11 +43,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let cwd = env::current_dir()?;
-    let file = source.file_stem().unwrap();
-    let outpath = cwd.join(format!("{}.parts", file.to_string_lossy()));
+    if args.preview {
+        let (preview, handle) = Preview::new();
+        handle.render(parts)?;
+        preview.open(lib.to_string());
+    } else {
+        let cwd = env::current_dir()?;
+        let file = source.file_stem().unwrap();
+        let outpath = cwd.join(format!("{}.parts", file.to_string_lossy()));
 
-    fs::write(outpath, parts.to_bytes())?;
+        fs::write(outpath, parts.to_bytes())?;
+    }
 
     Ok(())
 }

@@ -1,6 +1,4 @@
-use crate::editor::gui::UiEvent;
 use crate::editor::rendering::{RenderCommand, RenderState};
-use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContext};
@@ -14,15 +12,6 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Menu>()
             .add_event::<MenuEvent>()
-            .add_event_menu_button("File/Exit", |exit: &mut EventWriter<AppExit>| {
-                exit.send(AppExit)
-            })
-            .add_event_menu_button("Export/To Folder", |exit: &mut EventWriter<UiEvent>| {
-                exit.send(UiEvent::Export())
-            })
-            .add_event_menu_button("Rendering/Render", |exit: &mut EventWriter<UiEvent>| {
-                exit.send(UiEvent::ReRender())
-            })
             .add_system(main_ui);
     }
 }
