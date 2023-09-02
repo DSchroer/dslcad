@@ -1,30 +1,21 @@
-use dslcad_parser::Ast;
 use serde::{Deserialize, Serialize};
+use serde_binary::binary_stream::Endian;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum Message {
-    Render {
-        ast: Ast,
-    },
-    RenderResults(Result<Render, CadError>, RenderMetadata),
-    Export {
-        render: Render,
-        name: String,
-        path: String,
-    },
-    ExportResults(),
-    Error(CadError),
-    CheatSheet(),
-    CheatSheetResults {
-        cheatsheet: String,
-    },
-}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Render {
     pub parts: Vec<Part>,
+}
+
+impl Render {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        serde_binary::to_vec(self, Endian::Big).unwrap()
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        serde_binary::from_slice(bytes, Endian::Big).unwrap()
+    }
 }
 
 pub type Vec3<T> = [T; 3];

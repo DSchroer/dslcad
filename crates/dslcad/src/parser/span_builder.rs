@@ -1,5 +1,5 @@
-use crate::lexer::Lexer;
-use crate::Expression;
+use crate::parser::lexer::Lexer;
+use crate::parser::Expression;
 use logos::Span;
 
 pub struct SpanBuilder {

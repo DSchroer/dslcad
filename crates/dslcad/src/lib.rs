@@ -1,33 +1,21 @@
-mod api_server;
 pub mod export;
 pub mod library;
+pub mod parser;
+pub mod reader;
 pub mod runtime;
-
-use dslcad_api::Server;
-
-/// # Safety
-/// user must ensure that length & message are valid and accessible within the memory of the app
-#[no_mangle]
-pub unsafe extern "C" fn server(
-    length: usize,
-    message: *const u8,
-    cb: unsafe extern "C" fn(usize, *const u8),
-) {
-    api_server::DslcadApi::receive(length, message, cb)
-}
 
 #[cfg(test)]
 mod tests {
     use crate::library::Library;
+    use crate::parser::{DocId, Reader};
     use crate::runtime::{Engine, ScriptInstance};
-    use dslcad_parser::{DocId, Reader};
     use std::collections::HashMap;
     use std::path::{Path, PathBuf};
 
     fn run(code: &'static str) -> ScriptInstance {
         let reader = TestReader(code);
         let root = DocId::new("test".to_string());
-        let parser = dslcad_parser::Parser::new(reader, root);
+        let parser = crate::parser::Parser::new(reader, root);
         let documents = parser.parse().unwrap();
         let lib = Library::new();
         let mut engine = Engine::new(&lib, documents);

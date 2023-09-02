@@ -1,2 +1,1 @@
 cube(x=1,y=1,z=1);
-formatln(message="hello world!");

@@ -2,12 +2,6 @@
 resolver = "2"
 members = [
     "crates/dslcad",
-    "crates/dslcad_app",
-    "crates/dslcad_parser",
     "crates/opencascade",
     "crates/dslcad_api",
-    "crates/dslcad_cli"
 ]
-
-[env]
-DEP_OCCT_ROOT="/home/dschroer/Projects/modelrs/opencascade"

@@ -1,4 +1,4 @@
-use crate::DocId;
+use crate::parser::DocId;
 use logos::{Source, Span};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Write};

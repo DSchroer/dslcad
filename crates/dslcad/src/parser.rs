@@ -10,7 +10,7 @@ use logos::Logos;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
-use crate::span_builder::SpanBuilder;
+use crate::parser::span_builder::SpanBuilder;
 pub use parse_error::{DocumentParseError, ParseError};
 pub use reader::Reader;
 pub use syntax_tree::*;

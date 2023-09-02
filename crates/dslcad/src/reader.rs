@@ -1,4 +1,4 @@
-use dslcad_parser::Reader;
+use crate::parser::Reader;
 use std::fs;
 use std::io::Error;
 use std::path::{Path, PathBuf};

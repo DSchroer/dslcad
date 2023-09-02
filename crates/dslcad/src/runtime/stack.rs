@@ -1,4 +1,4 @@
-use dslcad_parser::{DocId, Statement};
+use crate::parser::{DocId, Statement};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Write};
 use std::ops::Range;

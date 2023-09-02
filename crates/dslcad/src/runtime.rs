@@ -8,8 +8,8 @@ mod types;
 mod value;
 
 use crate::library::{CallSignature, Library};
+use crate::parser::{Ast, CallPath, DocId, Expression, Literal, Statement};
 use crate::runtime::scope::Scope;
-use dslcad_parser::{Ast, CallPath, DocId, Expression, Literal, Statement};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;

@@ -3,19 +3,13 @@ name = "dslcad"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "cheat_sheet"
-path = "utils/cheat_sheet.rs"
-
-[[bin]]
-name = "dslcad_wasm_server"
-path = "utils/dslcad_wasm_server.rs"
-
 [dependencies]
+clap = { version = "4.4.2", features = ["derive"]}
+logos = "*"
+serde = "*"
 thiserror = "1.0.38"
 opencascade = { path = "../opencascade" }
 dslcad_api = { path = "../dslcad_api" }
-dslcad_parser = { path = "../dslcad_parser" }
 indexmap = "2.0.0"
 stl_io = "0.7.0"
 proc-macro2 = "1.0.66"
