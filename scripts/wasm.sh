@@ -7,7 +7,7 @@ else
 fi
 echo Using mode $BUILD
 
-cargo build --bin dslcad --target wasm32-unknown-emscripten $CARGO_ARGS
+cargo build --bin dslcad --no-default-features --target wasm32-unknown-emscripten $CARGO_ARGS
 cargo build --bin preview --target wasm32-unknown-unknown $CARGO_ARGS
 
 mkdir -p browser/lib
