@@ -61,7 +61,7 @@ steps:
         from_secret: github_api_key
     commands:
       - git remote add github https://github.com/DSchroer/dslcad.git
-      - gh release create --prerelease $DRONE_TAG cheatsheet.md examples.zip linux.zip windows.zip macosx.zip browser.zip
+      - gh release create --prerelease $DRONE_TAG examples.zip linux.zip windows.zip macosx.zip browser.zip
     when:
       event:
         - tag
