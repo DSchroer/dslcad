@@ -1,8 +1,42 @@
+use crate::library::Library;
+use crate::parser::{Ast, DocId, ParseError};
+use crate::reader::FsReader;
+use crate::runtime::{Engine, RuntimeError, WithStack};
+use dslcad_api::protocol::Render;
+use std::collections::HashMap;
+
 pub mod export;
 pub mod library;
 pub mod parser;
 pub mod reader;
 pub mod runtime;
+
+pub fn parse(source: String) -> Result<Ast, ParseError> {
+    let parser = parser::Parser::new(FsReader, DocId::new(source));
+    parser.parse()
+}
+
+pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
+    let lib = Library::new();
+
+    let mut engine = Engine::new(&lib, documents);
+    let instance = engine.eval_root(HashMap::new())?;
+    let value = instance.value();
+
+    let render = if let Some(parts) = value.to_list() {
+        let mut outputs = Vec::new();
+        for part in parts {
+            outputs.push(part.to_output().unwrap());
+        }
+        Render { parts: outputs }
+    } else {
+        Render {
+            parts: vec![value.to_output().unwrap()],
+        }
+    };
+
+    Ok(render)
+}
 
 #[cfg(test)]
 mod tests {

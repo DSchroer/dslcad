@@ -7,14 +7,14 @@ else
 fi
 echo Using mode $BUILD
 
-cargo build --bin dslcad_wasm_server --target wasm32-unknown-emscripten $CARGO_ARGS
-cargo build --bin dslcad --target wasm32-unknown-unknown $CARGO_ARGS
+cargo build --bin dslcad --target wasm32-unknown-emscripten $CARGO_ARGS
+cargo build --bin preview --target wasm32-unknown-unknown $CARGO_ARGS
 
 mkdir -p browser/lib
-cp target/wasm32-unknown-emscripten/$BUILD/dslcad_wasm_server.js browser/lib
-cp target/wasm32-unknown-emscripten/$BUILD/dslcad_wasm_server.wasm browser/lib
+cp target/wasm32-unknown-emscripten/$BUILD/dslcad.js browser/lib
+cp target/wasm32-unknown-emscripten/$BUILD/dslcad.wasm browser/lib
 
-wasm-bindgen --out-dir browser/lib --target web ./target/wasm32-unknown-unknown/$BUILD/dslcad.wasm
+wasm-bindgen --out-dir browser/lib --target web ./target/wasm32-unknown-unknown/$BUILD/preview.wasm
 # disable running main on startup
 sed -i 's/wasm.__wbindgen_start();//g' browser/lib/dslcad.js
 

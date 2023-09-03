@@ -15,11 +15,11 @@ pub struct PreviewHandle {
 }
 
 impl PreviewHandle {
-    pub fn render(&self, render: Render) -> Result<(), Box<dyn Error>> {
+    pub fn show_render(&self, render: Render) -> Result<(), Box<dyn Error>> {
         Ok(self.tx.send(PreviewEvent::Render(render))?)
     }
 
-    pub fn error(&self, error: String) -> Result<(), Box<dyn Error>> {
+    pub fn show_error(&self, error: String) -> Result<(), Box<dyn Error>> {
         Ok(self.tx.send(PreviewEvent::Error(error))?)
     }
 }

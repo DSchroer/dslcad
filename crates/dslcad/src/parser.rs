@@ -8,6 +8,7 @@ use lexer::{Lexer, Token};
 use logos::Logos;
 
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 use std::str::FromStr;
 
 use crate::parser::span_builder::SpanBuilder;
@@ -145,7 +146,7 @@ impl<R: Reader> Parser<R> {
                 let buf = buf.parent().unwrap();
                 let buf = buf.join(path.to_string() + ".ds");
 
-                let id = DocId::new(buf.to_str().unwrap().to_string());
+                let id = DocId::new(self.reader.normalize(Path::new(&buf)).to_str().unwrap().to_string());
                 self.to_parse.push(id.clone());
                 CallPath::Document(id)
             }

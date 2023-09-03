@@ -11,6 +11,6 @@ impl Reader for FsReader {
     }
 
     fn normalize(&self, path: &Path) -> PathBuf {
-        path.to_path_buf()
+        path.to_path_buf().canonicalize().unwrap()
     }
 }

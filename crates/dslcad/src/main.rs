@@ -1,59 +1,103 @@
 use clap::Parser;
 use dslcad::library::Library;
-use dslcad::parser::DocId;
-use dslcad::reader::FsReader;
-use dslcad::runtime::Engine;
-use dslcad_api::protocol::Render;
-use preview::Preview;
-use std::collections::HashMap;
+use dslcad::parser::{Ast, DocId};
+use dslcad::{parse, render};
 use std::error::Error;
 use std::path::Path;
 use std::{env, fs};
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Source path to load
     source: String,
+    #[cfg(feature = "preview")]
     #[arg(short, long)]
     preview: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-    let source = Path::new(&args.source);
 
-    let parser = dslcad::parser::Parser::new(FsReader, DocId::new(args.source.clone()));
-    let lib = Library::new();
-
-    let documents = parser.parse()?;
-    let mut engine = Engine::new(&lib, documents);
-    let instance = engine.eval_root(HashMap::new()).expect("failed to eval");
-    let value = instance.value();
-
-    let parts = if let Some(parts) = value.to_list() {
-        let mut outputs = Vec::new();
-        for part in parts {
-            outputs.push(part.to_output()?);
-        }
-        Render { parts: outputs }
-    } else {
-        Render {
-            parts: vec![value.to_output()?],
-        }
-    };
-
+    #[cfg(feature = "preview")]
     if args.preview {
-        let (preview, handle) = Preview::new();
-        handle.render(parts)?;
-        preview.open(lib.to_string());
-    } else {
-        let cwd = env::current_dir()?;
-        let file = source.file_stem().unwrap();
-        let outpath = cwd.join(format!("{}.parts", file.to_string_lossy()));
-
-        fs::write(outpath, parts.to_bytes())?;
+        return render_to_preview(args);
     }
 
+    render_to_file(args)
+}
+
+fn render_to_file(args: Args) -> Result<(), Box<dyn Error>> {
+    let render = render(parse(args.source.clone())?)?;
+
+    let cwd = env::current_dir()?;
+    let file = Path::new(&args.source).file_stem().unwrap();
+    let outpath = cwd.join(format!("{}.parts", file.to_string_lossy()));
+
+    fs::write(outpath, render.to_bytes())?;
+
+    Ok(())
+}
+
+#[cfg(feature = "preview")]
+fn render_to_preview(args: Args) -> Result<(), Box<dyn Error>> {
+    use notify::{recommended_watcher, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+    use preview::{Preview, PreviewHandle};
+    use std::sync::{Arc, Mutex};
+
+    fn add_files_to_watch(watch: Arc<Mutex<Option<RecommendedWatcher>>>, ast: &Ast) {
+        let to_watch: Vec<DocId> = ast.documents.keys().cloned().collect();
+        std::thread::spawn(move || {
+            let mut guard = watch.lock().unwrap();
+            let watcher = guard.as_mut().unwrap();
+            for new_path in to_watch {
+                let buf = new_path.to_path().to_path_buf();
+                watcher.watch(&buf, RecursiveMode::NonRecursive).unwrap();
+            }
+        });
+    }
+
+    fn render_with_watcher(
+        args: Args,
+        handle: PreviewHandle,
+        watch: Arc<Mutex<Option<RecommendedWatcher>>>,
+    ) -> Result<(), Box<dyn Error>> {
+        match parse(args.source.clone()) {
+            Ok(ast) => {
+                add_files_to_watch(watch, &ast);
+                match render(ast) {
+                    Ok(r) => handle.show_render(r)?,
+                    Err(e) => handle.show_error(e.to_string())?,
+                }
+            }
+            Err(e) => handle.show_error(e.to_string())?,
+        }
+        Ok(())
+    }
+
+    let (preview, handle) = Preview::new();
+    let watch = Arc::new(Mutex::new(None));
+
+    let watcher = {
+        let (args, watch, handle) = (args.clone(), watch.clone(), handle.clone());
+        recommended_watcher(move |event| {
+            if let Ok(notify::Event {
+                kind: EventKind::Modify(_),
+                ..
+            }) = event
+            {
+                render_with_watcher(args.clone(), handle.clone(), watch.clone()).unwrap()
+            }
+        })?
+    };
+
+    {
+        let mut g = watch.lock().unwrap();
+        g.replace(watcher);
+    }
+
+    render_with_watcher(args.clone(), handle.clone(), watch.clone())?;
+
+    preview.open(Library::new().to_string());
     Ok(())
 }

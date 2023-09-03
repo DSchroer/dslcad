@@ -4,18 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-vfs = "0.9.0"
 strum = "0.24"
 strum_macros = "0.24"
-
 bevy = "0.10"
 bevy_egui = "0.20.0"
 smooth-bevy-cameras = "0.8.0"
-notify = "5.0.0-pre.15"
 bevy_polyline = "0.6.0"
 bevy_points = "0.2"
 dslcad_api = { path = "../dslcad_api" }
-
-[target.'cfg(not(target_arch="wasm32"))'.dependencies]
-rfd = "0.11.2"
-wasm-bindgen = "0.2.84"

@@ -10,10 +10,13 @@ serde = "*"
 thiserror = "1.0.38"
 opencascade = { path = "../opencascade" }
 dslcad_api = { path = "../dslcad_api" }
-preview = { path = "../preview" }
 indexmap = "2.0.0"
 stl_io = "0.7.0"
 proc-macro2 = "1.0.66"
 
+notify = { version = "6.0.1", optional = true }
+preview = { path = "../preview", optional = true  }
+
 [features]
-preview = []
+default = ["preview"]
+preview = ["dep:preview", "dep:notify"]
