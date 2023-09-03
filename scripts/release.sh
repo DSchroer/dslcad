@@ -7,13 +7,13 @@ cargo run --bin cheat_sheet > cheatsheet.md
 
 # Build Linux
 (
-  cargo build --release --target x86_64-unknown-linux-gnu -F opencasopencascade/builtin -vv
+  cargo build --release --target x86_64-unknown-linux-gnu -F builtin-occt -vv
   (cd target/x86_64-unknown-linux-gnu/release/ && zip ../../../linux.zip dslcad)
 )
 
 # Build Windows
 (
-  cargo build --release --target x86_64-pc-windows-gnu -F opencasopencascade/builtin -vv
+  cargo build --release --target x86_64-pc-windows-gnu -F builtin-occt -vv
   (cd target/x86_64-pc-windows-gnu/release/ && zip ../../../windows.zip dslcad.exe)
 )
 
@@ -22,12 +22,12 @@ cargo run --bin cheat_sheet > cheatsheet.md
   PATH="/osxcross/target/bin:$PATH" \
   CC=x86_64-apple-darwin20.4-clang \
   CXX=x86_64-apple-darwin20.4-clang++ \
-  cargo build --release --target x86_64-apple-darwin -F opencasopencascade/builtin -vv
+  cargo build --release --target x86_64-apple-darwin -F builtin-occt -vv
   (cd target/x86_64-apple-darwin/release/ && zip ../../../macosx.zip dslcad)
 )
 
 # Build WASM
 (
-  CARGO_ARGS="--release -F opencasopencascade/builtin -vv" ./scripts/wasm.sh
+  CARGO_ARGS="--release -F builtin-occt -vv" ./scripts/wasm.sh
   zip browser.zip -r browser
 )
