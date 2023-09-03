@@ -18,8 +18,8 @@ steps:
     commands:
       - export CMAKE_BUILD_PARALLEL_LEVEL=12
       - cargo +nightly fmt --check
-      - cargo clippy --all-targets -F opencasopencascade-sys/builtin -- -Dwarnings
-      - cargo test -F opencasopencascade-sys/builtin
+      - cargo clippy --all-targets -F opencasopencascade/builtin -- -Dwarnings
+      - cargo test -F opencasopencascade/builtin
 
   - name: build releases
     image: modelscriptci
