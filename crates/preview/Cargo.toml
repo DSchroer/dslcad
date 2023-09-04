@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 strum = "0.24"
-strum_macros = "0.24"
+strum_macros = "0.25"
 bevy = "0.10"
 bevy_egui = "0.20.0"
 smooth-bevy-cameras = "0.8.0"
