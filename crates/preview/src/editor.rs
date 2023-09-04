@@ -49,18 +49,21 @@ pub(crate) fn main(cheatsheet: String, rx: Receiver<PreviewEvent>) -> Result<(),
         .add_plugin(gui::GuiPlugin::new(cheatsheet))
         .add_plugin(xyz::XYZPlugin)
         .add_plugin(rendering::ModelRenderingPlugin)
-        .add_system(move |mut re: EventWriter<RenderCommand>| {
-            let rx = rx.lock().unwrap();
-            match rx.try_recv() {
-                Ok(PreviewEvent::Render(render)) => {
-                    re.send(RenderCommand::Draw(render));
+        .add_system(
+            move |mut console: ResMut<gui::Console>, mut re: EventWriter<RenderCommand>| {
+                let rx = rx.lock().unwrap();
+                match rx.try_recv() {
+                    Ok(PreviewEvent::Render(render)) => {
+                        re.send(RenderCommand::Draw(render));
+                        console.clear();
+                    }
+                    Ok(PreviewEvent::Error(e)) => {
+                        console.print(e);
+                    }
+                    _ => {}
                 }
-                Ok(PreviewEvent::Error(_)) => {
-                    todo!("handle error")
-                }
-                _ => {}
-            }
-        });
+            },
+        );
 
     app.run();
     Ok(())

@@ -26,6 +26,7 @@ impl Plugin for GuiPlugin {
         app.insert_resource(CheatSheet {
             cheetsheet: self.cheetsheet.clone(),
         })
+        .insert_resource(Console { text: None })
         .add_plugin(EguiPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(ViewMenuPlugin)
@@ -35,11 +36,29 @@ impl Plugin for GuiPlugin {
 }
 
 #[derive(Resource)]
+pub struct Console {
+    text: Option<String>,
+}
+
+impl Console {
+    pub fn print(&mut self, text: String) {
+        self.text = Some(text);
+    }
+
+    pub fn clear(&mut self) {
+        self.text = None;
+    }
+}
+
+#[derive(Resource)]
 struct CheatSheet {
     cheetsheet: String,
 }
 
-fn console_panel(mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>) {
+fn console_panel(
+    console: Res<Console>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
+) {
     egui::TopBottomPanel::bottom("Console").show(egui_ctx.single_mut().get_mut(), |ui| {
         ui.heading("Console:");
         ui.separator();
@@ -48,8 +67,9 @@ fn console_panel(mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>) {
             .max_height(256.)
             .max_width(f32::INFINITY)
             .auto_shrink([false, true])
-            .show(ui, |ui| {
-                ui.monospace("ToDo");
+            .show(ui, |ui| match &console.text {
+                None => ui.monospace(""),
+                Some(t) => ui.monospace(t),
             });
     });
 }
