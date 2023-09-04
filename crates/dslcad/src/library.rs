@@ -372,6 +372,60 @@ impl Library {
         Library { signatures, lookup }
     }
 
+    pub fn default_argument_name(
+        &self,
+        function: &str,
+        arg_type: Type,
+    ) -> Result<&'static str, RuntimeError> {
+        if let Some(indices) = self.lookup.get(function) {
+            let mut ret = None;
+            'index: for index in indices {
+                let signature = &self.signatures[*index];
+
+                let first_arg = signature.arguments.iter().next();
+                let name = match first_arg {
+                    None => continue 'index,
+                    Some((name, access)) => match access {
+                        Access::Required(t) => {
+                            if arg_type == *t {
+                                name
+                            } else {
+                                continue 'index;
+                            }
+                        }
+                        Access::Optional(t) => {
+                            if arg_type == *t {
+                                name
+                            } else {
+                                continue 'index;
+                            }
+                        }
+                        Access::RequiredAny() => name,
+                    },
+                };
+
+                if ret.is_none() {
+                    ret.replace(name);
+                } else {
+                    return Err(RuntimeError::UnknownDefaultArgument {
+                        name: function.to_string(),
+                    });
+                }
+            }
+
+            match ret {
+                None => Err(RuntimeError::UnknownDefaultArgument {
+                    name: function.to_string(),
+                }),
+                Some(name) => Ok(name),
+            }
+        } else {
+            Err(RuntimeError::UnknownDefaultArgument {
+                name: function.to_string(),
+            })
+        }
+    }
+
     pub fn find(&self, to_call: CallSignature) -> Result<&Function, RuntimeError> {
         if let Some(indices) = self.lookup.get(to_call.name) {
             'index: for index in indices {

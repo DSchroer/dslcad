@@ -22,6 +22,8 @@ pub enum RuntimeError {
     Opencascade(opencascade::Error),
     #[error("Could not find function with name '{name}'")]
     CouldNotFindFunction { name: String },
+    #[error("Could not find default argument for function '{name}'")]
+    UnknownDefaultArgument { name: String },
     #[error("Could not find function {target} did you mean one of {options:?}?")]
     CouldNotFindFunctionSignature {
         target: String,

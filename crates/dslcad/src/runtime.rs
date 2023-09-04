@@ -8,7 +8,7 @@ mod types;
 mod value;
 
 use crate::library::{CallSignature, Library};
-use crate::parser::{Ast, CallPath, DocId, Expression, Literal, Statement};
+use crate::parser::{ArgName, Ast, CallPath, DocId, Expression, Literal, Statement};
 use crate::runtime::scope::Scope;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -126,31 +126,59 @@ impl<'a> Engine<'a> {
         match expression {
             Expression::Invocation {
                 path, arguments, ..
-            } => {
-                let mut argument_values = HashMap::new();
-                for (name, argument) in arguments.iter() {
-                    let value = self.expression(instance, argument.deref())?;
-                    argument_values.insert(name.as_str(), value);
-                }
-                let argument_types = argument_values
-                    .iter()
-                    .map(|(name, value)| (*name, value.get_type()))
-                    .collect();
+            } => match path {
+                CallPath::String(path) => {
+                    let mut argument_values = HashMap::new();
+                    for (name, argument) in arguments.iter() {
+                        let value = self.expression(instance, argument.deref())?;
+                        match name {
+                            ArgName::Named(name) => {
+                                argument_values.insert(name.as_str(), value);
+                            }
+                            ArgName::Default => {
+                                let name = self
+                                    .library
+                                    .default_argument_name(path, value.get_type())
+                                    .map_err(|e| WithStack::from_err(e, &self.stack))?;
+                                argument_values.insert(name, value);
+                            }
+                        }
+                    }
 
-                match path {
-                    CallPath::String(path) => {
-                        let f = self
-                            .library
-                            .find(CallSignature::new(path, &argument_types))
-                            .map_err(|e| WithStack::from_err(e, &self.stack))?;
-                        Ok(f(&argument_values).map_err(|e| WithStack::from_err(e, &self.stack))?)
-                    }
-                    CallPath::Document(id) => {
-                        let v = self.eval(id.clone(), argument_values)?;
-                        Ok(Value::Script(Rc::new(RefCell::new(v))))
-                    }
+                    let argument_types = argument_values
+                        .iter()
+                        .map(|(name, value)| (*name, value.get_type()))
+                        .collect();
+
+                    let f = self
+                        .library
+                        .find(CallSignature::new(path, &argument_types))
+                        .map_err(|e| WithStack::from_err(e, &self.stack))?;
+                    Ok(f(&argument_values).map_err(|e| WithStack::from_err(e, &self.stack))?)
                 }
-            }
+                CallPath::Document(id) => {
+                    let mut argument_values = HashMap::new();
+                    for (name, argument) in arguments.iter() {
+                        let value = self.expression(instance, argument.deref())?;
+                        match name {
+                            ArgName::Named(name) => {
+                                argument_values.insert(name.as_str(), value);
+                            }
+                            ArgName::Default => {
+                                return Err(WithStack::from_err(
+                                    RuntimeError::UnknownDefaultArgument {
+                                        name: id.to_string(),
+                                    },
+                                    &self.stack,
+                                ))
+                            }
+                        }
+                    }
+
+                    let v = self.eval(id.clone(), argument_values)?;
+                    Ok(Value::Script(Rc::new(RefCell::new(v))))
+                }
+            },
             Expression::Reference(n, _) => {
                 if let Some(value) = instance.get(n) {
                     Ok(value.clone())

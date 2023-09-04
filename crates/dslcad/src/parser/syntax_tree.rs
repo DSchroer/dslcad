@@ -75,13 +75,31 @@ pub enum CallPath {
     Document(DocId),
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
+pub enum ArgName {
+    Named(String),
+    Default,
+}
+
+impl From<String> for ArgName {
+    fn from(value: String) -> Self {
+        ArgName::Named(value)
+    }
+}
+
+impl From<&'static str> for ArgName {
+    fn from(value: &'static str) -> Self {
+        ArgName::Named(value.to_string())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Expression {
     Literal(Literal, Span),
     Reference(String, Span),
     Invocation {
         path: CallPath,
-        arguments: HashMap<String, Box<Expression>>,
+        arguments: HashMap<ArgName, Box<Expression>>,
         span: Span,
     },
     Access(Box<Expression>, String, Span),
