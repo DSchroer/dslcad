@@ -14,7 +14,7 @@ indexmap = "2.0.0"
 stl_io = "0.7.0"
 proc-macro2 = "1.0.66"
 
-notify = { version = "6.0.1", optional = true }
+notify = { version = "6.1.1", optional = true }
 preview = { path = "../preview", optional = true  }
 
 [features]
