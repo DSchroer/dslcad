@@ -1,7 +1,7 @@
 use super::Value;
 use opencascade::{Error, Point, Shape, Wire};
+use persistence::protocol::Part;
 use std::cell::{Ref, RefMut};
-use threemf::protocol::Part;
 
 pub trait IntoPart {
     fn into_part(self) -> Result<Part, Error>;
@@ -64,7 +64,7 @@ impl IntoPart for RefMut<'_, Wire> {
 impl IntoPart for RefMut<'_, Shape> {
     fn into_part(mut self) -> Result<Part, Error> {
         let original = self.mesh()?;
-        let mut mesh = threemf::protocol::Mesh {
+        let mut mesh = persistence::protocol::Mesh {
             vertices: original.vertices,
             triangles: vec![],
             normals: vec![],

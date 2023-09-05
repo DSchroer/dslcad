@@ -31,7 +31,7 @@ fn about(
     egui::Window::new("About")
         .open(&mut state.about_window)
         .show(egui_ctx.single_mut().get_mut(), |ui| {
-            ui.label(threemf::constants::FULL_NAME);
+            ui.label(persistence::constants::FULL_NAME);
             ui.separator();
             ui.label(format!("Version: {}", env!("CARGO_PKG_VERSION")));
             ui.label("Copyright: Dominick Schroer 2022");

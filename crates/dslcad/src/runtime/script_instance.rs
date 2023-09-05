@@ -1,8 +1,8 @@
 use super::{Access, Value};
 use crate::runtime::scope::Scope;
+use persistence::protocol::Part;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use threemf::protocol::Part;
 
 #[derive(Debug, Clone)]
 pub struct ScriptInstance {

@@ -1575,12 +1575,12 @@ dependencies = [
  "logos",
  "notify 6.1.1",
  "opencascade",
+ "persistence",
  "preview",
  "proc-macro2",
  "serde",
  "stl_io",
  "thiserror",
- "threemf",
 ]
 
 [[package]]
@@ -2931,6 +2931,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b2a4787296e9989611394c33f193f676704af1686e70b8f8033ab5ba9a35a94"
 
 [[package]]
+name = "persistence"
+version = "0.1.0"
+dependencies = [
+ "quick-xml",
+ "serde",
+ "serde-binary",
+]
+
+[[package]]
 name = "petgraph"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2982,10 +2991,10 @@ dependencies = [
  "bevy_egui",
  "bevy_points",
  "bevy_polyline",
+ "persistence",
  "smooth-bevy-cameras",
  "strum",
  "strum_macros",
- "threemf",
 ]
 
 [[package]]
@@ -3440,15 +3449,6 @@ checksum = "3fdd6f064ccff2d6567adcb3873ca630700f00b5ad3f060c25b5dcfd9a4ce152"
 dependencies = [
  "cfg-if",
  "once_cell",
-]
-
-[[package]]
-name = "threemf"
-version = "0.1.0"
-dependencies = [
- "quick-xml",
- "serde",
- "serde-binary",
 ]
 
 [[package]]

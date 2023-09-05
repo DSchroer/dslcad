@@ -1,8 +1,8 @@
 mod editor;
 
+use persistence::protocol::Render;
 use std::error::Error;
 use std::sync::mpsc::{channel, Receiver, Sender};
-use threemf::protocol::Render;
 
 enum PreviewEvent {
     Render(Render),

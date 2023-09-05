@@ -1,6 +1,6 @@
+use persistence::protocol::Mesh;
 use std::io::Write;
 use stl_io::{Normal, Triangle, Vector};
-use threemf::protocol::Mesh;
 
 pub fn export_stl(mesh: &Mesh, writer: &mut impl Write) -> Result<(), std::io::Error> {
     let mut triangles = Vec::new();
