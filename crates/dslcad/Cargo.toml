@@ -7,7 +7,7 @@ edition = "2021"
 clap = { version = "4.4.2", features = ["derive"]}
 logos = "0.12.1"
 serde = "1.0"
-thiserror = "1.0.38"
+thiserror = "1.0.48"
 opencascade = { path = "../opencascade" }
 dslcad_api = { path = "../dslcad_api" }
 indexmap = "2.0.0"
