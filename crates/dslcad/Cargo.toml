@@ -9,7 +9,7 @@ logos = "0.12.1"
 serde = "1.0"
 thiserror = "1.0.38"
 opencascade = { path = "../opencascade" }
-dslcad_api = { path = "../dslcad_api" }
+threemf = { path = "../threemf" }
 indexmap = "2.0.0"
 stl_io = "0.7.0"
 proc-macro2 = "1.0.66"

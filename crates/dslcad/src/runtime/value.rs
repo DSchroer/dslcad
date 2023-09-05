@@ -1,9 +1,9 @@
 use std::cell::{Ref, RefCell};
 
 use crate::runtime::output::IntoPart;
-use dslcad_api::protocol::Part;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+use threemf::protocol::Part;
 
 use super::Access;
 use super::Type;

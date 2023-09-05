@@ -37,7 +37,7 @@ pub(crate) fn main(cheatsheet: String, rx: Receiver<PreviewEvent>) -> Result<(),
         .insert_resource(ClearColor(Blueprint::blue()))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                title: dslcad_api::constants::FULL_NAME.to_string(),
+                title: threemf::constants::FULL_NAME.to_string(),
                 canvas: Some("#dslcad".to_string()),
                 fit_canvas_to_parent: true,
                 ..Default::default()

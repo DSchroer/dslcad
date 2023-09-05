@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 use serde_binary::binary_stream::Endian;
-use std::error::Error;
-use std::fmt::{Display, Formatter};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Render {
@@ -43,19 +41,3 @@ pub struct Mesh {
     pub triangles: Vec<Vec3<usize>>,
     pub normals: Vec<Point>,
 }
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct RenderMetadata {}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CadError {
-    pub error: String,
-}
-
-impl Display for CadError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}", self.error))
-    }
-}
-
-impl Error for CadError {}

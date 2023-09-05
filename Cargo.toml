@@ -3,6 +3,6 @@ resolver = "2"
 members = [
     "crates/dslcad",
     "crates/opencascade",
-    "crates/dslcad_api",
+    "crates/threemf",
     "crates/preview"
 ]

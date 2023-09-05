@@ -1571,7 +1571,6 @@ name = "dslcad"
 version = "0.1.0"
 dependencies = [
  "clap",
- "dslcad_api",
  "indexmap 2.0.0",
  "logos",
  "notify 6.1.1",
@@ -1581,14 +1580,7 @@ dependencies = [
  "serde",
  "stl_io",
  "thiserror",
-]
-
-[[package]]
-name = "dslcad_api"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde-binary",
+ "threemf",
 ]
 
 [[package]]
@@ -2990,10 +2982,10 @@ dependencies = [
  "bevy_egui",
  "bevy_points",
  "bevy_polyline",
- "dslcad_api",
  "smooth-bevy-cameras",
  "strum",
  "strum_macros",
+ "threemf",
 ]
 
 [[package]]
@@ -3020,6 +3012,16 @@ name = "profiling"
 version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "45f10e75d83c7aec79a6aa46f897075890e156b105eebe51cfa0abce51af025f"
+
+[[package]]
+name = "quick-xml"
+version = "0.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eff6510e86862b57b210fd8cbe8ed3f0d7d600b9c2863cd4549a2e033c66e956"
+dependencies = [
+ "memchr",
+ "serde",
+]
 
 [[package]]
 name = "quote"
@@ -3438,6 +3440,15 @@ checksum = "3fdd6f064ccff2d6567adcb3873ca630700f00b5ad3f060c25b5dcfd9a4ce152"
 dependencies = [
  "cfg-if",
  "once_cell",
+]
+
+[[package]]
+name = "threemf"
+version = "0.1.0"
+dependencies = [
+ "quick-xml",
+ "serde",
+ "serde-binary",
 ]
 
 [[package]]
