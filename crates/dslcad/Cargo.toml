@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.4.2", features = ["derive"]}
-logos = "0.12.1"
+logos = "0.13.0"
 serde = "1.0"
 thiserror = "1.0.38"
 opencascade = { path = "../opencascade" }
