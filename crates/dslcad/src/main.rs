@@ -2,9 +2,11 @@ use clap::Parser;
 use dslcad::library::Library;
 use dslcad::parser::{Ast, DocId};
 use dslcad::{parse, render};
+use persistence::threemf::ThreeMF;
+use std::env;
 use std::error::Error;
+use std::fs::File;
 use std::path::Path;
-use std::{env, fs};
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -32,9 +34,11 @@ fn render_to_file(args: Args) -> Result<(), Box<dyn Error>> {
 
     let cwd = env::current_dir()?;
     let file = Path::new(&args.source).file_stem().unwrap();
-    let outpath = cwd.join(format!("{}.parts", file.to_string_lossy()));
+    let outpath = cwd.join(format!("{}.3mf", file.to_string_lossy()));
 
-    fs::write(outpath, render.to_bytes())?;
+    let threemf: ThreeMF = render.into();
+    let out = File::create(outpath)?;
+    threemf.write_to_zip(out)?;
 
     Ok(())
 }
