@@ -9,6 +9,6 @@ strum_macros = "0.24"
 bevy = "0.10"
 bevy_egui = "0.20.0"
 smooth-bevy-cameras = "0.8.0"
-bevy_polyline = "0.6.0"
+bevy_polyline = "0.7.0"
 bevy_points = "0.2"
 dslcad_api = { path = "../dslcad_api" }
