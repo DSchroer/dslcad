@@ -17,6 +17,9 @@ proc-macro2 = "1.0.66"
 notify = { version = "6.0.1", optional = true }
 preview = { path = "../preview", optional = true  }
 
+[dev-dependencies]
+walkdir = "2"
+
 [features]
 default = ["preview"]
 preview = ["dep:preview", "dep:notify"]

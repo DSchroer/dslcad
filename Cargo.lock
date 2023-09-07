@@ -1671,6 +1671,7 @@ dependencies = [
  "serde",
  "stl_io",
  "thiserror",
+ "walkdir",
 ]
 
 [[package]]
