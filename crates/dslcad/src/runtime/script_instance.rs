@@ -6,9 +6,9 @@ use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone)]
 pub struct ScriptInstance {
-    arguments: HashMap<String, Box<Value>>,
-    variables: HashMap<String, Box<Value>>,
-    value: Box<Value>,
+    arguments: HashMap<String, Value>,
+    variables: HashMap<String, Value>,
+    value: Value,
 }
 
 impl ScriptInstance {
@@ -16,7 +16,7 @@ impl ScriptInstance {
         ScriptInstance {
             arguments: scope.arguments,
             variables: scope.variables,
-            value: Box::new(value),
+            value,
         }
     }
 
@@ -42,6 +42,6 @@ impl Access for ScriptInstance {
             .arguments
             .get(identifier)
             .or_else(|| self.variables.get(identifier))?;
-        Some(*val.clone())
+        Some(val.clone())
     }
 }

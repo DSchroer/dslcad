@@ -3,8 +3,8 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Scope {
-    pub arguments: HashMap<String, Box<Value>>,
-    pub variables: HashMap<String, Box<Value>>,
+    pub arguments: HashMap<String, Value>,
+    pub variables: HashMap<String, Value>,
 }
 
 impl Scope {
@@ -12,7 +12,7 @@ impl Scope {
         Scope {
             arguments: arguments
                 .into_iter()
-                .map(|(k, v)| (k.to_owned(), Box::new(v)))
+                .map(|(k, v)| (k.to_owned(), v))
                 .collect(),
             variables: HashMap::new(),
         }
@@ -27,6 +27,6 @@ impl Scope {
     }
 
     pub fn set(&mut self, identifier: String, value: Value) {
-        self.variables.insert(identifier, Box::new(value));
+        self.variables.insert(identifier, value);
     }
 }
