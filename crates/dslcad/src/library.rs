@@ -78,14 +78,11 @@ macro_rules! invoke {
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
-            .to_number()
-            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
+            .to_number()?
     }};
     ($map: ident, $name: ident=option_number) => {{
         match $map.get(stringify!($name)) {
-            Some(value) => Some(value
-                .to_number()
-                .ok_or(RuntimeError::UnexpectedType(value.get_type()))?),
+            Some(value) => Some(value.to_number()?),
             None => None,
         }
     }};
@@ -94,14 +91,12 @@ macro_rules! invoke {
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
-            .to_bool()
-            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
+            .to_bool()?
     }};
     ($map: ident, $name: ident=option_bool) => {{
         match $map.get(stringify!($name)) {
             Some(value) => Some(value
-                .to_bool()
-                .ok_or(RuntimeError::UnexpectedType(value.get_type()))?),
+                .to_bool()?),
             None => None,
         }
     }};
@@ -110,40 +105,35 @@ macro_rules! invoke {
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
-            .to_text()
-            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
+            .to_text()?
     }};
     ($map: ident, $name: ident=point) => {{
         let value = $map
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
-            .to_point()
-            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
+            .to_point()?
     }};
     ($map: ident, $name: ident=shape) => {{
         let value = $map
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
-            .to_shape()
-            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
+            .to_shape()?
     }};
     ($map: ident, $name: ident=edge) => {{
         let value = $map
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
-            .to_line()
-            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
+            .to_line()?
     }};
     ($map: ident, $name: ident=list) => {{
         let value = $map
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
-            .to_list()
-            .ok_or(RuntimeError::UnexpectedType(value.get_type()))?
+            .to_list()?
     }};
     ($func: path[$($name: ident=$value: ident), *]) => {&|_a|{
         $(let $name = invoke!(_a, $name=$value);)*

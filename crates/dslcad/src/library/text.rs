@@ -18,9 +18,7 @@ pub fn format(arguments: &HashMap<&str, Value>) -> Result<String, RuntimeError> 
     let message = arguments
         .get("message")
         .ok_or_else(|| RuntimeError::UnsetParameter("message".into()))?;
-    let mut message = message
-        .to_text()
-        .ok_or_else(|| RuntimeError::UnexpectedType(message.get_type()))?;
+    let mut message = message.to_text()?;
 
     for (key, value) in arguments {
         message = message.replace(&format!("{{{}}}", key), &string(value.clone())?);

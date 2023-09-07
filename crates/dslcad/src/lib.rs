@@ -21,21 +21,13 @@ pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
 
     let mut engine = Engine::new(&lib, documents);
     let instance = engine.eval_root(HashMap::new())?;
-    let value = instance.value();
 
-    let render = if let Some(parts) = value.to_list() {
-        let mut outputs = Vec::new();
-        for part in parts {
-            outputs.push(part.to_output().unwrap());
-        }
-        Render { parts: outputs }
-    } else {
-        Render {
-            parts: vec![value.to_output().unwrap()],
-        }
-    };
+    let mut outputs = Vec::new();
+    for part in instance.values() {
+        outputs.push(part.to_output().unwrap());
+    }
 
-    Ok(render)
+    Ok(Render { parts: outputs })
 }
 
 #[cfg(test)]

@@ -64,7 +64,7 @@ impl<'a> Engine<'a> {
             })?
             .clone();
 
-        let mut ret = None;
+        let mut ret = Vec::new();
         for statement in &statements {
             self.stack.push(StackFrame::from_statement(&id, statement));
 
@@ -91,30 +91,13 @@ impl<'a> Engine<'a> {
                     }
                 },
                 Statement::Return(e, _) => {
-                    let value = self.expression(&scope, e)?;
-                    ret = match ret {
-                        None => Some(value),
-                        Some(v) => Some(match v.get_type() {
-                            Type::List => {
-                                let mut items = v.to_list().unwrap().clone();
-                                items.push(value);
-                                Value::List(items)
-                            }
-                            _ => Value::List(vec![v, value]),
-                        }),
-                    }
+                    ret.push(self.expression(&scope, e)?);
                 }
             }
             self.stack.pop();
         }
 
-        match ret {
-            None => Err(WithStack::from_err(
-                RuntimeError::NoReturnValue(),
-                &self.stack,
-            )),
-            Some(value) => Ok(ScriptInstance::from_scope(value, scope)),
-        }
+        ScriptInstance::from_scope(ret, scope).map_err(|e| WithStack::from_err(e, &self.stack))
     }
 
     fn expression(
@@ -210,7 +193,6 @@ impl<'a> Engine<'a> {
                 let range_value = self.expression(instance, range)?;
                 let range_value = range_value
                     .to_list()
-                    .ok_or_else(|| RuntimeError::UnexpectedType(range_value.get_type()))
                     .map_err(|e| WithStack::from_err(e, &self.stack))?;
 
                 let mut loop_scope = instance.clone();
@@ -233,7 +215,6 @@ impl<'a> Engine<'a> {
                 let range_value = self.expression(instance, range)?;
                 let mut range_value = range_value
                     .to_list()
-                    .ok_or_else(|| RuntimeError::UnexpectedType(range_value.get_type()))
                     .map_err(|e| WithStack::from_err(e, &self.stack))?
                     .clone();
                 range_value.reverse();
@@ -262,13 +243,13 @@ impl<'a> Engine<'a> {
                 ..
             } => {
                 let condition_value = self.expression(instance, condition)?;
-                match condition_value.to_bool() {
-                    Some(true) => Ok(self.expression(instance, if_true)?),
-                    Some(false) => Ok(self.expression(instance, if_false)?),
-                    None => Err(WithStack::from_err(
-                        RuntimeError::UnexpectedType(condition_value.get_type()),
-                        &self.stack,
-                    )),
+                if condition_value
+                    .to_bool()
+                    .map_err(|e| WithStack::from_err(e, &self.stack))?
+                {
+                    Ok(self.expression(instance, if_true)?)
+                } else {
+                    Ok(self.expression(instance, if_false)?)
                 }
             }
             Expression::Index { target, index, .. } => {
@@ -277,11 +258,9 @@ impl<'a> Engine<'a> {
 
                 let list = target_value
                     .to_list()
-                    .ok_or_else(|| RuntimeError::UnexpectedType(target_value.get_type()))
                     .map_err(|e| WithStack::from_err(e, &self.stack))?;
                 let index = index_value
                     .to_number()
-                    .ok_or_else(|| RuntimeError::UnexpectedType(index_value.get_type()))
                     .map_err(|e| WithStack::from_err(e, &self.stack))?;
                 Ok(list[index.round() as usize].clone())
             }
@@ -296,20 +275,15 @@ impl<'a> Engine<'a> {
     ) -> Result<Value, WithStack<RuntimeError>> {
         let l = self.expression(instance, l)?;
 
-        let script = l.to_accessible();
-        if let Some(instance) = script {
-            match instance.get(name) {
-                None => Err(WithStack::from_err(
-                    RuntimeError::MissingProperty(name.to_owned()),
-                    &self.stack,
-                )),
-                Some(v) => Ok(v),
-            }
-        } else {
-            Err(WithStack::from_err(
-                RuntimeError::MissingProperty(String::from(name)),
+        let script = l
+            .to_accessible()
+            .map_err(|e| WithStack::from_err(e, &self.stack))?;
+        match script.get(name) {
+            None => Err(WithStack::from_err(
+                RuntimeError::MissingProperty(name.to_owned()),
                 &self.stack,
-            ))
+            )),
+            Some(v) => Ok(v),
         }
     }
 }

@@ -5,8 +5,10 @@ use std::rc::Rc;
 
 use super::Access;
 use super::Type;
-use crate::runtime::ScriptInstance;
+use crate::runtime::{RuntimeError, ScriptInstance};
 use opencascade::{Point, Shape, Wire};
+
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[derive(Clone)]
 pub enum Value {
@@ -26,6 +28,12 @@ pub enum Value {
 impl From<Point> for Value {
     fn from(value: Point) -> Self {
         Value::Point(Rc::new(value))
+    }
+}
+
+impl From<Wire> for Value {
+    fn from(value: Wire) -> Self {
+        Value::Line(Rc::new(value))
     }
 }
 
@@ -63,7 +71,7 @@ impl Debug for Value {
 }
 
 impl Value {
-    pub fn to_output(&self) -> Result<Part, opencascade::Error> {
+    pub fn to_output(&self) -> Result<Part> {
         Ok(match self {
             Value::Number(v) => v.into_part()?,
             Value::Bool(v) => v.into_part()?,
@@ -78,69 +86,69 @@ impl Value {
         })
     }
 
-    pub fn to_number(&self) -> Option<f64> {
+    pub fn to_number(&self) -> Result<f64> {
         match self {
-            Value::Number(f) => Some(*f),
+            Value::Number(f) => Ok(*f),
             Value::Script(i) => i.value().to_number(),
-            _ => None,
+            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
         }
     }
 
-    pub fn to_text(&self) -> Option<String> {
+    pub fn to_text(&self) -> Result<String> {
         match self {
-            Value::Text(f) => Some(f.clone()),
+            Value::Text(f) => Ok(f.clone()),
             Value::Script(i) => i.value().to_text(),
-            _ => None,
+            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
         }
     }
 
-    pub fn to_bool(&self) -> Option<bool> {
+    pub fn to_bool(&self) -> Result<bool> {
         match self {
-            Value::Bool(f) => Some(*f),
+            Value::Bool(f) => Ok(*f),
             Value::Script(i) => i.value().to_bool(),
-            _ => None,
+            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
         }
     }
 
-    pub fn to_accessible(&self) -> Option<&dyn Access> {
+    pub fn to_accessible(&self) -> Result<&dyn Access> {
         match self {
-            Value::Script(i) => Some(i.as_ref()),
-            Value::Line(w) => Some(w.as_ref()),
-            Value::Shape(s) => Some(s.as_ref()),
-            Value::Point(p) => Some(p.as_ref()),
-            _ => None,
+            Value::Script(i) => Ok(i.as_ref()),
+            Value::Line(w) => Ok(w.as_ref()),
+            Value::Shape(s) => Ok(s.as_ref()),
+            Value::Point(p) => Ok(p.as_ref()),
+            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
         }
     }
 
-    pub fn to_point(&self) -> Option<&Rc<Point>> {
+    pub fn to_point(&self) -> Result<&Rc<Point>> {
         match self {
-            Value::Point(s) => Some(s),
+            Value::Point(s) => Ok(s),
             Value::Script(i) => i.value().to_point(),
-            _ => None,
+            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
         }
     }
 
-    pub fn to_line(&self) -> Option<&Rc<Wire>> {
+    pub fn to_line(&self) -> Result<&Rc<Wire>> {
         match self {
-            Value::Line(s) => Some(s),
+            Value::Line(s) => Ok(s),
             Value::Script(i) => i.value().to_line(),
-            _ => None,
+            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
         }
     }
 
-    pub fn to_shape(&self) -> Option<&Rc<Shape>> {
+    pub fn to_shape(&self) -> Result<&Rc<Shape>> {
         match self {
-            Value::Shape(s) => Some(s),
+            Value::Shape(s) => Ok(s),
             Value::Script(i) => i.value().to_shape(),
-            _ => None,
+            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
         }
     }
 
-    pub fn to_list(&self) -> Option<&Vec<Value>> {
+    pub fn to_list(&self) -> Result<&Vec<Value>> {
         match self {
-            Value::List(s) => Some(s),
-            Value::Script(i) => i.value().to_list(),
-            _ => None,
+            Value::List(s) => Ok(s),
+            Value::Script(i) => Ok(i.values()),
+            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
         }
     }
 
