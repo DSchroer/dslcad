@@ -81,7 +81,7 @@ impl Wire {
         )?)))
     }
 
-    pub fn start(&mut self) -> Result<Option<Point>, Error> {
+    pub fn start(&self) -> Result<Option<Point>, Error> {
         let edge_explorer = TopExp_Explorer_ctor(&self.0, TopAbs_ShapeEnum::TopAbs_EDGE);
         if edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
@@ -91,7 +91,7 @@ impl Wire {
         Ok(None)
     }
 
-    pub fn end(&mut self) -> Result<Option<Point>, Error> {
+    pub fn end(&self) -> Result<Option<Point>, Error> {
         let mut edge_explorer = TopExp_Explorer_ctor(&self.0, TopAbs_ShapeEnum::TopAbs_EDGE);
         let mut last_end = None;
         while edge_explorer.More() {
@@ -103,7 +103,7 @@ impl Wire {
         Ok(last_end)
     }
 
-    pub fn points(&mut self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
+    pub fn points(&self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
         let mut edge_explorer = TopExp_Explorer_ctor(&self.0, TopAbs_ShapeEnum::TopAbs_EDGE);
@@ -179,7 +179,7 @@ mod tests {
     fn it_can_find_points() {
         let mut wire = WireFactory::new();
         wire.add_edge(&Edge::new_line(&Point::new(0., 0., 0.), &Point::new(0., 10., 0.)).unwrap());
-        let mut wire = wire.build().unwrap();
+        let wire = wire.build().unwrap();
 
         assert!(!wire.points().unwrap().is_empty());
     }

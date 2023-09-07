@@ -162,7 +162,7 @@ impl Shape {
         Ok(mesh)
     }
 
-    pub fn lines(&mut self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
+    pub fn lines(&self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
         let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&self.shape);
@@ -196,7 +196,7 @@ impl Shape {
         Some(points)
     }
 
-    pub fn points(&mut self) -> Result<Vec<[f64; 3]>, Error> {
+    pub fn points(&self) -> Result<Vec<[f64; 3]>, Error> {
         let mut points = Vec::new();
 
         let mut vertex_explorer = Explorer::new(&self.shape);

@@ -1,7 +1,7 @@
 use super::Value;
 use opencascade::{Error, Point, Shape, Wire};
 use persistence::protocol::Part;
-use std::cell::{Ref, RefMut};
+use std::cell::Ref;
 
 pub trait IntoPart {
     fn into_part(self) -> Result<Part, Error>;
@@ -48,8 +48,8 @@ impl IntoPart for Ref<'_, Point> {
     }
 }
 
-impl IntoPart for RefMut<'_, Wire> {
-    fn into_part(mut self) -> Result<Part, Error> {
+impl IntoPart for Ref<'_, Wire> {
+    fn into_part(self) -> Result<Part, Error> {
         Ok(Part::Planar {
             points: [self.start()?, self.end()?]
                 .into_iter()
@@ -61,8 +61,8 @@ impl IntoPart for RefMut<'_, Wire> {
     }
 }
 
-impl IntoPart for RefMut<'_, Shape> {
-    fn into_part(mut self) -> Result<Part, Error> {
+impl IntoPart for Ref<'_, Shape> {
+    fn into_part(self) -> Result<Part, Error> {
         let original = self.mesh()?;
         let mut mesh = persistence::protocol::Mesh {
             vertices: original.vertices,

@@ -75,8 +75,8 @@ impl Value {
             Value::Script(s) => s.borrow().value().to_output()?,
 
             Value::Point(p) => p.borrow().into_part()?,
-            Value::Line(l) => l.borrow_mut().into_part()?,
-            Value::Shape(s) => s.borrow_mut().into_part()?,
+            Value::Line(l) => l.borrow().into_part()?,
+            Value::Shape(s) => s.borrow().into_part()?,
         })
     }
 

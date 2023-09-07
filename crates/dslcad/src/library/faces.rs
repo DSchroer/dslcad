@@ -147,7 +147,7 @@ pub fn face(parts: Vec<Value>) -> Result<Value, RuntimeError> {
         }
 
         if point.get_type() == Type::Edge {
-            edge.add_wire(&point.to_line().unwrap().borrow_mut());
+            edge.add_wire(&point.to_line().unwrap().borrow());
         }
     }
 
@@ -158,7 +158,7 @@ fn start_point(value: &Value) -> Result<Rc<RefCell<Point>>, RuntimeError> {
     match value.get_type() {
         Type::Point => Ok(value.to_point().unwrap()),
         Type::Edge => Ok(Rc::new(RefCell::new(
-            value.to_line().unwrap().borrow_mut().start()?.unwrap(),
+            value.to_line().unwrap().borrow().start()?.unwrap(),
         ))),
         other => Err(RuntimeError::UnexpectedType(other)),
     }
@@ -168,7 +168,7 @@ fn end_point(value: &Value) -> Result<Rc<RefCell<Point>>, RuntimeError> {
     match value.get_type() {
         Type::Point => Ok(value.to_point().unwrap()),
         Type::Edge => Ok(Rc::new(RefCell::new(
-            value.to_line().unwrap().borrow_mut().end()?.unwrap(),
+            value.to_line().unwrap().borrow().end()?.unwrap(),
         ))),
         other => Err(RuntimeError::UnexpectedType(other)),
     }
