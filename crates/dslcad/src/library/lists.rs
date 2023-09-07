@@ -1,6 +1,6 @@
 use crate::runtime::{RuntimeError, Value};
 
-pub fn length(list: Vec<Value>) -> Result<Value, RuntimeError> {
+pub fn length(list: &Vec<Value>) -> Result<Value, RuntimeError> {
     Ok(Value::Number(list.len() as f64))
 }
 

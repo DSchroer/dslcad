@@ -1,7 +1,5 @@
 use crate::runtime::{RuntimeError, Value};
 
-use std::rc::Rc;
-
 use opencascade::{Axis, DsShape, Point, Shape};
 
 pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
@@ -29,58 +27,58 @@ pub fn cylinder(radius: Option<f64>, height: Option<f64>) -> Result<Value, Runti
     Ok(base.into())
 }
 
-pub fn union_shape(left: Rc<Shape>, right: Rc<Shape>) -> Result<Value, RuntimeError> {
-    Ok(Shape::fuse(&left, &right)?.into())
+pub fn union_shape(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
+    Ok(Shape::fuse(left, right)?.into())
 }
 
-pub fn difference(left: Rc<Shape>, right: Rc<Shape>) -> Result<Value, RuntimeError> {
-    Ok(Shape::cut(&left, &right)?.into())
+pub fn difference(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
+    Ok(Shape::cut(left, right)?.into())
 }
 
-pub fn intersect(left: Rc<Shape>, right: Rc<Shape>) -> Result<Value, RuntimeError> {
-    Ok(Shape::intersect(&left, &right)?.into())
+pub fn intersect(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
+    Ok(Shape::intersect(left, right)?.into())
 }
 
-pub fn chamfer(shape: Rc<Shape>, radius: f64) -> Result<Value, RuntimeError> {
-    Ok(Shape::chamfer(&shape, radius)?.into())
+pub fn chamfer(shape: &Shape, radius: f64) -> Result<Value, RuntimeError> {
+    Ok(Shape::chamfer(shape, radius)?.into())
 }
 
-pub fn fillet(shape: Rc<Shape>, radius: f64) -> Result<Value, RuntimeError> {
-    Ok(Shape::fillet(&shape, radius)?.into())
+pub fn fillet(shape: &Shape, radius: f64) -> Result<Value, RuntimeError> {
+    Ok(Shape::fillet(shape, radius)?.into())
 }
 
 pub fn translate(
-    shape: Rc<Shape>,
+    shape: &Shape,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
     Ok(Shape::translate(
-        &shape,
+        shape,
         &Point::new(x.unwrap_or(0.0), y.unwrap_or(0.0), z.unwrap_or(0.0)),
     )?
     .into())
 }
 
 pub fn rotate(
-    shape: Rc<Shape>,
+    shape: &Shape,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
-    let shape = Shape::rotate(&shape, Axis::X, x.unwrap_or(0.0))?;
+    let shape = Shape::rotate(shape, Axis::X, x.unwrap_or(0.0))?;
     let shape = Shape::rotate(&shape, Axis::Y, y.unwrap_or(0.0))?;
     let shape = Shape::rotate(&shape, Axis::Z, z.unwrap_or(0.0))?;
 
     Ok(shape.into())
 }
 
-pub fn scale(shape: Rc<Shape>, size: f64) -> Result<Value, RuntimeError> {
-    Ok(Shape::scale(&shape, size)?.into())
+pub fn scale(shape: &Shape, size: f64) -> Result<Value, RuntimeError> {
+    Ok(Shape::scale(shape, size)?.into())
 }
 
 pub fn center(
-    shape: Rc<Shape>,
+    shape: &Shape,
     x: Option<bool>,
     y: Option<bool>,
     z: Option<bool>,

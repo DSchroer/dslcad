@@ -680,7 +680,7 @@ pub mod tests {
         Ok(Value::Number(0.0))
     }
 
-    fn two(_a: Rc<Point>, _b: f64) -> Result<Value, RuntimeError> {
+    fn two(_a: &Point, _b: f64) -> Result<Value, RuntimeError> {
         Ok(Value::Number(0.0))
     }
 }

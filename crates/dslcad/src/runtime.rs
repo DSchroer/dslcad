@@ -96,7 +96,7 @@ impl<'a> Engine<'a> {
                         None => Some(value),
                         Some(v) => Some(match v.get_type() {
                             Type::List => {
-                                let mut items = v.to_list().unwrap();
+                                let mut items = v.to_list().unwrap().clone();
                                 items.push(value);
                                 Value::List(items)
                             }
@@ -216,7 +216,7 @@ impl<'a> Engine<'a> {
                 let mut loop_scope = instance.clone();
                 let mut results = Vec::new();
                 for v in range_value {
-                    loop_scope.set(identifier.to_string(), v);
+                    loop_scope.set(identifier.to_string(), v.clone());
                     results.push(self.expression(&loop_scope, action)?);
                 }
 
@@ -234,7 +234,8 @@ impl<'a> Engine<'a> {
                 let mut range_value = range_value
                     .to_list()
                     .ok_or_else(|| RuntimeError::UnexpectedType(range_value.get_type()))
-                    .map_err(|e| WithStack::from_err(e, &self.stack))?;
+                    .map_err(|e| WithStack::from_err(e, &self.stack))?
+                    .clone();
                 range_value.reverse();
 
                 let mut loop_scope = instance.clone();
@@ -248,7 +249,7 @@ impl<'a> Engine<'a> {
                 };
                 for v in range_value.into_iter().rev() {
                     loop_scope.set(left.to_string(), result.clone());
-                    loop_scope.set(right.to_string(), v);
+                    loop_scope.set(right.to_string(), v.clone());
                     result = self.expression(&loop_scope, action)?;
                 }
 

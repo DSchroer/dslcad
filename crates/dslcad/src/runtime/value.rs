@@ -112,33 +112,33 @@ impl Value {
         }
     }
 
-    pub fn to_point(&self) -> Option<Rc<Point>> {
+    pub fn to_point(&self) -> Option<&Rc<Point>> {
         match self {
-            Value::Point(s) => Some(s.clone()),
+            Value::Point(s) => Some(s),
             Value::Script(i) => i.value().to_point(),
             _ => None,
         }
     }
 
-    pub fn to_line(&self) -> Option<Rc<Wire>> {
+    pub fn to_line(&self) -> Option<&Rc<Wire>> {
         match self {
-            Value::Line(s) => Some(s.clone()),
+            Value::Line(s) => Some(s),
             Value::Script(i) => i.value().to_line(),
             _ => None,
         }
     }
 
-    pub fn to_shape(&self) -> Option<Rc<Shape>> {
+    pub fn to_shape(&self) -> Option<&Rc<Shape>> {
         match self {
-            Value::Shape(s) => Some(s.clone()),
+            Value::Shape(s) => Some(s),
             Value::Script(i) => i.value().to_shape(),
             _ => None,
         }
     }
 
-    pub fn to_list(&self) -> Option<Vec<Value>> {
+    pub fn to_list(&self) -> Option<&Vec<Value>> {
         match self {
-            Value::List(s) => Some(s.clone()),
+            Value::List(s) => Some(s),
             Value::Script(i) => i.value().to_list(),
             _ => None,
         }

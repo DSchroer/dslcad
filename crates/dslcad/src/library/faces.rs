@@ -10,15 +10,15 @@ pub fn point(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, Ru
     ))))
 }
 
-pub fn line(start: Rc<Point>, end: Rc<Point>) -> Result<Value, RuntimeError> {
+pub fn line(start: &Point, end: &Point) -> Result<Value, RuntimeError> {
     let mut edge = WireFactory::new();
-    edge.add_edge(&Edge::new_line(&start, &end)?);
+    edge.add_edge(&Edge::new_line(start, end)?);
     Ok(Value::Line(Rc::new(edge.build()?)))
 }
 
-pub fn arc(start: Rc<Point>, center: Rc<Point>, end: Rc<Point>) -> Result<Value, RuntimeError> {
+pub fn arc(start: &Point, center: &Point, end: &Point) -> Result<Value, RuntimeError> {
     let mut edge = WireFactory::new();
-    edge.add_edge(&Edge::new_arc(&start, &center, &end)?);
+    edge.add_edge(&Edge::new_arc(start, center, end)?);
     Ok(Value::Line(Rc::new(edge.build()?)))
 }
 
@@ -61,13 +61,13 @@ pub fn circle(radius: Option<f64>) -> Result<Value, RuntimeError> {
 }
 
 pub fn extrude(
-    shape: Rc<Wire>,
+    shape: &Wire,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
     Ok(Value::Shape(Rc::new(Shape::extrude(
-        &shape,
+        shape,
         x.unwrap_or(0.0),
         y.unwrap_or(0.0),
         z.unwrap_or(0.0),
@@ -75,7 +75,7 @@ pub fn extrude(
 }
 
 pub fn revolve(
-    shape: Rc<Wire>,
+    shape: &Wire,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
@@ -91,18 +91,18 @@ pub fn revolve(
     };
 
     Ok(Value::Shape(Rc::new(Shape::extrude_rotate(
-        &shape, axis, angle,
+        shape, axis, angle,
     )?)))
 }
 
-pub fn union_edge(left: Rc<Wire>, right: Rc<Wire>) -> Result<Value, RuntimeError> {
+pub fn union_edge(left: &Wire, right: &Wire) -> Result<Value, RuntimeError> {
     let mut edge = WireFactory::new();
-    edge.add_wire(&left);
-    edge.add_wire(&right);
+    edge.add_wire(left);
+    edge.add_wire(right);
     Ok(Value::Line(Rc::new(edge.build()?)))
 }
 
-pub fn face(parts: Vec<Value>) -> Result<Value, RuntimeError> {
+pub fn face(parts: &Vec<Value>) -> Result<Value, RuntimeError> {
     if parts.is_empty() {
         return point(None, None, None);
     }
@@ -127,7 +127,7 @@ pub fn face(parts: Vec<Value>) -> Result<Value, RuntimeError> {
         }
 
         if point.get_type() == Type::Edge {
-            edge.add_wire(&point.to_line().unwrap());
+            edge.add_wire(point.to_line().unwrap());
         }
     }
 
@@ -136,7 +136,7 @@ pub fn face(parts: Vec<Value>) -> Result<Value, RuntimeError> {
 
 fn start_point(value: &Value) -> Result<Rc<Point>, RuntimeError> {
     match value.get_type() {
-        Type::Point => Ok(value.to_point().unwrap()),
+        Type::Point => Ok(value.to_point().unwrap().clone()),
         Type::Edge => Ok(Rc::new(value.to_line().unwrap().start()?.unwrap())),
         other => Err(RuntimeError::UnexpectedType(other)),
     }
@@ -144,49 +144,49 @@ fn start_point(value: &Value) -> Result<Rc<Point>, RuntimeError> {
 
 fn end_point(value: &Value) -> Result<Rc<Point>, RuntimeError> {
     match value.get_type() {
-        Type::Point => Ok(value.to_point().unwrap()),
+        Type::Point => Ok(value.to_point().unwrap().clone()),
         Type::Edge => Ok(Rc::new(value.to_line().unwrap().end()?.unwrap())),
         other => Err(RuntimeError::UnexpectedType(other)),
     }
 }
 
 pub fn translate(
-    shape: Rc<Wire>,
+    shape: &Wire,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
     Ok(Value::Line(Rc::new(Wire::translate(
-        &shape,
+        shape,
         &Point::new(x.unwrap_or(0.0), y.unwrap_or(0.0), z.unwrap_or(0.0)),
     )?)))
 }
 
-pub fn rotate(shape: Rc<Wire>, angle: Option<f64>) -> Result<Value, RuntimeError> {
-    let shape = Wire::rotate(&shape, Axis::Z, angle.unwrap_or(0.0))?;
+pub fn rotate(shape: &Wire, angle: Option<f64>) -> Result<Value, RuntimeError> {
+    let shape = Wire::rotate(shape, Axis::Z, angle.unwrap_or(0.0))?;
 
     Ok(Value::Line(Rc::new(shape)))
 }
 
 pub fn rotate_3d(
-    shape: Rc<Wire>,
+    shape: &Wire,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
-    let shape = Wire::rotate(&shape, Axis::X, x.unwrap_or(0.0))?;
+    let shape = Wire::rotate(shape, Axis::X, x.unwrap_or(0.0))?;
     let shape = Wire::rotate(&shape, Axis::Y, y.unwrap_or(0.0))?;
     let shape = Wire::rotate(&shape, Axis::Z, z.unwrap_or(0.0))?;
 
     Ok(Value::Line(Rc::new(shape)))
 }
 
-pub fn scale(shape: Rc<Wire>, size: f64) -> Result<Value, RuntimeError> {
-    Ok(Value::Line(Rc::new(Wire::scale(&shape, size)?)))
+pub fn scale(shape: &Wire, size: f64) -> Result<Value, RuntimeError> {
+    Ok(Value::Line(Rc::new(Wire::scale(shape, size)?)))
 }
 
 pub fn center(
-    shape: Rc<Wire>,
+    shape: &Wire,
     x: Option<bool>,
     y: Option<bool>,
     z: Option<bool>,
