@@ -10,7 +10,6 @@ mod value;
 use crate::library::{CallSignature, Library};
 use crate::parser::{ArgName, Ast, CallPath, DocId, Expression, Literal, Statement};
 use crate::runtime::scope::Scope;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -176,7 +175,7 @@ impl<'a> Engine<'a> {
                     }
 
                     let v = self.eval(id.clone(), argument_values)?;
-                    Ok(Value::Script(Rc::new(RefCell::new(v))))
+                    Ok(Value::Script(Rc::new(v)))
                 }
             },
             Expression::Reference(n, _) => {

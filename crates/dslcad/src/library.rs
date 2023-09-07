@@ -616,7 +616,6 @@ impl Debug for Signature {
 pub mod tests {
     use super::*;
     use opencascade::Point;
-    use std::cell::RefCell;
     use std::rc::Rc;
 
     #[test]
@@ -671,7 +670,7 @@ pub mod tests {
             ))
             .expect("couldnt find method");
         call(&HashMap::from([
-            ("a", Value::Point(Rc::new(RefCell::new(Point::default())))),
+            ("a", Value::Point(Rc::new(Point::default()))),
             ("b", Value::Number(0.0)),
         ]))
         .expect("called wrong handler");
@@ -681,7 +680,7 @@ pub mod tests {
         Ok(Value::Number(0.0))
     }
 
-    fn two(_a: Rc<RefCell<Point>>, _b: f64) -> Result<Value, RuntimeError> {
+    fn two(_a: Rc<Point>, _b: f64) -> Result<Value, RuntimeError> {
         Ok(Value::Number(0.0))
     }
 }

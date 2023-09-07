@@ -1,6 +1,5 @@
 use crate::runtime::{RuntimeError, Value};
 
-use std::cell::RefCell;
 use std::rc::Rc;
 
 use opencascade::{Axis, DsShape, Point, Shape};
@@ -30,53 +29,32 @@ pub fn cylinder(radius: Option<f64>, height: Option<f64>) -> Result<Value, Runti
     Ok(base.into())
 }
 
-pub fn union_shape(
-    left: Rc<RefCell<Shape>>,
-    right: Rc<RefCell<Shape>>,
-) -> Result<Value, RuntimeError> {
-    let left = left.borrow();
-    let right = right.borrow();
-
+pub fn union_shape(left: Rc<Shape>, right: Rc<Shape>) -> Result<Value, RuntimeError> {
     Ok(Shape::fuse(&left, &right)?.into())
 }
 
-pub fn difference(
-    left: Rc<RefCell<Shape>>,
-    right: Rc<RefCell<Shape>>,
-) -> Result<Value, RuntimeError> {
-    let left = left.borrow();
-    let right = right.borrow();
-
+pub fn difference(left: Rc<Shape>, right: Rc<Shape>) -> Result<Value, RuntimeError> {
     Ok(Shape::cut(&left, &right)?.into())
 }
 
-pub fn intersect(
-    left: Rc<RefCell<Shape>>,
-    right: Rc<RefCell<Shape>>,
-) -> Result<Value, RuntimeError> {
-    let left = left.borrow();
-    let right = right.borrow();
-
+pub fn intersect(left: Rc<Shape>, right: Rc<Shape>) -> Result<Value, RuntimeError> {
     Ok(Shape::intersect(&left, &right)?.into())
 }
 
-pub fn chamfer(shape: Rc<RefCell<Shape>>, radius: f64) -> Result<Value, RuntimeError> {
-    let shape = shape.borrow();
+pub fn chamfer(shape: Rc<Shape>, radius: f64) -> Result<Value, RuntimeError> {
     Ok(Shape::chamfer(&shape, radius)?.into())
 }
 
-pub fn fillet(shape: Rc<RefCell<Shape>>, radius: f64) -> Result<Value, RuntimeError> {
-    let shape = shape.borrow();
+pub fn fillet(shape: Rc<Shape>, radius: f64) -> Result<Value, RuntimeError> {
     Ok(Shape::fillet(&shape, radius)?.into())
 }
 
 pub fn translate(
-    shape: Rc<RefCell<Shape>>,
+    shape: Rc<Shape>,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
-    let shape = shape.borrow();
     Ok(Shape::translate(
         &shape,
         &Point::new(x.unwrap_or(0.0), y.unwrap_or(0.0), z.unwrap_or(0.0)),
@@ -85,12 +63,11 @@ pub fn translate(
 }
 
 pub fn rotate(
-    shape: Rc<RefCell<Shape>>,
+    shape: Rc<Shape>,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
-    let shape = shape.borrow();
     let shape = Shape::rotate(&shape, Axis::X, x.unwrap_or(0.0))?;
     let shape = Shape::rotate(&shape, Axis::Y, y.unwrap_or(0.0))?;
     let shape = Shape::rotate(&shape, Axis::Z, z.unwrap_or(0.0))?;
@@ -98,18 +75,17 @@ pub fn rotate(
     Ok(shape.into())
 }
 
-pub fn scale(shape: Rc<RefCell<Shape>>, size: f64) -> Result<Value, RuntimeError> {
-    let shape = shape.borrow();
+pub fn scale(shape: Rc<Shape>, size: f64) -> Result<Value, RuntimeError> {
     Ok(Shape::scale(&shape, size)?.into())
 }
 
 pub fn center(
-    shape: Rc<RefCell<Shape>>,
+    shape: Rc<Shape>,
     x: Option<bool>,
     y: Option<bool>,
     z: Option<bool>,
 ) -> Result<Value, RuntimeError> {
-    let center = shape.borrow().center_of_mass();
+    let center = shape.center_of_mass();
     let x = if x.unwrap_or(true) { -center.x() } else { 0.0 };
     let y = if y.unwrap_or(true) { -center.y() } else { 0.0 };
     let z = if z.unwrap_or(true) { -center.z() } else { 0.0 };
