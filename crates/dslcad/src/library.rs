@@ -566,7 +566,11 @@ impl Display for Signature {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}(", self.name)?;
         for (i, (name, access)) in self.arguments.iter().enumerate() {
-            write!(f, "{name}=")?;
+            if i == 0 {
+                write!(f, "[{name}]=")?;
+            } else {
+                write!(f, "{name}=")?;
+            }
             match access {
                 Access::Required(t) => write!(f, "{t}")?,
                 Access::RequiredAny() => write!(f, "*")?,

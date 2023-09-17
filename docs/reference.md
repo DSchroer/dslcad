@@ -48,54 +48,54 @@ to build parts.
 
 ## Math
 - `pi()` constant pi
-- `rad_to_deg(radians=number)` convert radians to degrees
-- `deg_to_rad(degrees=number)` convert degrees to radians
-- `sin(degrees=number)` sin operation
-- `sin(radians=number)` sin operation
-- `cos(degrees=number)` cos operation
-- `cos(radians=number)` cos operation
-- `tan(degrees=number)` tan operation
-- `tan(radians=number)` tan operation
-- `round(number=number)` round to the nearest whole number
-- `ceil(number=number)` round up to a whole number
-- `floor(number=number)` round down to a whole number
-- `sqrt(number=number)` square root of a number
+- `rad_to_deg([radians]=number)` convert radians to degrees
+- `deg_to_rad([degrees]=number)` convert degrees to radians
+- `sin([degrees]=number)` sin operation
+- `sin([radians]=number)` sin operation
+- `cos([degrees]=number)` cos operation
+- `cos([radians]=number)` cos operation
+- `tan([degrees]=number)` tan operation
+- `tan([radians]=number)` tan operation
+- `round([number]=number)` round to the nearest whole number
+- `ceil([number]=number)` round up to a whole number
+- `floor([number]=number)` round down to a whole number
+- `sqrt([number]=number)` square root of a number
 
 ## 2D
-- `point(x=[number], y=[number], z=[number])` create a new 2D point
-- `line(start=point, end=point)` create a line between two points
-- `square(x=[number], y=[number])` create a square
-- `circle(radius=[number])` create a circle
-- `arc(start=point, center=point, end=point)` create an arcing line between three points
-- `union(left=edge, right=edge)` combine two edges
-- `face(parts=list)` make a closed face from a list of points, lines and arcs
-- `translate(shape=edge, x=[number], y=[number], z=[number])` move an edge
-- `rotate(shape=edge, angle=[number])` rotate an edge
-- `rotate(shape=edge, x=[number], y=[number], z=[number])` rotate an edge
-- `scale(shape=edge, scale=number)` scale an edge
-- `center(shape=edge, x=[bool], y=[bool], z=[bool])` center an edge
+- `point([x]=[number], y=[number], z=[number])` create a new 2D point
+- `line([start]=point, end=point)` create a line between two points
+- `square([x]=[number], y=[number])` create a square
+- `circle([radius]=[number])` create a circle
+- `arc([start]=point, center=point, end=point)` create an arcing line between three points
+- `union([left]=edge, right=edge)` combine two edges
+- `face([parts]=list)` make a closed face from a list of points, lines and arcs
+- `translate([shape]=edge, x=[number], y=[number], z=[number])` move an edge
+- `rotate([shape]=edge, angle=[number])` rotate an edge
+- `rotate([shape]=edge, x=[number], y=[number], z=[number])` rotate an edge
+- `scale([shape]=edge, scale=number)` scale an edge
+- `center([shape]=edge, x=[bool], y=[bool], z=[bool])` center an edge
 
 ## 3D
-- `extrude(shape=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
-- `revolve(shape=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape around an axis
-- `cube(x=[number], y=[number], z=[number])` create a cube
-- `sphere(radius=[number])` create a sphere
-- `cylinder(radius=[number], height=[number])` create a cylinder
-- `union(left=shape, right=shape)` combine two shapes
-- `chamfer(shape=shape, radius=number)` chamfer edges
-- `fillet(shape=shape, radius=number)` fillet edges
-- `difference(left=shape, right=shape)` cut one shape out of another
-- `intersect(left=shape, right=shape)` intersection between two shapes
-- `translate(shape=shape, x=[number], y=[number], z=[number])` move a shape
-- `rotate(shape=shape, x=[number], y=[number], z=[number])` rotate a shape
-- `scale(shape=shape, scale=number)` scale a shape
-- `center(shape=shape, x=[bool], y=[bool], z=[bool])` center a shape
+- `extrude([shape]=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
+- `revolve([shape]=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape around an axis
+- `cube([x]=[number], y=[number], z=[number])` create a cube
+- `sphere([radius]=[number])` create a sphere
+- `cylinder([radius]=[number], height=[number])` create a cylinder
+- `union([left]=shape, right=shape)` combine two shapes
+- `chamfer([shape]=shape, radius=number)` chamfer edges
+- `fillet([shape]=shape, radius=number)` fillet edges
+- `difference([left]=shape, right=shape)` cut one shape out of another
+- `intersect([left]=shape, right=shape)` intersection between two shapes
+- `translate([shape]=shape, x=[number], y=[number], z=[number])` move a shape
+- `rotate([shape]=shape, x=[number], y=[number], z=[number])` rotate a shape
+- `scale([shape]=shape, scale=number)` scale a shape
+- `center([shape]=shape, x=[bool], y=[bool], z=[bool])` center a shape
 
 ## Lists
-- `length(list=list)` get the length of a list
-- `range(start=[number], end=number)` create a list of numbers from a range
+- `length([list]=list)` get the length of a list
+- `range([start]=[number], end=number)` create a list of numbers from a range
 
 ## Text
-- `string(item=*)` convert to text
-- `format(message=text, ...)` format text using {my_arg} style formatting
-- `formatln(message=text, ...)` format text with newline
+- `string([item]=*)` convert to text
+- `format([message]=text, ...)` format text using {my_arg} style formatting
+- `formatln([message]=text, ...)` format text with newline
