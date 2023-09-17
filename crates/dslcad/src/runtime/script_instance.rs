@@ -5,7 +5,6 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct ScriptInstance {
-    arguments: HashMap<String, Value>,
     variables: HashMap<String, Value>,
     parts: Value,
 }
@@ -19,7 +18,6 @@ impl ScriptInstance {
         };
 
         Ok(ScriptInstance {
-            arguments: scope.arguments,
             variables: scope.variables,
             parts: reduced_parts,
         })
@@ -32,10 +30,6 @@ impl ScriptInstance {
 
 impl Access for ScriptInstance {
     fn get(&self, identifier: &str) -> Option<Value> {
-        let val = self
-            .arguments
-            .get(identifier)
-            .or_else(|| self.variables.get(identifier))?;
-        Some(val.clone())
+        self.variables.get(identifier).cloned()
     }
 }
