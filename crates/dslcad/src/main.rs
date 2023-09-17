@@ -102,6 +102,6 @@ fn render_to_preview(args: Args) -> Result<(), Box<dyn Error>> {
 
     render_with_watcher(args.clone(), handle.clone(), watch.clone())?;
 
-    preview.open(Library::new().to_string());
+    preview.open(Library::default().to_string());
     Ok(())
 }

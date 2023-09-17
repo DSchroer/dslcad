@@ -120,21 +120,16 @@ impl<'a> Engine<'a> {
                             ArgName::Default => {
                                 let name = self
                                     .library
-                                    .default_argument_name(path, value.get_type())
+                                    .default_argument_name(path, &value)
                                     .map_err(|e| WithStack::from_err(e, &self.stack))?;
                                 argument_values.insert(name, value);
                             }
                         }
                     }
 
-                    let argument_types = argument_values
-                        .iter()
-                        .map(|(name, value)| (*name, value.get_type()))
-                        .collect();
-
                     let f = self
                         .library
-                        .find(CallSignature::new(path, &argument_types))
+                        .find(CallSignature::new(path, &argument_values))
                         .map_err(|e| WithStack::from_err(e, &self.stack))?;
                     Ok(f(&argument_values).map_err(|e| WithStack::from_err(e, &self.stack))?)
                 }

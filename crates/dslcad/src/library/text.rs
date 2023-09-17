@@ -10,7 +10,7 @@ pub fn string(item: Value) -> Result<String, RuntimeError> {
         Value::Number(n) => Ok(n.to_string()),
         Value::Bool(n) => Ok(n.to_string()),
         Value::Text(n) => Ok(n),
-        _ => Err(RuntimeError::UnexpectedType(item.get_type())),
+        _ => Err(RuntimeError::UnexpectedType()),
     }
 }
 

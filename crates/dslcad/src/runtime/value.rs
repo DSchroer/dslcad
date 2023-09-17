@@ -6,7 +6,7 @@ use std::rc::Rc;
 use super::Access;
 use super::Type;
 use crate::runtime::{RuntimeError, ScriptInstance};
-use opencascade::{Point, Shape, Wire};
+use opencascade::{DsShape, Point, Shape, Wire};
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
@@ -16,13 +16,13 @@ pub enum Value {
     Bool(bool),
     Text(String),
 
-    List(Vec<Value>),
-
-    Script(Rc<ScriptInstance>),
-
     Point(Rc<Point>),
     Line(Rc<Wire>),
     Shape(Rc<Shape>),
+
+    List(Vec<Value>),
+
+    Script(Rc<ScriptInstance>),
 }
 
 impl From<Point> for Value {
@@ -90,7 +90,7 @@ impl Value {
         match self {
             Value::Number(f) => Ok(*f),
             Value::Script(i) => i.value().to_number(),
-            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
+            _ => Err(RuntimeError::UnexpectedType()),
         }
     }
 
@@ -98,7 +98,7 @@ impl Value {
         match self {
             Value::Text(f) => Ok(f.clone()),
             Value::Script(i) => i.value().to_text(),
-            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
+            _ => Err(RuntimeError::UnexpectedType()),
         }
     }
 
@@ -106,7 +106,7 @@ impl Value {
         match self {
             Value::Bool(f) => Ok(*f),
             Value::Script(i) => i.value().to_bool(),
-            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
+            _ => Err(RuntimeError::UnexpectedType()),
         }
     }
 
@@ -116,7 +116,7 @@ impl Value {
             Value::Line(w) => Ok(w.as_ref()),
             Value::Shape(s) => Ok(s.as_ref()),
             Value::Point(p) => Ok(p.as_ref()),
-            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
+            _ => Err(RuntimeError::UnexpectedType()),
         }
     }
 
@@ -124,7 +124,7 @@ impl Value {
         match self {
             Value::Point(s) => Ok(s),
             Value::Script(i) => i.value().to_point(),
-            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
+            _ => Err(RuntimeError::UnexpectedType()),
         }
     }
 
@@ -132,36 +132,46 @@ impl Value {
         match self {
             Value::Line(s) => Ok(s),
             Value::Script(i) => i.value().to_line(),
-            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
+            _ => Err(RuntimeError::UnexpectedType()),
         }
     }
 
-    pub fn to_shape(&self) -> Result<&Rc<Shape>> {
+    pub fn to_shape(&self) -> Result<Rc<Shape>> {
         match self {
-            Value::Shape(s) => Ok(s),
+            Value::Shape(s) => Ok(s.clone()),
             Value::Script(i) => i.value().to_shape(),
-            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
+            Value::List(values) => match values.len() {
+                0 => Err(RuntimeError::UnexpectedType()),
+                1 => values[0].to_shape(),
+                _ => {
+                    let mut acc = values[0].to_shape()?.fuse(values[1].to_shape()?.as_ref())?;
+                    for value in &values[2..] {
+                        acc = acc.fuse(value.to_shape()?.as_ref())?
+                    }
+                    Ok(Rc::new(acc))
+                }
+            },
+            _ => Err(RuntimeError::UnexpectedType()),
         }
     }
 
     pub fn to_list(&self) -> Result<&Vec<Value>> {
         match self {
             Value::List(s) => Ok(s),
-            Value::Script(i) => Ok(i.values()),
-            _ => Err(RuntimeError::UnexpectedType(self.get_type())),
+            Value::Script(i) => i.value().to_list(),
+            _ => Err(RuntimeError::UnexpectedType()),
         }
     }
 
-    pub fn get_type(&self) -> Type {
-        match self {
-            Value::Number(_) => Type::Number,
-            Value::Bool(_) => Type::Bool,
-            Value::Text(_) => Type::Text,
-            Value::List(_) => Type::List,
-            Value::Script(i) => i.value().get_type(),
-            Value::Point(_) => Type::Point,
-            Value::Line(_) => Type::Edge,
-            Value::Shape(_) => Type::Shape,
+    pub fn is_type(&self, target: Type) -> bool {
+        match target {
+            Type::Number => self.to_number().is_ok(),
+            Type::Bool => self.to_bool().is_ok(),
+            Type::Text => self.to_text().is_ok(),
+            Type::List => self.to_list().is_ok(),
+            Type::Point => self.to_point().is_ok(),
+            Type::Edge => self.to_line().is_ok(),
+            Type::Shape => self.to_shape().is_ok(),
         }
     }
 }

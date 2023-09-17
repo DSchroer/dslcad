@@ -17,14 +17,18 @@ pub fn parse(source: String) -> Result<Ast, ParseError> {
 }
 
 pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
-    let lib = Library::new();
+    let lib = Library::default();
 
     let mut engine = Engine::new(&lib, documents);
     let instance = engine.eval_root(HashMap::new())?;
 
     let mut outputs = Vec::new();
-    for part in instance.values() {
-        outputs.push(part.to_output().unwrap());
+    if let Ok(parts) = instance.value().to_list() {
+        for part in parts {
+            outputs.push(part.to_output().unwrap());
+        }
+    } else {
+        outputs.push(instance.value().to_output().unwrap())
     }
 
     Ok(Render { parts: outputs })
@@ -43,7 +47,7 @@ mod tests {
         let root = DocId::new("test".to_string());
         let parser = crate::parser::Parser::new(reader, root);
         let documents = parser.parse().unwrap();
-        let lib = Library::new();
+        let lib = Library::default();
         let mut engine = Engine::new(&lib, documents);
         engine.eval_root(HashMap::new()).expect("failed to eval")
     }

@@ -1,4 +1,4 @@
-use crate::runtime::{RuntimeError, Type, Value};
+use crate::runtime::{RuntimeError, Value};
 use opencascade::{Axis, DsShape, Edge, Point, Shape, Wire, WireFactory};
 use std::rc::Rc;
 
@@ -126,8 +126,8 @@ pub fn face(parts: &Vec<Value>) -> Result<Value, RuntimeError> {
             edge.add_edge(&Edge::new_line(&last_end, &current_start)?);
         }
 
-        if point.get_type() == Type::Edge {
-            edge.add_wire(point.to_line().unwrap());
+        if let Ok(line) = point.to_line() {
+            edge.add_wire(line);
         }
     }
 
@@ -135,18 +135,22 @@ pub fn face(parts: &Vec<Value>) -> Result<Value, RuntimeError> {
 }
 
 fn start_point(value: &Value) -> Result<Rc<Point>, RuntimeError> {
-    match value.get_type() {
-        Type::Point => Ok(value.to_point().unwrap().clone()),
-        Type::Edge => Ok(Rc::new(value.to_line().unwrap().start()?.unwrap())),
-        other => Err(RuntimeError::UnexpectedType(other)),
+    if let Ok(point) = value.to_point() {
+        Ok(point.clone())
+    } else if let Ok(edge) = value.to_line() {
+        Ok(Rc::new(edge.start()?.unwrap()))
+    } else {
+        Err(RuntimeError::UnexpectedType())
     }
 }
 
 fn end_point(value: &Value) -> Result<Rc<Point>, RuntimeError> {
-    match value.get_type() {
-        Type::Point => Ok(value.to_point().unwrap().clone()),
-        Type::Edge => Ok(Rc::new(value.to_line().unwrap().end()?.unwrap())),
-        other => Err(RuntimeError::UnexpectedType(other)),
+    if let Ok(point) = value.to_point() {
+        Ok(point.clone())
+    } else if let Ok(edge) = value.to_line() {
+        Ok(Rc::new(edge.end()?.unwrap()))
+    } else {
+        Err(RuntimeError::UnexpectedType())
     }
 }
 

@@ -14,11 +14,11 @@ type Function = dyn Fn(&HashMap<&str, Value>) -> Result<Value, RuntimeError>;
 
 pub struct CallSignature<'a> {
     name: &'a str,
-    arguments: &'a HashMap<&'a str, Type>,
+    arguments: &'a HashMap<&'a str, Value>,
 }
 
 impl<'a> CallSignature<'a> {
-    pub fn new(name: &'a str, arguments: &'a HashMap<&'a str, Type>) -> Self {
+    pub fn new(name: &'a str, arguments: &'a HashMap<&'a str, Value>) -> Self {
         CallSignature { name, arguments }
     }
 }
@@ -118,7 +118,7 @@ macro_rules! invoke {
         let value = $map
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
-        value
+        &value
             .to_shape()?
     }};
     ($map: ident, $name: ident=edge) => {{
@@ -170,7 +170,125 @@ impl Display for Category {
 }
 
 impl Library {
-    pub fn new() -> Self {
+    fn from_signatures(signatures: Vec<Signature>) -> Self {
+        let lookup = Self::build_lookup(&signatures);
+        Library { signatures, lookup }
+    }
+
+    pub fn default_argument_name(
+        &self,
+        function: &str,
+        argument: &Value,
+    ) -> Result<&'static str, RuntimeError> {
+        if let Some(indices) = self.lookup.get(function) {
+            let mut ret = None;
+            'index: for index in indices {
+                let signature = &self.signatures[*index];
+
+                let first_arg = signature.arguments.iter().next();
+                let name = match first_arg {
+                    None => continue 'index,
+                    Some((name, access)) => match access {
+                        Access::Required(t) | Access::Optional(t) => {
+                            if argument.is_type(*t) {
+                                name
+                            } else {
+                                continue 'index;
+                            }
+                        }
+                        Access::RequiredAny() => name,
+                    },
+                };
+
+                if ret.is_none() {
+                    ret.replace(name);
+                } else {
+                    return Err(RuntimeError::UnknownDefaultArgument {
+                        name: function.to_string(),
+                    });
+                }
+            }
+
+            match ret {
+                None => Err(RuntimeError::UnknownDefaultArgument {
+                    name: function.to_string(),
+                }),
+                Some(name) => Ok(name),
+            }
+        } else {
+            Err(RuntimeError::UnknownDefaultArgument {
+                name: function.to_string(),
+            })
+        }
+    }
+
+    pub fn find(&self, to_call: CallSignature) -> Result<&Function, RuntimeError> {
+        if let Some(indices) = self.lookup.get(to_call.name) {
+            'index: for index in indices {
+                let signature = &self.signatures[*index];
+
+                if !signature.variadic {
+                    for name in to_call.arguments.keys() {
+                        if !signature.arguments.contains_key(name) {
+                            continue 'index;
+                        }
+                    }
+                }
+
+                for (name, access) in signature.arguments.iter() {
+                    match access {
+                        Access::Required(t) => {
+                            if !to_call.arguments.contains_key(name)
+                                || !to_call.arguments.get(name).unwrap().is_type(*t)
+                            {
+                                continue 'index;
+                            }
+                        }
+                        Access::RequiredAny() => {
+                            if !to_call.arguments.contains_key(name) {
+                                continue 'index;
+                            }
+                        }
+                        Access::Optional(t) => {
+                            if to_call.arguments.contains_key(name)
+                                && !to_call.arguments.get(name).unwrap().is_type(*t)
+                            {
+                                continue 'index;
+                            }
+                        }
+                    }
+                }
+                return Ok(signature.function);
+            }
+            return Err(RuntimeError::CouldNotFindFunctionSignature {
+                target: to_call.to_string(),
+                options: indices
+                    .iter()
+                    .map(|i| self.signatures[*i].to_string())
+                    .collect(),
+            });
+        } else {
+            Err(RuntimeError::CouldNotFindFunction {
+                name: to_call.name.to_string(),
+            })
+        }
+    }
+
+    fn build_lookup(signatures: &[Signature]) -> HashMap<&'static str, Vec<usize>> {
+        let mut lookup: HashMap<&str, Vec<usize>> = HashMap::new();
+        for (i, sig) in signatures.iter().enumerate() {
+            if lookup.contains_key(sig.name) {
+                lookup.get_mut(sig.name).unwrap().push(i);
+            } else {
+                lookup.insert(sig.name, vec![i]);
+            }
+        }
+        lookup
+    }
+}
+
+impl Default for Library {
+    fn default() -> Self {
         let signatures = vec![
             // Math
             bind!(add, math::add[left=number, right=number], Category::Hidden, "addition"),
@@ -356,135 +474,6 @@ impl Library {
 
         Self::from_signatures(signatures)
     }
-
-    fn from_signatures(signatures: Vec<Signature>) -> Self {
-        let lookup = Self::build_lookup(&signatures);
-        Library { signatures, lookup }
-    }
-
-    pub fn default_argument_name(
-        &self,
-        function: &str,
-        arg_type: Type,
-    ) -> Result<&'static str, RuntimeError> {
-        if let Some(indices) = self.lookup.get(function) {
-            let mut ret = None;
-            'index: for index in indices {
-                let signature = &self.signatures[*index];
-
-                let first_arg = signature.arguments.iter().next();
-                let name = match first_arg {
-                    None => continue 'index,
-                    Some((name, access)) => match access {
-                        Access::Required(t) => {
-                            if arg_type == *t {
-                                name
-                            } else {
-                                continue 'index;
-                            }
-                        }
-                        Access::Optional(t) => {
-                            if arg_type == *t {
-                                name
-                            } else {
-                                continue 'index;
-                            }
-                        }
-                        Access::RequiredAny() => name,
-                    },
-                };
-
-                if ret.is_none() {
-                    ret.replace(name);
-                } else {
-                    return Err(RuntimeError::UnknownDefaultArgument {
-                        name: function.to_string(),
-                    });
-                }
-            }
-
-            match ret {
-                None => Err(RuntimeError::UnknownDefaultArgument {
-                    name: function.to_string(),
-                }),
-                Some(name) => Ok(name),
-            }
-        } else {
-            Err(RuntimeError::UnknownDefaultArgument {
-                name: function.to_string(),
-            })
-        }
-    }
-
-    pub fn find(&self, to_call: CallSignature) -> Result<&Function, RuntimeError> {
-        if let Some(indices) = self.lookup.get(to_call.name) {
-            'index: for index in indices {
-                let signature = &self.signatures[*index];
-
-                if !signature.variadic {
-                    for name in to_call.arguments.keys() {
-                        if !signature.arguments.contains_key(name) {
-                            continue 'index;
-                        }
-                    }
-                }
-
-                for (name, access) in signature.arguments.iter() {
-                    match access {
-                        Access::Required(t) => {
-                            if !to_call.arguments.contains_key(name)
-                                || !to_call.arguments.get(name).unwrap().eq(t)
-                            {
-                                continue 'index;
-                            }
-                        }
-                        Access::RequiredAny() => {
-                            if !to_call.arguments.contains_key(name) {
-                                continue 'index;
-                            }
-                        }
-                        Access::Optional(t) => {
-                            if to_call.arguments.contains_key(name)
-                                && !to_call.arguments.get(name).unwrap().eq(t)
-                            {
-                                continue 'index;
-                            }
-                        }
-                    }
-                }
-                return Ok(signature.function);
-            }
-            return Err(RuntimeError::CouldNotFindFunctionSignature {
-                target: format!("{to_call}"),
-                options: indices
-                    .iter()
-                    .map(|i| format!("{}", self.signatures[*i]))
-                    .collect(),
-            });
-        } else {
-            Err(RuntimeError::CouldNotFindFunction {
-                name: to_call.name.to_string(),
-            })
-        }
-    }
-
-    fn build_lookup(signatures: &[Signature]) -> HashMap<&'static str, Vec<usize>> {
-        let mut lookup: HashMap<&str, Vec<usize>> = HashMap::new();
-        for (i, sig) in signatures.iter().enumerate() {
-            if lookup.contains_key(sig.name) {
-                lookup.get_mut(sig.name).unwrap().push(i);
-            } else {
-                lookup.insert(sig.name, vec![i]);
-            }
-        }
-        lookup
-    }
-}
-
-impl Default for Library {
-    fn default() -> Self {
-        Library::new()
-    }
 }
 
 impl Display for Library {
@@ -562,8 +551,8 @@ impl Display for Library {
 impl<'a> Display for CallSignature<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}(", self.name)?;
-        for (i, (name, arg_type)) in self.arguments.iter().enumerate() {
-            write!(f, "{name}={arg_type}")?;
+        for (i, (name, _)) in self.arguments.iter().enumerate() {
+            write!(f, "{name}")?;
             if i != self.arguments.len() - 1 {
                 write!(f, ", ")?;
             }
@@ -610,12 +599,12 @@ pub mod tests {
 
     #[test]
     fn it_can_create_library() {
-        let _lib = Library::new();
+        let _lib = Library::default();
     }
 
     #[test]
     fn it_can_print_library() {
-        let lib = Library::new();
+        let lib = Library::default();
         println!("{lib}");
     }
 
@@ -626,7 +615,7 @@ pub mod tests {
         ]);
         lib.find(CallSignature::new(
             "test",
-            &HashMap::from([("a", Type::Number), ("b", Type::Number)]),
+            &HashMap::from([("a", Value::Number(1.)), ("b", Value::Number(1.))]),
         ))
         .expect("couldnt find method");
     }
@@ -639,9 +628,9 @@ pub mod tests {
         let res = lib.find(CallSignature::new(
             "test",
             &HashMap::from([
-                ("a", Type::Number),
-                ("b", Type::Number),
-                ("c", Type::Number),
+                ("a", Value::Number(1.)),
+                ("b", Value::Number(1.)),
+                ("c", Value::Number(1.)),
             ]),
         ));
         assert!(res.is_err())
@@ -656,7 +645,10 @@ pub mod tests {
         let call = lib
             .find(CallSignature::new(
                 "test",
-                &HashMap::from([("a", Type::Point), ("b", Type::Number)]),
+                &HashMap::from([
+                    ("a", Value::Point(Rc::new(Point::default()))),
+                    ("b", Value::Number(1.)),
+                ]),
             ))
             .expect("couldnt find method");
         call(&HashMap::from([

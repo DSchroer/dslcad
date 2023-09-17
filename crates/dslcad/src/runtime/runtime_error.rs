@@ -1,4 +1,3 @@
-use super::Type;
 use opencascade::Error;
 use thiserror::Error;
 
@@ -10,8 +9,8 @@ pub enum RuntimeError {
     UnsetParameter(String),
     #[error("Could not find property {0}")]
     MissingProperty(String),
-    #[error("Mismatched types between {0}")]
-    UnexpectedType(Type),
+    #[error("Mismatched types")]
+    UnexpectedType(),
     #[error("Script did not return a value")]
     NoReturnValue(),
     #[error("Reduce must have at least one value")]
