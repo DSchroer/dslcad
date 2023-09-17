@@ -1,41 +1,8 @@
-use super::Value;
 use opencascade::{Error, Point, Shape, Wire};
 use persistence::protocol::Part;
 
 pub trait IntoPart {
     fn into_part(self) -> Result<Part, Error>;
-}
-
-impl IntoPart for &f64 {
-    fn into_part(self) -> Result<Part, Error> {
-        Ok(Part::Data {
-            text: self.to_string(),
-        })
-    }
-}
-
-impl IntoPart for &bool {
-    fn into_part(self) -> Result<Part, Error> {
-        Ok(Part::Data {
-            text: self.to_string(),
-        })
-    }
-}
-
-impl IntoPart for &str {
-    fn into_part(self) -> Result<Part, Error> {
-        Ok(Part::Data {
-            text: self.to_string(),
-        })
-    }
-}
-
-impl IntoPart for &Vec<Value> {
-    fn into_part(self) -> Result<Part, Error> {
-        Ok(Part::Data {
-            text: format!("[{}]", self.len()),
-        })
-    }
 }
 
 impl IntoPart for &Point {

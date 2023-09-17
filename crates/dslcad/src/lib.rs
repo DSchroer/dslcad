@@ -23,7 +23,7 @@ pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
 
     Ok(Render {
         parts: instance
-            .parts()
+            .value()
             .to_output()
             .map_err(|e| WithStack::from_err(e, &vec![]))?,
     })
@@ -55,22 +55,22 @@ mod tests {
 
     #[test]
     fn it_supports_order_of_operations() {
-        assert_eq!("6", run("5 / 5 + 5;").to_string());
+        assert_eq!(Ok(6.), run("5 / 5 + 5;").value().to_number());
     }
 
     #[test]
     fn it_has_boolean_algebra() {
-        assert_eq!("true", &run("true;").to_string());
-        assert_eq!("false", &run("false;").to_string());
+        assert_eq!(Ok(true), run("true;").value().to_bool());
+        assert_eq!(Ok(false), run("false;").value().to_bool());
 
-        assert_eq!("false", &run("true and false;").to_string());
-        assert_eq!("true", &run("true and true;").to_string());
+        assert_eq!(Ok(false), run("true and false;").value().to_bool());
+        assert_eq!(Ok(true), run("true and true;").value().to_bool());
 
-        assert_eq!("true", &run("true or false;").to_string());
-        assert_eq!("true", &run("true or true;").to_string());
+        assert_eq!(Ok(true), run("true or false;").value().to_bool());
+        assert_eq!(Ok(true), run("true or true;").value().to_bool());
 
-        assert_eq!("true", &run("not false;").to_string());
-        assert_eq!("true", &run("not false or false;").to_string());
+        assert_eq!(Ok(true), run("not false;").value().to_bool());
+        assert_eq!(Ok(true), run("not false or false;").value().to_bool());
     }
 
     #[test]
@@ -101,7 +101,7 @@ mod tests {
 
     #[test]
     fn it_has_if_statements() {
-        assert_eq!("10", run("if true: 10 else: 0;").to_string());
+        assert_eq!(Ok(10.), run("if true: 10 else: 0;").value().to_number());
     }
 
     #[test]

@@ -46,9 +46,6 @@ impl From<Vec3<f64>> for Vertex {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Part {
-    Data {
-        text: String,
-    },
     Planar {
         points: Vec<Point>,
         lines: Vec<Vec<Point>>,

@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
 
+#[derive(PartialEq)]
 pub struct Error(String);
 
 impl From<&'static str> for Error {

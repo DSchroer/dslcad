@@ -78,31 +78,31 @@ impl Debug for Value {
 
 impl Value {
     pub fn to_output(&self) -> Result<Vec<Part>> {
-        Ok(match self {
-            Value::Number(v) => vec![v.into_part()?],
-            Value::Bool(v) => vec![v.into_part()?],
-            Value::Text(v) => vec![v.into_part()?],
+        match self {
+            Value::Number(_) | Value::Bool(_) | Value::Text(_) => {
+                Err(RuntimeError::UnexpectedType())
+            }
 
             Value::List(l) => {
                 let mut results = Vec::new();
                 for item in l {
                     results.push(item.to_output()?)
                 }
-                results.concat()
+                Ok(results.concat())
             }
 
-            Value::Script(s) => s.parts().to_output()?,
+            Value::Script(s) => Ok(s.value().to_output()?),
 
-            Value::Point(p) => vec![p.into_part()?],
-            Value::Line(l) => vec![l.into_part()?],
-            Value::Shape(s) => vec![s.into_part()?],
-        })
+            Value::Point(p) => Ok(vec![p.into_part()?]),
+            Value::Line(l) => Ok(vec![l.into_part()?]),
+            Value::Shape(s) => Ok(vec![s.into_part()?]),
+        }
     }
 
     pub fn to_number(&self) -> Result<f64> {
         match self {
             Value::Number(f) => Ok(*f),
-            Value::Script(i) => i.parts().to_number(),
+            Value::Script(i) => i.value().to_number(),
             Value::List(l) if l.len() == 1 => l[0].to_number(),
             _ => Err(RuntimeError::UnexpectedType()),
         }
@@ -111,7 +111,7 @@ impl Value {
     pub fn to_text(&self) -> Result<String> {
         match self {
             Value::Text(f) => Ok(f.clone()),
-            Value::Script(i) => i.parts().to_text(),
+            Value::Script(i) => i.value().to_text(),
             Value::List(l) if l.len() == 1 => l[0].to_text(),
             _ => Err(RuntimeError::UnexpectedType()),
         }
@@ -120,7 +120,7 @@ impl Value {
     pub fn to_bool(&self) -> Result<bool> {
         match self {
             Value::Bool(f) => Ok(*f),
-            Value::Script(i) => i.parts().to_bool(),
+            Value::Script(i) => i.value().to_bool(),
             Value::List(l) if l.len() == 1 => l[0].to_bool(),
             _ => Err(RuntimeError::UnexpectedType()),
         }
@@ -139,7 +139,7 @@ impl Value {
     pub fn to_point(&self) -> Result<Rc<Point>> {
         match self {
             Value::Point(s) => Ok(s.clone()),
-            Value::Script(i) => i.parts().to_point(),
+            Value::Script(i) => i.value().to_point(),
             Value::List(l) if l.len() == 1 => l[0].to_point(),
             _ => Err(RuntimeError::UnexpectedType()),
         }
@@ -148,7 +148,7 @@ impl Value {
     pub fn to_line(&self) -> Result<Rc<Wire>> {
         match self {
             Value::Line(s) => Ok(s.clone()),
-            Value::Script(i) => i.parts().to_line(),
+            Value::Script(i) => i.value().to_line(),
             Value::List(l) if l.len() == 1 => l[0].to_line(),
             _ => Err(RuntimeError::UnexpectedType()),
         }
@@ -157,7 +157,7 @@ impl Value {
     pub fn to_shape(&self) -> Result<Rc<Shape>> {
         match self {
             Value::Shape(s) => Ok(s.clone()),
-            Value::Script(i) => i.parts().to_shape(),
+            Value::Script(i) => i.value().to_shape(),
             Value::List(values) => match values.len() {
                 0 => Err(RuntimeError::UnexpectedType()),
                 1 => values[0].to_shape(),
@@ -176,7 +176,7 @@ impl Value {
     pub fn to_list(&self) -> Result<Vec<Value>> {
         match self {
             Value::List(s) => Ok(s.clone()),
-            Value::Script(i) => i.parts().to_list(),
+            Value::Script(i) => i.value().to_list(),
             _ => Err(RuntimeError::UnexpectedType()),
         }
     }

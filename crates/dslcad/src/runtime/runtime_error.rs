@@ -1,7 +1,7 @@
 use opencascade::Error;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum RuntimeError {
     #[error("Unknown identifier {0}")]
     UnknownIdentifier(String),

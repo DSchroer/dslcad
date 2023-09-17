@@ -124,7 +124,6 @@ fn point_renderer(
                         points,
                         *entity,
                     ),
-                    _ => {}
                 }
             }
         }
@@ -198,7 +197,6 @@ fn line_renderer(
                         lines,
                         *entity,
                     ),
-                    _ => {}
                 }
             }
         }
