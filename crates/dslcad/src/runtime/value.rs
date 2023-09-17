@@ -76,13 +76,16 @@ impl Value {
             Value::Number(v) => v.into_part()?,
             Value::Bool(v) => v.into_part()?,
             Value::Text(v) => v.into_part()?,
-            Value::List(v) => {
-                if let Ok(shape) = self.to_shape() {
-                    shape.into_part()?
-                } else {
-                    v.into_part()?
+            Value::List(v) => match v.len() {
+                1 => v[0].to_output()?,
+                _ => {
+                    if let Ok(shape) = self.to_shape() {
+                        shape.into_part()?
+                    } else {
+                        v.into_part()?
+                    }
                 }
-            }
+            },
 
             Value::Script(s) => s.value().to_output()?,
 
