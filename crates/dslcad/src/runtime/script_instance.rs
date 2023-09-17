@@ -9,35 +9,38 @@ use std::fmt::{Display, Formatter};
 pub struct ScriptInstance {
     arguments: HashMap<String, Value>,
     variables: HashMap<String, Value>,
-    value: Value,
+    parts: Vec<Value>,
 }
 
 impl ScriptInstance {
-    pub fn from_scope(values: Vec<Value>, scope: Scope) -> Result<Self, RuntimeError> {
-        if values.is_empty() {
+    pub fn from_scope(parts: Vec<Value>, scope: Scope) -> Result<Self, RuntimeError> {
+        if parts.is_empty() {
             return Err(RuntimeError::NoReturnValue());
         }
 
         Ok(ScriptInstance {
             arguments: scope.arguments,
             variables: scope.variables,
-            value: Value::List(values),
+            parts,
         })
     }
 
-    pub fn value(&self) -> &Value {
-        &self.value
+    pub fn parts(&self) -> Value {
+        Value::List(self.parts.clone())
     }
 }
 
 impl Display for ScriptInstance {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let part = self.value().to_output().map_err(|_| std::fmt::Error)?;
-        match part {
-            Part::Data { text } => f.write_str(&text),
-            Part::Planar { .. } => panic!("can not display 2d as text"),
-            Part::Object { .. } => panic!("can not display 3d as text"),
+        let parts = self.parts().to_output().map_err(|_| std::fmt::Error)?;
+        for part in parts {
+            match part {
+                Part::Data { text } => f.write_str(&text)?,
+                Part::Planar { .. } => panic!("can not display 2d as text"),
+                Part::Object { .. } => panic!("can not display 3d as text"),
+            }
         }
+        Ok(())
     }
 }
 

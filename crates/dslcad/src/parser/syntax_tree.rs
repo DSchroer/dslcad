@@ -57,14 +57,14 @@ pub enum Statement {
         value: Option<Expression>,
         span: Span,
     },
-    Return(Expression, Span),
+    CreatePart(Expression, Span),
 }
 
 impl Statement {
     pub fn span(&self) -> &Span {
         match self {
             Statement::Variable { span, .. } => span,
-            Statement::Return(_, span) => span,
+            Statement::CreatePart(_, span) => span,
         }
     }
 }

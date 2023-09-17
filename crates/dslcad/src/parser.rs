@@ -103,7 +103,7 @@ impl<R: Reader> Parser<R> {
         let expr = self.parse_expression(lexer)?;
         let sb = SpanBuilder::from_expr(&expr);
         take!(self, lexer, Token::Semicolon = "semicolon");
-        Ok(Statement::Return(expr, sb.to(lexer)))
+        Ok(Statement::CreatePart(expr, sb.to(lexer)))
     }
 
     fn parse_variable_statement(
@@ -696,7 +696,7 @@ pub mod tests {
         });
 
         parse_statement("5 ->value a() ->test b();", |p| {
-            assert!(matches!(p, Statement::Return(
+            assert!(matches!(p, Statement::CreatePart(
             Expression::Invocation { arguments: x, .. }
             , ..
         ) if !x.contains_key(&ArgName::Named("value".to_string()))))
@@ -706,7 +706,7 @@ pub mod tests {
     #[test]
     fn it_can_load_inject_spans() {
         parse_statement("5 ->value cube();", |p| {
-            if let Statement::Return(expr, ..) = p {
+            if let Statement::CreatePart(expr, ..) = p {
                 assert_eq!(0..16, *expr.span())
             } else {
                 unreachable!();

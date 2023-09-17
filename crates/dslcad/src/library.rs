@@ -111,7 +111,7 @@ macro_rules! invoke {
         let value = $map
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
-        value
+        &value
             .to_point()?
     }};
     ($map: ident, $name: ident=shape) => {{
@@ -125,14 +125,14 @@ macro_rules! invoke {
         let value = $map
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
-        value
+        &value
             .to_line()?
     }};
     ($map: ident, $name: ident=list) => {{
         let value = $map
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
-        value
+        &value
             .to_list()?
     }};
     ($func: path[$($name: ident=$value: ident), *]) => {&|_a|{

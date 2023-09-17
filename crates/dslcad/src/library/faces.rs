@@ -127,7 +127,7 @@ pub fn face(parts: &Vec<Value>) -> Result<Value, RuntimeError> {
         }
 
         if let Ok(line) = point.to_line() {
-            edge.add_wire(line);
+            edge.add_wire(&line);
         }
     }
 

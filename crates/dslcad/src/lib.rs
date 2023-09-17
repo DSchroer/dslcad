@@ -5,7 +5,6 @@ use crate::runtime::{Engine, RuntimeError, WithStack};
 use persistence::protocol::Render;
 use std::collections::HashMap;
 
-pub mod export;
 pub mod library;
 pub mod parser;
 pub mod reader;
@@ -22,23 +21,19 @@ pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
     let mut engine = Engine::new(&lib, documents);
     let instance = engine.eval_root(HashMap::new())?;
 
-    let mut outputs = Vec::new();
-    if let Ok(parts) = instance.value().to_list() {
-        for part in parts {
-            outputs.push(part.to_output().unwrap());
-        }
-    } else {
-        outputs.push(instance.value().to_output().unwrap())
-    }
-
-    Ok(Render { parts: outputs })
+    Ok(Render {
+        parts: instance
+            .parts()
+            .to_output()
+            .map_err(|e| WithStack::from_err(e, &vec![]))?,
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use crate::library::Library;
     use crate::parser::{DocId, Reader};
-    use crate::runtime::{Engine, ScriptInstance};
+    use crate::runtime::{Engine, ScriptInstance, Value};
     use std::collections::HashMap;
     use std::path::{Path, PathBuf};
 
@@ -60,7 +55,7 @@ mod tests {
 
     #[test]
     fn it_supports_order_of_operations() {
-        assert_eq!("6", &run("5 / 5 + 5;").to_string());
+        assert_eq!("6", run("5 / 5 + 5;").to_string());
     }
 
     #[test]
@@ -120,6 +115,15 @@ line(start=point(x=0,y=0), end=point(x=1,y=1))
     #[test]
     fn it_has_lists() {
         run("[1,2,3];");
+    }
+
+    #[test]
+    fn it_supports_groups_of_parts() {
+        let i: Value = run(r"
+[[cube(), cube()], [cube(), cube()]];
+        ")
+        .into();
+        assert_eq!(4, i.to_output().unwrap().len());
     }
 
     pub struct TestReader(pub &'static str);

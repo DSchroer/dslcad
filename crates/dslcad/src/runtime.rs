@@ -90,7 +90,7 @@ impl<'a> Engine<'a> {
                         }
                     }
                 },
-                Statement::Return(e, _) => {
+                Statement::CreatePart(e, _) => {
                     ret.push(self.expression(&scope, e)?);
                 }
             }
