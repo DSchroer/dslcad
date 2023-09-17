@@ -23,7 +23,6 @@ pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
 
     Ok(Render {
         parts: instance
-            .value()
             .to_output()
             .map_err(|e| WithStack::from_err(e, &vec![]))?,
     })
@@ -33,11 +32,11 @@ pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
 mod tests {
     use crate::library::Library;
     use crate::parser::{DocId, Reader};
-    use crate::runtime::{Engine, ScriptInstance, Value};
+    use crate::runtime::{Engine, Value};
     use std::collections::HashMap;
     use std::path::{Path, PathBuf};
 
-    fn run(code: &'static str) -> ScriptInstance {
+    fn run(code: &'static str) -> Value {
         let reader = TestReader(code);
         let root = DocId::new("test".to_string());
         let parser = crate::parser::Parser::new(reader, root);
@@ -55,22 +54,22 @@ mod tests {
 
     #[test]
     fn it_supports_order_of_operations() {
-        assert_eq!(Ok(6.), run("5 / 5 + 5;").value().to_number());
+        assert_eq!(Ok(6.), run("5 / 5 + 5;").to_number());
     }
 
     #[test]
     fn it_has_boolean_algebra() {
-        assert_eq!(Ok(true), run("true;").value().to_bool());
-        assert_eq!(Ok(false), run("false;").value().to_bool());
+        assert_eq!(Ok(true), run("true;").to_bool());
+        assert_eq!(Ok(false), run("false;").to_bool());
 
-        assert_eq!(Ok(false), run("true and false;").value().to_bool());
-        assert_eq!(Ok(true), run("true and true;").value().to_bool());
+        assert_eq!(Ok(false), run("true and false;").to_bool());
+        assert_eq!(Ok(true), run("true and true;").to_bool());
 
-        assert_eq!(Ok(true), run("true or false;").value().to_bool());
-        assert_eq!(Ok(true), run("true or true;").value().to_bool());
+        assert_eq!(Ok(true), run("true or false;").to_bool());
+        assert_eq!(Ok(true), run("true or true;").to_bool());
 
-        assert_eq!(Ok(true), run("not false;").value().to_bool());
-        assert_eq!(Ok(true), run("not false or false;").value().to_bool());
+        assert_eq!(Ok(true), run("not false;").to_bool());
+        assert_eq!(Ok(true), run("not false or false;").to_bool());
     }
 
     #[test]
@@ -101,7 +100,7 @@ mod tests {
 
     #[test]
     fn it_has_if_statements() {
-        assert_eq!(Ok(10.), run("if true: 10 else: 0;").value().to_number());
+        assert_eq!(Ok(10.), run("if true: 10 else: 0;").to_number());
     }
 
     #[test]
@@ -119,10 +118,9 @@ line(start=point(x=0,y=0), end=point(x=1,y=1))
 
     #[test]
     fn it_supports_groups_of_parts() {
-        let i: Value = run(r"
+        let i = run(r"
 [[cube(), cube()], [cube(), cube()]];
-        ")
-        .into();
+        ");
         assert_eq!(4, i.to_output().unwrap().len());
     }
 

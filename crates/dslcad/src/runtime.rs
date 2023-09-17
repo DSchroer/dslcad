@@ -43,9 +43,9 @@ impl<'a> Engine<'a> {
     pub fn eval_root(
         &mut self,
         arguments: HashMap<&str, Value>,
-    ) -> Result<ScriptInstance, WithStack<RuntimeError>> {
+    ) -> Result<Value, WithStack<RuntimeError>> {
         let root = self.ast.root().clone();
-        self.eval(root, arguments)
+        Ok(self.eval(root, arguments)?.into())
     }
 
     fn eval(
