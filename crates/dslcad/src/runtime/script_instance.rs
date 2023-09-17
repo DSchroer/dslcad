@@ -18,16 +18,10 @@ impl ScriptInstance {
             return Err(RuntimeError::NoReturnValue());
         }
 
-        let value = if values.len() == 1 {
-            values[0].clone()
-        } else {
-            Value::List(values)
-        };
-
         Ok(ScriptInstance {
             arguments: scope.arguments,
             variables: scope.variables,
-            value,
+            value: Value::List(values),
         })
     }
 

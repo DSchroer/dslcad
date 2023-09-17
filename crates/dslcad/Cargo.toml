@@ -2,6 +2,7 @@
 name = "dslcad"
 version = "0.1.0"
 edition = "2021"
+default-run = "dslcad"
 
 [dependencies]
 clap = { version = "4.4.2", features = ["derive"]}

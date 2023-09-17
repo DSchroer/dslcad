@@ -76,7 +76,13 @@ impl Value {
             Value::Number(v) => v.into_part()?,
             Value::Bool(v) => v.into_part()?,
             Value::Text(v) => v.into_part()?,
-            Value::List(v) => v.into_part()?,
+            Value::List(v) => {
+                if let Ok(shape) = self.to_shape() {
+                    shape.into_part()?
+                } else {
+                    v.into_part()?
+                }
+            }
 
             Value::Script(s) => s.value().to_output()?,
 
@@ -90,6 +96,7 @@ impl Value {
         match self {
             Value::Number(f) => Ok(*f),
             Value::Script(i) => i.value().to_number(),
+            Value::List(l) if l.len() == 1 => l[0].to_number(),
             _ => Err(RuntimeError::UnexpectedType()),
         }
     }
@@ -98,6 +105,7 @@ impl Value {
         match self {
             Value::Text(f) => Ok(f.clone()),
             Value::Script(i) => i.value().to_text(),
+            Value::List(l) if l.len() == 1 => l[0].to_text(),
             _ => Err(RuntimeError::UnexpectedType()),
         }
     }
@@ -106,6 +114,7 @@ impl Value {
         match self {
             Value::Bool(f) => Ok(*f),
             Value::Script(i) => i.value().to_bool(),
+            Value::List(l) if l.len() == 1 => l[0].to_bool(),
             _ => Err(RuntimeError::UnexpectedType()),
         }
     }
@@ -124,6 +133,7 @@ impl Value {
         match self {
             Value::Point(s) => Ok(s),
             Value::Script(i) => i.value().to_point(),
+            Value::List(l) if l.len() == 1 => l[0].to_point(),
             _ => Err(RuntimeError::UnexpectedType()),
         }
     }
@@ -132,6 +142,7 @@ impl Value {
         match self {
             Value::Line(s) => Ok(s),
             Value::Script(i) => i.value().to_line(),
+            Value::List(l) if l.len() == 1 => l[0].to_line(),
             _ => Err(RuntimeError::UnexpectedType()),
         }
     }

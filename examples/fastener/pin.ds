@@ -1,19 +1,19 @@
-var radius = 1;
-var height = 1;
+var radius = 3;
+var height = 4;
 
 var groove = face(parts=[
 	point(y=radius,x=height),
 	point(y=radius,x=height + 1.25),
 	point(y=radius-1,x=height)
-]) ->shape revolve(x=360)
-	->shape rotate(y=-90);
+]) -> revolve(x=360)
+	-> rotate(y=-90);
 
 cylinder(radius=radius, height=2)
-	->shape translate(x=-radius, y=-radius, z=height)
-	->shape fillet(radius=0.75)
-	->left difference(right=groove)
-	->left union(
+	-> translate(x=-radius, y=-radius, z=height)
+	-> fillet(radius=0.75)
+	-> difference(right=groove)
+	-> union(
 		right=cylinder(radius=radius, height=height)
-			->shape translate(x=-radius, y=-radius)
+			-> translate(x=-radius, y=-radius)
 	)
 	;

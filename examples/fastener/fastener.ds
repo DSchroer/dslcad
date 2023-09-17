@@ -1,13 +1,13 @@
 var base = cylinder(radius=10, height=2) 
-	->shape translate(x=-10, y=-10);
+	-> translate(x=-10, y=-10);
 
 var pin = ./pin(radius=5, height=10);
 var clip = ./clip(radius=5, height=10);
 
 var sleeve = cylinder(radius=7, height=8 - 0.4) 
-	->shape translate(x=-7, y=-7, z=2)
-	->left difference(right=./pin(radius=5.4, height=10));
+	-> translate(x=-7, y=-7, z=2)
+	-> difference(right=./pin(radius=5.4, height=10));
 
 sleeve;
-base ->left union(right=pin);
+base -> union(right=pin);
 clip;
