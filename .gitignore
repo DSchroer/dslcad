@@ -1,5 +1,6 @@
 target
 *.stl
+*.3mf
 .idea
 *.zip
 cheatsheet.md
