@@ -1,5 +1,7 @@
 mod editor;
+mod settings;
 
+use crate::settings::Settings;
 use persistence::protocol::Render;
 use std::error::Error;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -35,6 +37,6 @@ impl Preview {
     }
 
     pub fn open(self, cheetsheet: String) {
-        editor::main(cheetsheet, self.rx).unwrap();
+        editor::main(cheetsheet, self.rx, Settings::default()).unwrap();
     }
 }

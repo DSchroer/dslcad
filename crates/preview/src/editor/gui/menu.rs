@@ -1,4 +1,5 @@
 use crate::editor::rendering::{RenderCommand, RenderState};
+use crate::settings::{Settings, Store};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContext};
@@ -22,10 +23,18 @@ pub trait MenuAppExt {
         path: &'static str,
         action: impl Fn(&mut T) + Send + Sync + 'static,
     ) -> &mut App;
-    fn add_event_menu_button<T: Event>(
+
+    fn add_persistent_res_menu_button<T: Resource>(
         &mut self,
         path: &'static str,
-        action: impl Fn(&mut EventWriter<T>) + Send + Sync + 'static,
+        key: &'static str,
+        action: impl Fn(&mut T) -> String + Send + Sync + 'static,
+    ) -> &mut App;
+
+    fn add_persistent_res_loader<T: Resource>(
+        &mut self,
+        key: &'static str,
+        action: impl Fn(Option<&str>, &mut T) + Send + Sync + 'static,
     ) -> &mut App;
 }
 
@@ -38,7 +47,7 @@ impl MenuAppExt for App {
         let mut path = path.split('/');
         let menu_name = TopLevelMenu::from_str(path.next().expect("menu must have top level"))
             .expect("unknown top level menu");
-        let action_name = path.next().expect("meny must have action");
+        let action_name = path.next().expect("menu must have action");
 
         self.add_startup_system(move |mut menu: ResMut<Menu>| {
             menu.button(menu_name, action_name);
@@ -56,30 +65,45 @@ impl MenuAppExt for App {
         self
     }
 
-    fn add_event_menu_button<T: Event>(
+    fn add_persistent_res_menu_button<T: Resource>(
         &mut self,
         path: &'static str,
-        action: impl Fn(&mut EventWriter<T>) + Send + Sync + 'static,
+        key: &'static str,
+        action: impl Fn(&mut T) -> String + Send + Sync + 'static,
     ) -> &mut App {
         let mut path = path.split('/');
         let menu_name = TopLevelMenu::from_str(path.next().expect("menu must have top level"))
             .expect("unknown top level menu");
-        let action_name = path.next().expect("meny must have action");
+        let action_name = path.next().expect("menu must have action");
 
         self.add_startup_system(move |mut menu: ResMut<Menu>| {
             menu.button(menu_name, action_name);
         });
 
         self.add_system(
-            move |mut events: EventReader<MenuEvent>, mut event: EventWriter<T>| {
+            move |mut events: EventReader<MenuEvent>,
+                  mut state: ResMut<T>,
+                  mut store: ResMut<Settings>| {
                 for click in events.iter() {
                     if click.action() == action_name {
-                        action(&mut event);
+                        let new_value = action(&mut state);
+                        store.store(key, &new_value);
                     }
                 }
             },
         );
         self
+    }
+
+    fn add_persistent_res_loader<T: Resource>(
+        &mut self,
+        key: &'static str,
+        action: impl Fn(Option<&str>, &mut T) + Send + Sync + 'static,
+    ) -> &mut App {
+        self.add_startup_system(move |mut state: ResMut<T>, store: Res<Settings>| {
+            let value = store.load(key);
+            action(value, &mut state);
+        })
     }
 }
 

@@ -9,6 +9,7 @@ use bevy_polyline::prelude::*;
 use std::error::Error;
 
 use crate::editor::rendering::RenderCommand;
+use crate::settings::Settings;
 use crate::PreviewEvent;
 use std::sync::mpsc::Receiver;
 use std::sync::Mutex;
@@ -28,13 +29,18 @@ impl Blueprint {
     }
 }
 
-pub(crate) fn main(cheatsheet: String, rx: Receiver<PreviewEvent>) -> Result<(), Box<dyn Error>> {
+pub(crate) fn main(
+    cheatsheet: String,
+    rx: Receiver<PreviewEvent>,
+    store: Settings,
+) -> Result<(), Box<dyn Error>> {
     let mut app = App::new();
 
     let rx = Mutex::new(rx);
 
     app.insert_resource(Msaa::default())
         .insert_resource(ClearColor(Blueprint::blue()))
+        .insert_resource(store)
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: persistence::constants::FULL_NAME.to_string(),
