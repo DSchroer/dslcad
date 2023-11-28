@@ -17,6 +17,10 @@ pub fn line(start: &Point, end: &Point) -> Result<Value, RuntimeError> {
 }
 
 pub fn arc(start: &Point, center: &Point, end: &Point) -> Result<Value, RuntimeError> {
+    if start == center || center == end {
+        return Err(RuntimeError::ArcWithIdenticalPoints());
+    }
+
     let mut edge = WireFactory::new();
     edge.add_edge(&Edge::new_arc(start, center, end)?);
     Ok(Value::Line(Rc::new(edge.build()?)))

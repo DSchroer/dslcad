@@ -32,6 +32,8 @@ pub enum RuntimeError {
         target: String,
         options: Vec<String>,
     },
+    #[error("Can not build arc with two identical points")]
+    ArcWithIdenticalPoints(),
 }
 
 impl From<opencascade::Error> for RuntimeError {
