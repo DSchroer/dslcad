@@ -6,7 +6,7 @@ use bevy_points::prelude::*;
 
 use bevy_polyline::material::PolylineMaterial;
 use bevy_polyline::polyline::{Polyline, PolylineBundle};
-use persistence::protocol::{Part, Point, Render};
+use persistence::protocol::{Part, Point};
 
 pub struct ModelRenderingPlugin;
 
@@ -24,13 +24,13 @@ impl Plugin for ModelRenderingPlugin {
 }
 
 pub enum RenderCommand {
-    Draw(Render),
+    Draw(Vec<Part>),
     Redraw,
 }
 
 #[derive(Resource)]
 pub struct RenderState {
-    model: Option<(Render, Entity)>,
+    model: Option<(Vec<Part>, Entity)>,
     pub show_points: bool,
     pub show_lines: bool,
     pub show_mesh: bool,
@@ -66,13 +66,13 @@ fn mesh_renderer(
                 continue;
             }
 
-            let (render, entity) = if let Some(e) = &render_state.model {
+            let (parts, entity) = if let Some(e) = &render_state.model {
                 e
             } else {
                 return;
             };
 
-            for part in &render.parts {
+            for part in parts {
                 if let Part::Object { mesh, .. } = part {
                     let mesh = stl_to_triangle_mesh(mesh);
 
@@ -102,14 +102,15 @@ fn point_renderer(
                 continue;
             }
 
-            let (render, entity) = if let Some(e) = &render_state.model {
+            let (parts, entity) = if let Some(e) = &render_state.model {
                 e
             } else {
                 return;
             };
 
-            for part in &render.parts {
+            for part in parts {
                 match part {
+                    Part::Empty => {}
                     Part::Planar { points, .. } => render_points(
                         &mut commands,
                         &mut meshes,
@@ -175,14 +176,15 @@ fn line_renderer(
                 continue;
             }
 
-            let (render, entity) = if let Some(e) = &render_state.model {
+            let (parts, entity) = if let Some(e) = &render_state.model {
                 e
             } else {
                 return;
             };
 
-            for part in &render.parts {
+            for part in parts {
                 match part {
+                    Part::Empty => {}
                     Part::Planar { lines, .. } => render_lines(
                         &mut commands,
                         &mut polylines,

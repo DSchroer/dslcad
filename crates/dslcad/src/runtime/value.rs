@@ -79,14 +79,14 @@ impl Debug for Value {
 impl Value {
     pub fn to_output(&self) -> Result<Vec<Part>> {
         match self {
-            Value::Number(_) | Value::Bool(_) | Value::Text(_) => {
-                Err(RuntimeError::UnexpectedType())
-            }
+            Value::Number(_) | Value::Bool(_) | Value::Text(_) => Ok(vec![Part::Empty]),
 
             Value::List(l) => {
                 let mut results = Vec::new();
                 for item in l {
-                    results.push(item.to_output()?)
+                    if let Ok(o) = item.to_output() {
+                        results.push(o)
+                    }
                 }
                 Ok(results.concat())
             }
@@ -112,8 +112,12 @@ impl Value {
         match self {
             Value::Text(f) => Ok(f.clone()),
             Value::Script(i) => i.value().to_text(),
-            Value::List(l) if l.len() == 1 => l[0].to_text(),
-            _ => Err(RuntimeError::UnexpectedType()),
+            Value::List(l) => Ok(l
+                .iter()
+                .filter_map(|i| i.to_text().ok())
+                .reduce(|a, b| format!("{a}\n{b}"))
+                .unwrap_or_default()),
+            _ => Ok(String::new()),
         }
     }
 

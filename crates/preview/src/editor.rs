@@ -60,8 +60,9 @@ pub(crate) fn main(
                 let rx = rx.lock().unwrap();
                 match rx.try_recv() {
                     Ok(PreviewEvent::Render(render)) => {
-                        re.send(RenderCommand::Draw(render));
                         console.clear();
+                        console.print(render.stdout);
+                        re.send(RenderCommand::Draw(render.parts));
                     }
                     Ok(PreviewEvent::Error(e)) => {
                         console.print(e);

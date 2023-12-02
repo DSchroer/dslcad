@@ -32,6 +32,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn render_to_file(args: Args) -> Result<(), Box<dyn Error>> {
     let render = render(parse(args.source.clone())?)?;
 
+    println!("{}", &render.stdout);
+
     let cwd = env::current_dir()?;
     let file = Path::new(&args.source).file_stem().unwrap();
     let outpath = cwd.join(format!("{}.3mf", file.to_string_lossy()));

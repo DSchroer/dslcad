@@ -20,11 +20,15 @@ pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
 
     let mut engine = Engine::new(&lib, documents);
     let instance = engine.eval_root(HashMap::new())?;
+    let text = instance
+        .to_text()
+        .map_err(|e| WithStack::from_err(e, &vec![]))?;
 
     Ok(Render {
         parts: instance
             .to_output()
             .map_err(|e| WithStack::from_err(e, &vec![]))?,
+        stdout: text,
     })
 }
 

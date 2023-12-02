@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Render {
     pub parts: Vec<Part>,
+    pub stdout: String,
 }
 
 impl From<Render> for ThreeMF {
@@ -46,6 +47,7 @@ impl From<Vec3<f64>> for Vertex {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Part {
+    Empty,
     Planar {
         points: Vec<Point>,
         lines: Vec<Vec<Point>>,
