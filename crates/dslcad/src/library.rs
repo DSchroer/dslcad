@@ -437,6 +437,7 @@ impl Default for Library {
                 Category::TwoD,
                 "center an edge"
             ),
+            bind!(offset, faces::offset[shape=edge, distance=number], Category::TwoD, "offset an edge"),
             // 3D
             bind!(extrude, faces::extrude[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),

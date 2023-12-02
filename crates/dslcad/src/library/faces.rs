@@ -205,3 +205,7 @@ pub fn center(
     let z = if z.unwrap_or(true) { -center.z() } else { 0.0 };
     translate(shape, Some(x), Some(y), Some(z))
 }
+
+pub fn offset(shape: &Wire, distance: f64) -> Result<Value, RuntimeError> {
+    Ok(shape.offset(distance)?.into())
+}

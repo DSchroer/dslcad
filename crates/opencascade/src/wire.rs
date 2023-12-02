@@ -4,7 +4,8 @@ use crate::{DsShape, Error, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
     BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor, BRepGProp_LinearProperties,
-    BRep_Tool_Curve, GProp_GProps_CentreOfMass, GProp_GProps_ctor, HandleGeomCurve_Value,
+    BRepOffsetAPI_MakeOffset, BRepOffsetAPI_MakeOffset_wire_ctor, BRep_Tool_Curve,
+    GProp_GProps_CentreOfMass, GProp_GProps_ctor, GeomAbs_JoinType, HandleGeomCurve_Value,
     TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
     TopoDS_Wire, TopoDS_cast_to_edge, TopoDS_cast_to_wire,
 };
@@ -103,6 +104,13 @@ impl Wire {
         Ok(last_end)
     }
 
+    pub fn offset(&self, distance: f64) -> Result<Self, Error> {
+        let mut offset =
+            BRepOffsetAPI_MakeOffset_wire_ctor(self.wire(), GeomAbs_JoinType::GeomAbs_Arc);
+        offset.pin_mut().Perform(distance, 0.0);
+        Ok(Builder::try_build(&mut offset)?.into())
+    }
+
     pub fn points(&self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
@@ -162,6 +170,22 @@ impl Command for BRepBuilderAPI_MakeWire {
 
     fn build(self: Pin<&mut Self>, progress: &opencascade_sys::ffi::Message_ProgressRange) {
         self.Build(progress)
+    }
+}
+
+impl Command for BRepOffsetAPI_MakeOffset {
+    fn is_done(&self) -> bool {
+        self.IsDone()
+    }
+
+    fn build(self: Pin<&mut Self>, progress: &opencascade_sys::ffi::Message_ProgressRange) {
+        self.Build(progress)
+    }
+}
+
+impl Builder<TopoDS_Shape> for BRepOffsetAPI_MakeOffset {
+    unsafe fn value(self: Pin<&mut Self>) -> &TopoDS_Shape {
+        self.Shape()
     }
 }
 

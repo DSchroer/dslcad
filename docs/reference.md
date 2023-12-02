@@ -74,6 +74,7 @@ to build parts.
 - `rotate([shape]=edge, x=[number], y=[number], z=[number])` rotate an edge
 - `scale([shape]=edge, scale=number)` scale an edge
 - `center([shape]=edge, x=[bool], y=[bool], z=[bool])` center an edge
+- `offset([shape]=edge, distance=number)` offset an edge
 
 ## 3D
 - `extrude([shape]=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
