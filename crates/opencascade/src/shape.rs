@@ -17,6 +17,7 @@ use opencascade_sys::ffi::{
     TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
     TopoDS_cast_to_face,
 };
+use std::f64::consts::PI;
 use std::pin::Pin;
 
 pub struct Shape {
@@ -49,7 +50,8 @@ impl Shape {
     }
 
     pub fn sphere(r: f64) -> Result<Self, Error> {
-        let mut sphere = BRepPrimAPI_MakeSphere_ctor(r);
+        let axis = gp_Ax2_ctor(&Point::default().point, gp_DZ());
+        let mut sphere = BRepPrimAPI_MakeSphere_ctor(&axis, r, 2. * PI);
         Ok(Builder::try_build(&mut sphere)?.into())
     }
 
