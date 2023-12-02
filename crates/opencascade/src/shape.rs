@@ -5,7 +5,7 @@ use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
     gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_vec, BRepAlgoAPI_Common, BRepAlgoAPI_Cut,
-    BRepAlgoAPI_Fuse, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
+    BRepAlgoAPI_Fuse, BRepAlgoAPI_Section, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
     BRepBuilderAPI_Transform, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor,
     BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepGProp_SurfaceProperties,
     BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
@@ -21,6 +21,12 @@ use std::pin::Pin;
 
 pub struct Shape {
     shape: UniquePtr<TopoDS_Shape>,
+}
+
+impl AsRef<TopoDS_Shape> for Shape {
+    fn as_ref(&self) -> &TopoDS_Shape {
+        &self.shape
+    }
 }
 
 pub enum Axis {
@@ -89,7 +95,7 @@ impl Shape {
     pub fn fillet(target: &Shape, thickness: f64) -> Result<Self, Error> {
         let mut fillet = BRepFilletAPI_MakeFillet_ctor(&target.shape);
 
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&target.shape);
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(target);
         while let Some(edge) = edge_explorer.next() {
             fillet.pin_mut().add_edge(thickness, edge);
         }
@@ -100,7 +106,7 @@ impl Shape {
     pub fn chamfer(target: &Shape, thickness: f64) -> Result<Self, Error> {
         let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(&target.shape);
 
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&target.shape);
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(target);
         while let Some(edge) = edge_explorer.next() {
             chamfer.pin_mut().add_edge(thickness, edge);
         }
@@ -171,7 +177,7 @@ impl Shape {
     pub fn lines(&self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(&self.shape);
+        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(self);
         while let Some(edge) = edge_explorer.next() {
             if let Some(line) = Self::extract_line(edge) {
                 lines.push(line);
@@ -205,7 +211,7 @@ impl Shape {
     pub fn points(&self) -> Result<Vec<[f64; 3]>, Error> {
         let mut points = Vec::new();
 
-        let mut vertex_explorer = Explorer::new(&self.shape);
+        let mut vertex_explorer = Explorer::new(self);
 
         while let Some(vertex) = vertex_explorer.next() {
             let point: Point = BRep_Tool_Pnt(vertex).into();
@@ -254,6 +260,7 @@ shape_builder!(BRepPrimAPI_MakeRevol);
 shape_builder!(BRepAlgoAPI_Fuse);
 shape_builder!(BRepAlgoAPI_Cut);
 shape_builder!(BRepAlgoAPI_Common);
+shape_builder!(BRepAlgoAPI_Section);
 shape_builder!(BRepBuilderAPI_Transform);
 shape_builder!(BRepBuilderAPI_MakeFace);
 

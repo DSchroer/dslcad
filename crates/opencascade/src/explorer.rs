@@ -21,9 +21,9 @@ impl<T> Explorer<T>
 where
     Explorer<T>: GeomIterator<T>,
 {
-    pub fn new(shape: &TopoDS_Shape) -> Self {
+    pub fn new(shape: impl AsRef<TopoDS_Shape>) -> Self {
         Explorer {
-            explorer: TopExp_Explorer_ctor(shape, Self::shape()),
+            explorer: TopExp_Explorer_ctor(shape.as_ref(), Self::shape()),
             first: true,
             _phantom: PhantomData,
         }

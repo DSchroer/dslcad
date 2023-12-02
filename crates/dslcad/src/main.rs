@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use dslcad::library::Library;
 use dslcad::parser::{Ast, DocId};
 use dslcad::{parse, render};
@@ -11,31 +11,48 @@ use std::path::Path;
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Source path to load
-    source: String,
-    #[cfg(feature = "preview")]
-    #[arg(short, long)]
-    preview: bool,
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand, Debug, Clone)]
+enum Commands {
+    Render {
+        /// Source path to load
+        source: String,
+        #[cfg(feature = "preview")]
+        #[arg(short, long)]
+        preview: bool,
+    },
+    Cheatsheet {},
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
-    #[cfg(feature = "preview")]
-    if args.preview {
-        return render_to_preview(args);
-    }
+    match args.command {
+        Commands::Render { source, preview } => {
+            #[cfg(feature = "preview")]
+            if preview {
+                return render_to_preview(&source);
+            }
 
-    render_to_file(args)
+            render_to_file(&source)
+        }
+        Commands::Cheatsheet {} => {
+            println!("{}", Library::default());
+            Ok(())
+        }
+    }
 }
 
-fn render_to_file(args: Args) -> Result<(), Box<dyn Error>> {
-    let render = render(parse(args.source.clone())?)?;
+fn render_to_file(source: &String) -> Result<(), Box<dyn Error>> {
+    let render = render(parse(source.clone())?)?;
 
     println!("{}", &render.stdout);
 
     let cwd = env::current_dir()?;
-    let file = Path::new(&args.source).file_stem().unwrap();
+    let file = Path::new(source).file_stem().unwrap();
     let outpath = cwd.join(format!("{}.3mf", file.to_string_lossy()));
 
     let threemf: ThreeMF = render.into();
@@ -46,7 +63,7 @@ fn render_to_file(args: Args) -> Result<(), Box<dyn Error>> {
 }
 
 #[cfg(feature = "preview")]
-fn render_to_preview(args: Args) -> Result<(), Box<dyn Error>> {
+fn render_to_preview(source: &str) -> Result<(), Box<dyn Error>> {
     use notify::{recommended_watcher, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
     use preview::{Preview, PreviewHandle};
     use std::sync::{Arc, Mutex};
@@ -64,11 +81,11 @@ fn render_to_preview(args: Args) -> Result<(), Box<dyn Error>> {
     }
 
     fn render_with_watcher(
-        args: Args,
+        source: &str,
         handle: PreviewHandle,
         watch: Arc<Mutex<Option<RecommendedWatcher>>>,
     ) -> Result<(), Box<dyn Error>> {
-        match parse(args.source.clone()) {
+        match parse(source.to_string()) {
             Ok(ast) => {
                 add_files_to_watch(watch, &ast);
                 match render(ast) {
@@ -85,14 +102,14 @@ fn render_to_preview(args: Args) -> Result<(), Box<dyn Error>> {
     let watch = Arc::new(Mutex::new(None));
 
     let watcher = {
-        let (args, watch, handle) = (args.clone(), watch.clone(), handle.clone());
+        let (source, watch, handle) = (source.to_string(), watch.clone(), handle.clone());
         recommended_watcher(move |event| {
             if let Ok(notify::Event {
                 kind: EventKind::Modify(_),
                 ..
             }) = event
             {
-                render_with_watcher(args.clone(), handle.clone(), watch.clone()).unwrap()
+                render_with_watcher(&source, handle.clone(), watch.clone()).unwrap()
             }
         })?
     };
@@ -102,7 +119,7 @@ fn render_to_preview(args: Args) -> Result<(), Box<dyn Error>> {
         g.replace(watcher);
     }
 
-    render_with_watcher(args.clone(), handle.clone(), watch.clone())?;
+    render_with_watcher(source, handle.clone(), watch.clone())?;
 
     preview.open(Library::default().to_string());
     Ok(())

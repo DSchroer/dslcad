@@ -462,6 +462,12 @@ impl Default for Library {
                 Category::ThreeD,
                 "center a shape"
             ),
+            bind!(
+                slice,
+                shapes::slice[left = shape, right = shape],
+                Category::ThreeD,
+                "cut a slice out of a shape"
+            ),
             // Lists
             bind!(
                 length,

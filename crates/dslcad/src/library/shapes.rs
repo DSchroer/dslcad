@@ -89,3 +89,7 @@ pub fn center(
     let z = if z.unwrap_or(true) { -center.z() } else { 0.0 };
     translate(shape, Some(x), Some(y), Some(z))
 }
+
+pub fn slice(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
+    Ok(left.section(right)?.into())
+}

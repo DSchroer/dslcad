@@ -1,4 +1,5 @@
 mod command;
+mod compound;
 mod edge;
 mod error;
 mod explorer;

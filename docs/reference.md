@@ -90,6 +90,7 @@ to build parts.
 - `rotate([shape]=shape, x=[number], y=[number], z=[number])` rotate a shape
 - `scale([shape]=shape, scale=number)` scale a shape
 - `center([shape]=shape, x=[bool], y=[bool], z=[bool])` center a shape
+- `slice([left]=shape, right=shape)` cut a slice out of a shape
 
 ## Lists
 - `length([list]=list)` get the length of a list

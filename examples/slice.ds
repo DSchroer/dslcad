@@ -1,0 +1,3 @@
+sphere() -> slice(
+    right=cube() -> translate(z=-0.5, x=0.2)
+);
