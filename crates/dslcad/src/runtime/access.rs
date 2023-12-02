@@ -18,6 +18,7 @@ impl Access for Shape {
     fn get(&self, identifier: &str) -> Option<Value> {
         match identifier {
             "center" => Some(self.center_of_mass().into()),
+            "volume" => Some(self.volume().into()),
             _ => None,
         }
     }

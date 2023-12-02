@@ -114,6 +114,12 @@ impl Shape {
         GProp_GProps_CentreOfMass(&props).into()
     }
 
+    pub fn volume(&self) -> f64 {
+        let mut props = GProp_GProps_ctor();
+        BRepGProp_SurfaceProperties(self.shape(), props.pin_mut());
+        props.Mass()
+    }
+
     pub fn mesh(&self) -> Result<Mesh, Error> {
         let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(&self.shape, 0.01);
         if !incremental_mesh.IsDone() {
