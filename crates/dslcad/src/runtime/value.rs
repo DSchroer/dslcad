@@ -67,7 +67,7 @@ impl Debug for Value {
             Value::Number(n) => f.debug_tuple("Number").field(n).finish(),
             Value::Bool(n) => f.debug_tuple("Bool").field(n).finish(),
             Value::Text(n) => f.debug_tuple("Text").field(n).finish(),
-            Value::List(_) => f.debug_tuple("List").finish(),
+            Value::List(i) => f.debug_list().entries(i).finish(),
             Value::Script(_) => f.debug_tuple("Script").finish(),
             Value::Shape(_) => f.debug_tuple("Shape").finish(),
             Value::Point(_) => f.debug_tuple("Point").finish(),
@@ -153,7 +153,10 @@ impl Value {
         match self {
             Value::Line(s) => Ok(s.clone()),
             Value::Script(i) => i.value().to_line(),
-            Value::List(l) if l.len() == 1 => l[0].to_line(),
+            Value::List(values) => {
+                let lines: Vec<_> = values.iter().filter_map(|v| v.to_line().ok()).collect();
+                Self::fuse_list(&lines)
+            }
             _ => Err(RuntimeError::UnexpectedType()),
         }
     }
@@ -162,17 +165,10 @@ impl Value {
         match self {
             Value::Shape(s) => Ok(s.clone()),
             Value::Script(i) => i.value().to_shape(),
-            Value::List(values) => match values.len() {
-                0 => Err(RuntimeError::UnexpectedType()),
-                1 => values[0].to_shape(),
-                _ => {
-                    let mut acc = values[0].to_shape()?.fuse(values[1].to_shape()?.as_ref())?;
-                    for value in &values[2..] {
-                        acc = acc.fuse(value.to_shape()?.as_ref())?
-                    }
-                    Ok(Rc::new(acc))
-                }
-            },
+            Value::List(values) => {
+                let shapes: Vec<_> = values.iter().filter_map(|v| v.to_shape().ok()).collect();
+                Self::fuse_list(&shapes)
+            }
             _ => Err(RuntimeError::UnexpectedType()),
         }
     }
@@ -194,6 +190,20 @@ impl Value {
             Type::Point => self.to_point().is_ok(),
             Type::Edge => self.to_line().is_ok(),
             Type::Shape => self.to_shape().is_ok(),
+        }
+    }
+
+    fn fuse_list<T: DsShape>(lines: &Vec<Rc<T>>) -> Result<Rc<T>> {
+        match lines.len() {
+            0 => Err(RuntimeError::UnexpectedType()),
+            1 => Ok(lines[0].clone()),
+            _ => {
+                let mut acc = lines[0].fuse(lines[1].as_ref())?;
+                for value in &lines[2..] {
+                    acc = acc.fuse(value.as_ref())?
+                }
+                Ok(Rc::new(acc))
+            }
         }
     }
 }
