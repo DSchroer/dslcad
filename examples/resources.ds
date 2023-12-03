@@ -1,4 +1,6 @@
 
+var data = ./res/data.ini();
 var monkey = ./res/monkey.stl();
 
 monkey;
+data.name;

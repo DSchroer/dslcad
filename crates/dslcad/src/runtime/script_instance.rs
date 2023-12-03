@@ -10,7 +10,14 @@ pub struct ScriptInstance {
 }
 
 impl ScriptInstance {
-    pub fn from_scope(mut parts: Vec<Value>, scope: Scope) -> Result<Self, RuntimeError> {
+    pub fn from_scope(parts: Vec<Value>, scope: Scope) -> Result<Self, RuntimeError> {
+        Self::new(parts, scope.variables)
+    }
+
+    pub fn new(
+        mut parts: Vec<Value>,
+        variables: HashMap<String, Value>,
+    ) -> Result<Self, RuntimeError> {
         let reduced_parts = match parts.len() {
             0 => return Err(RuntimeError::NoReturnValue()),
             1 => parts.pop().unwrap(),
@@ -18,7 +25,7 @@ impl ScriptInstance {
         };
 
         Ok(ScriptInstance {
-            variables: scope.variables,
+            variables,
             parts: reduced_parts,
         })
     }
