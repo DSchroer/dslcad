@@ -70,7 +70,12 @@ impl Debug for Value {
             Value::List(i) => f.debug_list().entries(i).finish(),
             Value::Script(_) => f.debug_tuple("Script").finish(),
             Value::Shape(_) => f.debug_tuple("Shape").finish(),
-            Value::Point(_) => f.debug_tuple("Point").finish(),
+            Value::Point(p) => f
+                .debug_struct("Point")
+                .field("x", &p.x())
+                .field("y", &p.x())
+                .field("z", &p.x())
+                .finish(),
             Value::Line(_) => f.debug_tuple("Line").finish(),
         }
     }
