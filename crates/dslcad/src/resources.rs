@@ -1,6 +1,6 @@
 mod stl_loader;
 
-use crate::parser::{DocumentParseError, Reader};
+use crate::parser::{DocumentParseError, Parser, Reader};
 use crate::runtime::{RuntimeError, Value};
 use std::fmt::Debug;
 use std::sync::Arc;
@@ -13,4 +13,14 @@ pub trait ResourceLoader<TReader: Reader> {
 
 pub trait Resource: Debug {
     fn to_instance(&self) -> Result<Value, RuntimeError>;
+}
+
+pub trait ResourceExt {
+    fn with_default_loaders(self) -> Self;
+}
+
+impl<R: Reader> ResourceExt for Parser<R> {
+    fn with_default_loaders(self) -> Self {
+        self.with_loader("stl", StlLoader)
+    }
 }

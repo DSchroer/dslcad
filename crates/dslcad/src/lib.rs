@@ -1,7 +1,7 @@
 use crate::library::Library;
 use crate::parser::{Ast, DocId, ParseError};
 use crate::reader::FsReader;
-use crate::resources::StlLoader;
+use crate::resources::ResourceExt;
 use crate::runtime::{Engine, RuntimeError, WithStack};
 use persistence::protocol::Render;
 use std::collections::HashMap;
@@ -13,7 +13,7 @@ mod resources;
 pub mod runtime;
 
 pub fn parse(source: String) -> Result<Ast, ParseError> {
-    let parser = parser::Parser::new(FsReader, DocId::new(source)).with_loader("stl", StlLoader);
+    let parser = parser::Parser::new(FsReader, DocId::new(source)).with_default_loaders();
     parser.parse()
 }
 
