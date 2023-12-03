@@ -1,5 +1,6 @@
 target
 *.stl
+!examples/res/*
 *.3mf
 .idea
 *.zip
