@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContext};
 use std::collections::BTreeMap;
+
 use std::str::FromStr;
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
@@ -13,7 +14,19 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Menu>()
             .add_event::<MenuEvent>()
-            .add_system(main_ui);
+            .add_system(main_ui)
+            .add_persistent_res_loader("points", |value, state: &mut RenderState| {
+                state.show_points = value.unwrap_or("true") == "true";
+            })
+            .add_persistent_res_loader("lines", |value, state: &mut RenderState| {
+                state.show_lines = value.unwrap_or("true") == "true";
+            })
+            .add_persistent_res_loader("mesh", |value, state: &mut RenderState| {
+                state.show_mesh = value.unwrap_or("true") == "true";
+            })
+            .add_persistent_res_loader("colors", |value, state: &mut RenderState| {
+                state.part_colors = value.unwrap_or("false") == "true";
+            });
     }
 }
 
@@ -141,6 +154,7 @@ fn main_ui(
     mut render_events: EventWriter<RenderCommand>,
     mut menu_events: EventWriter<MenuEvent>,
     mut render_state: ResMut<RenderState>,
+    mut store: ResMut<Settings>,
     menu: Res<Menu>,
 ) {
     egui::TopBottomPanel::top("Tools").show(egui_ctx.single_mut().get_mut(), |ui| {
@@ -160,12 +174,22 @@ fn main_ui(
                             .checkbox(&mut render_state.show_points, "Points")
                             .clicked()
                         {
+                            store.store("points", &render_state.show_points.to_string());
                             render_events.send(RenderCommand::Redraw);
                         }
                         if ui.checkbox(&mut render_state.show_lines, "Lines").clicked() {
+                            store.store("lines", &render_state.show_lines.to_string());
                             render_events.send(RenderCommand::Redraw);
                         }
                         if ui.checkbox(&mut render_state.show_mesh, "Mesh").clicked() {
+                            store.store("mesh", &render_state.show_mesh.to_string());
+                            render_events.send(RenderCommand::Redraw);
+                        }
+                        if ui
+                            .checkbox(&mut render_state.part_colors, "Part Colors")
+                            .clicked()
+                        {
+                            store.store("colors", &render_state.part_colors.to_string());
                             render_events.send(RenderCommand::Redraw);
                         }
                     }

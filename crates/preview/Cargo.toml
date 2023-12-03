@@ -12,3 +12,4 @@ smooth-bevy-cameras = "0.8.0"
 bevy_polyline = "0.6.0"
 bevy_points = "0.2"
 persistence = { path = "../persistence" }
+rand = "0.8"

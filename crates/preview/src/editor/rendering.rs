@@ -34,6 +34,7 @@ pub struct RenderState {
     pub show_points: bool,
     pub show_lines: bool,
     pub show_mesh: bool,
+    pub part_colors: bool,
 }
 
 impl Default for RenderState {
@@ -42,6 +43,7 @@ impl Default for RenderState {
             show_points: true,
             show_lines: true,
             show_mesh: true,
+            part_colors: false,
             model: None,
         }
     }
@@ -72,14 +74,20 @@ fn mesh_renderer(
                 return;
             };
 
-            for part in parts {
+            for (i, part) in parts.iter().enumerate() {
                 if let Part::Object { mesh, .. } = part {
                     let mesh = stl_to_triangle_mesh(mesh);
+
+                    let color = if render_state.part_colors {
+                        Blueprint::part(i)
+                    } else {
+                        Blueprint::white()
+                    };
 
                     commands
                         .spawn(PbrBundle {
                             mesh: meshes.add(mesh),
-                            material: materials.add(Blueprint::white().into()),
+                            material: materials.add(color.into()),
                             ..Default::default()
                         })
                         .set_parent(*entity);

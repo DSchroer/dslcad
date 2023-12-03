@@ -11,6 +11,8 @@ use std::error::Error;
 use crate::editor::rendering::RenderCommand;
 use crate::settings::Settings;
 use crate::PreviewEvent;
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use std::sync::mpsc::Receiver;
 use std::sync::Mutex;
 
@@ -26,6 +28,16 @@ impl Blueprint {
 
     fn black() -> Color {
         Color::hex("002082").unwrap()
+    }
+
+    fn part(index: usize) -> Color {
+        let mut rng = StdRng::seed_from_u64(index as u64);
+
+        let h = rng.gen_range(0..360) as f32;
+        let s = rng.gen_range(20..50) as f32 / 100.;
+        let l = rng.gen_range(40..90) as f32 / 100.;
+
+        Color::hsl(h, s, l)
     }
 }
 
