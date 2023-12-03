@@ -1,8 +1,10 @@
+use crate::resources::Resource;
 use logos::Span;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::Path;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct DocId {
@@ -29,7 +31,7 @@ impl Display for DocId {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Ast {
     root: DocId,
     pub documents: HashMap<DocId, Vec<Statement>>,
@@ -50,7 +52,7 @@ impl Ast {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     Variable {
         name: String,
@@ -69,13 +71,13 @@ impl Statement {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CallPath {
     String(String),
     Document(DocId),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ArgName {
     Named(String),
     Default,
@@ -93,7 +95,7 @@ impl From<&'static str> for ArgName {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Literal(Literal, Span),
     Reference(String, Span),
@@ -145,10 +147,11 @@ impl Expression {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum Literal {
     Number(f64),
     Bool(bool),
     Text(String),
     List(Vec<Expression>),
+    Resource(Arc<dyn Resource>),
 }

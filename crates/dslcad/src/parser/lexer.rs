@@ -85,7 +85,7 @@ pub enum Token {
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
     Identifier,
 
-    #[regex(r"(\.\.?)(/[a-zA-Z0-9_]+)+")]
+    #[regex(r"(\.\.?)(/[a-zA-Z0-9_\.]+)+")]
     Path,
 
     #[error]

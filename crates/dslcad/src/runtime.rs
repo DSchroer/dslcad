@@ -178,6 +178,9 @@ impl<'a> Engine<'a> {
                     }
                     Value::List(values)
                 }
+                Literal::Resource(r) => r
+                    .to_instance()
+                    .map_err(|e| WithStack::from_err(e, &self.stack))?,
             }),
             Expression::Map {
                 identifier,

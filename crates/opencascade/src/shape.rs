@@ -21,7 +21,7 @@ use std::f64::consts::PI;
 use std::pin::Pin;
 
 pub struct Shape {
-    shape: UniquePtr<TopoDS_Shape>,
+    pub(crate) shape: UniquePtr<TopoDS_Shape>,
 }
 
 impl AsRef<TopoDS_Shape> for Shape {

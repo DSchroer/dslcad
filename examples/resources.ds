@@ -1,0 +1,4 @@
+
+var monkey = ./res/monkey.stl();
+
+monkey;

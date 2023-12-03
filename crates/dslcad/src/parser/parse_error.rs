@@ -76,6 +76,11 @@ impl Display for ParseError {
                             text.slice(span.clone()).unwrap()
                         ))?
                     }
+                    DocumentParseError::UnknownResourceType(extension, span) => {
+                        let (line, col) = line_col(text, span);
+                        f.write_fmt(format_args!("error: {}[{}:{}]\n", file, line, col.start))?;
+                        f.write_fmt(format_args!("unknown resource extension {}", extension))?
+                    }
                 }
             }
         }
@@ -87,6 +92,7 @@ impl Display for ParseError {
 #[derive(Debug)]
 pub enum DocumentParseError {
     UnexpectedEndOfFile(),
+    UnknownResourceType(String, Span),
     UndeclaredIdentifier(Span),
     DuplicateVariableName(Span),
     Expected(&'static str, Span),

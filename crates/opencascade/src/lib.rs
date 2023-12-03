@@ -7,6 +7,7 @@ mod mesh;
 mod point;
 mod shape;
 mod shapes;
+mod triangle_mesh_builder;
 mod wire;
 
 pub use edge::*;
@@ -15,4 +16,5 @@ pub use mesh::*;
 pub use point::*;
 pub use shape::*;
 pub use shapes::*;
+pub use triangle_mesh_builder::*;
 pub use wire::*;

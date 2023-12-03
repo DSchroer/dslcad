@@ -1,6 +1,7 @@
 use crate::library::Library;
 use crate::parser::{Ast, DocId, ParseError};
 use crate::reader::FsReader;
+use crate::resources::StlLoader;
 use crate::runtime::{Engine, RuntimeError, WithStack};
 use persistence::protocol::Render;
 use std::collections::HashMap;
@@ -8,10 +9,11 @@ use std::collections::HashMap;
 pub mod library;
 pub mod parser;
 pub mod reader;
+mod resources;
 pub mod runtime;
 
 pub fn parse(source: String) -> Result<Ast, ParseError> {
-    let parser = parser::Parser::new(FsReader, DocId::new(source));
+    let parser = parser::Parser::new(FsReader, DocId::new(source)).with_loader("stl", StlLoader);
     parser.parse()
 }
 
@@ -38,6 +40,7 @@ mod tests {
     use crate::parser::{DocId, Reader};
     use crate::runtime::{Engine, Value};
     use std::collections::HashMap;
+    use std::io::Error;
     use std::path::{Path, PathBuf};
 
     fn run(code: &'static str) -> Value {
@@ -130,6 +133,10 @@ line(start=point(x=0,y=0), end=point(x=1,y=1))
 
     pub struct TestReader(pub &'static str);
     impl Reader for TestReader {
+        fn read_bytes(&self, _: &Path) -> Result<Vec<u8>, Error> {
+            todo!()
+        }
+
         fn read(&self, _: &Path) -> Result<String, std::io::Error> {
             Ok(self.0.to_string())
         }

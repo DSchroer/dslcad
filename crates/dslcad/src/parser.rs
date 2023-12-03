@@ -8,10 +8,13 @@ use lexer::{Lexer, Token};
 use logos::Logos;
 
 use std::collections::{HashMap, HashSet};
+use std::ffi::OsStr;
 use std::path::Path;
 use std::str::FromStr;
 
 use crate::parser::span_builder::SpanBuilder;
+use crate::parser::Literal::Resource;
+use crate::resources::ResourceLoader;
 pub use parse_error::{DocumentParseError, ParseError};
 pub use reader::Reader;
 pub use syntax_tree::*;
@@ -21,6 +24,7 @@ pub struct Parser<R> {
     current_id: DocId,
     variables: HashSet<String>,
     to_parse: Vec<DocId>,
+    resource_loaders: HashMap<&'static str, Box<dyn ResourceLoader<R>>>,
 }
 
 macro_rules! take {
@@ -48,6 +52,7 @@ impl<R: Reader> Parser<R> {
             current_id: root,
             variables: HashSet::new(),
             to_parse: Vec::new(),
+            resource_loaders: HashMap::new(),
         }
     }
 
@@ -73,6 +78,15 @@ impl<R: Reader> Parser<R> {
         }
 
         Ok(ast)
+    }
+
+    pub fn with_loader(
+        mut self,
+        ext: &'static str,
+        loader: impl ResourceLoader<R> + 'static,
+    ) -> Self {
+        self.resource_loaders.insert(ext, Box::new(loader));
+        self
     }
 
     fn parse_document(&mut self, source: &str) -> Result<Vec<Statement>, DocumentParseError> {
@@ -144,11 +158,25 @@ impl<R: Reader> Parser<R> {
                 let mut buf = std::path::PathBuf::new();
                 buf.push(self.current_id.to_path());
                 let buf = buf.parent().unwrap();
-                let buf = buf.join(path.to_string() + ".ds");
+                let buf = buf.join(path);
 
-                let id = DocId::new(self.reader.normalize(Path::new(&buf)).to_str().unwrap().to_string());
-                self.to_parse.push(id.clone());
-                CallPath::Document(id)
+                match buf.extension().unwrap_or(OsStr::new("ds")).to_str().unwrap() {
+                    "ds" => {
+                        let id = DocId::new(self.reader.normalize(Path::new(&buf.with_extension("ds"))).to_str().unwrap().to_string());
+                        self.to_parse.push(id.clone());
+                        CallPath::Document(id)
+                    },
+                    extension => {
+                        if let Some(loader) = self.resource_loaders.get(extension) {
+                            take!(self, lexer, Token::OpenBracket = "(");
+                            take!(self, lexer, Token::CloseBracket = ")");
+
+                            return Ok(Expression::Literal(Resource(loader.load(buf.to_str().unwrap(), &self.reader)?), lexer.span()))
+                        } else {
+                            return Err(DocumentParseError::UnknownResourceType(extension.to_owned(), lexer.span()))
+                        }
+                    }
+                }
             }
         );
         let sb = SpanBuilder::from(lexer);
@@ -599,14 +627,35 @@ fn escape_string(input: &str) -> String {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::resources::Resource;
+    use crate::runtime::{RuntimeError, Value};
+    use std::io::Error;
     use std::path::{Path, PathBuf};
+    use std::sync::Arc;
 
     macro_rules! parse {
         ($code: literal) => {{}};
     }
 
+    #[derive(Debug, Clone)]
+    struct TestRes;
+
+    impl<R: Reader> ResourceLoader<R> for TestRes {
+        fn load(&self, _: &str, _: &R) -> Result<Arc<dyn Resource>, DocumentParseError> {
+            Ok(Arc::new(self.clone()))
+        }
+    }
+
+    impl Resource for TestRes {
+        fn to_instance(&self) -> Result<Value, RuntimeError> {
+            todo!()
+        }
+    }
+
     fn parse(code: &'static str, action: impl for<'a> FnOnce(Result<Ast, ParseError>)) {
-        let res = Parser::new(TestReader(code), DocId::new("test".to_string())).parse();
+        let res = Parser::new(TestReader(code), DocId::new("test".to_string()))
+            .with_loader("stl", TestRes)
+            .parse();
         action(res)
     }
 
@@ -642,6 +691,13 @@ pub mod tests {
         });
         parse("cube(x=5);", |a| {
             a.unwrap();
+        });
+    }
+
+    #[test]
+    fn it_can_parse_resource_calls() {
+        parse("./cube.stl();", |a| {
+            dbg!(a.unwrap());
         });
     }
 
@@ -804,6 +860,10 @@ pub mod tests {
 
     pub struct TestReader(pub &'static str);
     impl Reader for TestReader {
+        fn read_bytes(&self, _: &Path) -> Result<Vec<u8>, Error> {
+            todo!()
+        }
+
         fn read(&self, _: &Path) -> Result<String, std::io::Error> {
             Ok(self.0.to_string())
         }

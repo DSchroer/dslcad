@@ -152,6 +152,7 @@ pub enum Category {
     Math,
     TwoD,
     ThreeD,
+    Resources,
     Lists,
     Text,
 }
@@ -163,6 +164,7 @@ impl Display for Category {
             Category::Math => f.write_str("Math"),
             Category::TwoD => f.write_str("2D"),
             Category::ThreeD => f.write_str("3D"),
+            Category::Resources => f.write_str("Resources"),
             Category::Lists => f.write_str("Lists"),
             Category::Text => f.write_str("Text"),
         }
