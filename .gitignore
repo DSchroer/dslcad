@@ -12,4 +12,3 @@ packages/arch/*
 site/
 browser/lib
 __pycache__
-opencascade
