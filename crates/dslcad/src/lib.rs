@@ -3,8 +3,10 @@ use crate::parser::{Ast, DocId, ParseError};
 use crate::reader::FsReader;
 use crate::resources::ResourceExt;
 use crate::runtime::{Engine, RuntimeError, WithStack};
+use log::trace;
 use persistence::protocol::Render;
 use std::collections::HashMap;
+use std::time::Instant;
 
 pub mod library;
 pub mod parser;
@@ -13,23 +15,37 @@ mod resources;
 pub mod runtime;
 
 pub fn parse(source: String) -> Result<Ast, ParseError> {
+    let parse_time = Instant::now();
+
     let parser = parser::Parser::new(FsReader, DocId::new(source)).with_default_loaders();
-    parser.parse()
+    let ast = parser.parse();
+
+    trace!("parse in {}s", parse_time.elapsed().as_secs_f64());
+
+    ast
 }
 
 pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
     let lib = Library::default();
 
     let mut engine = Engine::new(&lib, documents);
+
+    let eval_time = Instant::now();
     let instance = engine.eval_root(HashMap::new())?;
+    trace!("eval in {}s", eval_time.elapsed().as_secs_f64());
+
+    let render_time = Instant::now();
     let text = instance
         .to_text()
         .map_err(|e| WithStack::from_err(e, &vec![]))?;
 
+    let output = instance
+        .to_output()
+        .map_err(|e| WithStack::from_err(e, &vec![]))?;
+    trace!("render in {}s", render_time.elapsed().as_secs_f64());
+
     Ok(Render {
-        parts: instance
-            .to_output()
-            .map_err(|e| WithStack::from_err(e, &vec![]))?,
+        parts: output,
         stdout: text,
     })
 }
