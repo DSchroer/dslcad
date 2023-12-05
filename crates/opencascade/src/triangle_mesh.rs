@@ -1,9 +1,15 @@
 use crate::command::Builder;
-use crate::{Error, Point, Shape};
-use cxx::UniquePtr;
-use opencascade_sys::ffi::{BRepBuilderAPI_MakeShapeOnMesh, BRepBuilderAPI_MakeSolid, TopoDS_Face, Handle_Poly_Triangulation_ctor, Poly_Triangle_ctor, Poly_Triangulation, Poly_Triangulation_ctor, TopoDS_Shape, BRepBuilderAPI_MakeShapeOnMesh_ctor, TopoDS_Shell_ctor, BRep_Builder_ctor, BRep_Builder_upcast_to_topods_builder, TopoDS_Shell_as_shape, cast_face_to_shape, BRepBuilderAPI_MakeSolid_ctor, TopoDS_cast_to_shell};
 use crate::explorer::Explorer;
 use crate::shape_builder;
+use crate::{Error, Point, Shape};
+use cxx::UniquePtr;
+use opencascade_sys::ffi::{
+    cast_face_to_shape, BRepBuilderAPI_MakeShapeOnMesh, BRepBuilderAPI_MakeShapeOnMesh_ctor,
+    BRepBuilderAPI_MakeSolid, BRepBuilderAPI_MakeSolid_ctor, BRep_Builder_ctor,
+    BRep_Builder_upcast_to_topods_builder, Handle_Poly_Triangulation_ctor, Poly_Triangle_ctor,
+    Poly_Triangulation, Poly_Triangulation_ctor, TopoDS_Face, TopoDS_Shape, TopoDS_Shell_as_shape,
+    TopoDS_Shell_ctor, TopoDS_cast_to_shell,
+};
 
 pub struct TriangleMesh(UniquePtr<Poly_Triangulation>);
 
@@ -19,11 +25,17 @@ impl TriangleMesh {
             Poly_Triangulation_ctor(vertexes.len() as i32, triangles.len() as i32, false, false);
 
         for (i, vertex) in vertexes.iter().enumerate() {
-            triangulation.pin_mut().SetNode((i + 1) as i32, vertex.as_ref())
+            triangulation
+                .pin_mut()
+                .SetNode((i + 1) as i32, vertex.as_ref())
         }
 
         for (i, triangle) in triangles.iter().enumerate() {
-            let t = Poly_Triangle_ctor((triangle[0] + 1) as i32, (triangle[1] + 1) as i32, (triangle[2] + 1) as i32);
+            let t = Poly_Triangle_ctor(
+                (triangle[0] + 1) as i32,
+                (triangle[1] + 1) as i32,
+                (triangle[2] + 1) as i32,
+            );
             triangulation.pin_mut().SetTriangle((i + 1) as i32, &t)
         }
 
@@ -36,9 +48,7 @@ impl TryInto<Shape> for TriangleMesh {
 
     fn try_into(self) -> Result<Shape, Self::Error> {
         let ptr = self.0.into_raw();
-        let handle = unsafe {
-            Handle_Poly_Triangulation_ctor(ptr)
-        };
+        let handle = unsafe { Handle_Poly_Triangulation_ctor(ptr) };
         let mut shape_on_mesh = BRepBuilderAPI_MakeShapeOnMesh_ctor(&handle);
         let shape: Shape = Builder::<TopoDS_Shape>::try_build(&mut shape_on_mesh)?.into();
 

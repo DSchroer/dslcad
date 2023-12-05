@@ -1,4 +1,4 @@
-use crate::command::{Builder};
+use crate::command::Builder;
 use crate::explorer::Explorer;
 use crate::shapes::DsShape;
 use crate::{Error, Mesh, Point, Wire};
@@ -18,7 +18,6 @@ use opencascade_sys::ffi::{
     TopoDS_cast_to_face,
 };
 use std::f64::consts::PI;
-
 
 pub struct Shape {
     pub(crate) shape: UniquePtr<TopoDS_Shape>,
@@ -240,7 +239,10 @@ macro_rules! shape_builder {
                 self.IsDone()
             }
 
-            fn build(self: core::pin::Pin<&mut Self>, progress: &opencascade_sys::ffi::Message_ProgressRange) {
+            fn build(
+                self: core::pin::Pin<&mut Self>,
+                progress: &opencascade_sys::ffi::Message_ProgressRange,
+            ) {
                 self.Build(progress)
             }
         }
