@@ -1,4 +1,4 @@
-use crate::command::{Builder, Command};
+use crate::command::{Builder};
 use crate::explorer::Explorer;
 use crate::shapes::DsShape;
 use crate::{Error, Mesh, Point, Wire};
@@ -18,7 +18,7 @@ use opencascade_sys::ffi::{
     TopoDS_cast_to_face,
 };
 use std::f64::consts::PI;
-use std::pin::Pin;
+
 
 pub struct Shape {
     pub(crate) shape: UniquePtr<TopoDS_Shape>,
@@ -232,20 +232,21 @@ impl From<&TopoDS_Shape> for Shape {
     }
 }
 
+#[macro_export]
 macro_rules! shape_builder {
     ($type_name: ty) => {
-        impl Command for $type_name {
+        impl $crate::command::Command for $type_name {
             fn is_done(&self) -> bool {
                 self.IsDone()
             }
 
-            fn build(self: Pin<&mut Self>, progress: &opencascade_sys::ffi::Message_ProgressRange) {
+            fn build(self: core::pin::Pin<&mut Self>, progress: &opencascade_sys::ffi::Message_ProgressRange) {
                 self.Build(progress)
             }
         }
 
         impl Builder<TopoDS_Shape> for $type_name {
-            unsafe fn value(self: Pin<&mut Self>) -> &TopoDS_Shape {
+            unsafe fn value(self: core::pin::Pin<&mut Self>) -> &TopoDS_Shape {
                 self.Shape()
             }
         }

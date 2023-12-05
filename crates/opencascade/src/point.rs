@@ -30,6 +30,12 @@ impl Point {
     }
 }
 
+impl AsRef<gp_Pnt> for Point {
+    fn as_ref(&self) -> &gp_Pnt {
+        &self.point
+    }
+}
+
 impl From<UniquePtr<gp_Pnt>> for Point {
     fn from(point: UniquePtr<gp_Pnt>) -> Self {
         Point { point }
