@@ -3,6 +3,7 @@ use crate::explorer::Explorer;
 use crate::shapes::DsShape;
 use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
+use log::debug;
 use opencascade_sys::ffi::{
     gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_vec, BRepAlgoAPI_Common, BRepAlgoAPI_Cut,
     BRepAlgoAPI_Fuse, BRepAlgoAPI_Section, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
@@ -177,12 +178,19 @@ impl Shape {
     pub fn lines(&self, deflection: f64) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
+        let mut stats_length = 0;
         let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(self);
         while let Some(edge) = edge_explorer.next() {
             if let Some(line) = Wire::extract_line(edge, deflection) {
+                stats_length += line.len();
                 lines.push(line);
             }
         }
+
+        debug!(
+            "avg number of points per line: {}",
+            stats_length / lines.len()
+        );
 
         Ok(lines)
     }

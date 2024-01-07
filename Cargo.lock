@@ -3018,6 +3018,7 @@ name = "opencascade"
 version = "0.1.0"
 dependencies = [
  "cxx",
+ "log",
  "opencascade-sys",
 ]
 
