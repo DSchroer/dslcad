@@ -171,6 +171,10 @@ impl Command for BRepBuilderAPI_MakeWire {
     fn build(self: Pin<&mut Self>, progress: &opencascade_sys::ffi::Message_ProgressRange) {
         self.Build(progress)
     }
+
+    fn name() -> &'static str {
+        stringify!(BRepBuilderAPI_MakeWire)
+    }
 }
 
 impl Command for BRepOffsetAPI_MakeOffset {
@@ -180,6 +184,10 @@ impl Command for BRepOffsetAPI_MakeOffset {
 
     fn build(self: Pin<&mut Self>, progress: &opencascade_sys::ffi::Message_ProgressRange) {
         self.Build(progress)
+    }
+
+    fn name() -> &'static str {
+        stringify!(BRepOffsetAPI_MakeOffset)
     }
 }
 

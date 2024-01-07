@@ -7,6 +7,7 @@ use std::pin::Pin;
 pub trait Command {
     fn is_done(&self) -> bool;
     fn build(self: Pin<&mut Self>, progress: &Message_ProgressRange);
+    fn name() -> &'static str;
 }
 
 pub trait Builder<T>: Command {
@@ -23,7 +24,7 @@ pub trait Builder<T>: Command {
         }
 
         if !pin.is_done() {
-            Err("opencascade operation failed".into())
+            Err(format!("{} failed", Self::name()).into())
         } else {
             // SAFETY: safe since is_done and build were checked
             Ok(unsafe { pin.pin_mut().value() })

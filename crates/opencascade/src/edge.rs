@@ -3,9 +3,9 @@ use crate::{Error, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
     new_HandleGeomCurve_from_HandleGeom_TrimmedCurve, BRepBuilderAPI_MakeEdge,
-    BRepBuilderAPI_MakeEdge_HandleGeomCurve, GC_MakeArcOfCircle_Value,
+    BRepBuilderAPI_MakeEdge_HandleGeomCurve, BRep_Tool_Curve, GC_MakeArcOfCircle_Value,
     GC_MakeArcOfCircle_point_point_point, GC_MakeSegment_Value, GC_MakeSegment_point_point,
-    TopoDS_Edge, TopoDS_Edge_to_owned,
+    HandleGeomCurve_Value, TopoDS_Edge, TopoDS_Edge_to_owned,
 };
 use std::pin::Pin;
 
@@ -27,9 +27,30 @@ impl Edge {
         );
         Ok(Edge(TopoDS_Edge_to_owned(Builder::try_build(&mut edge_1)?)))
     }
+
+    pub fn start_end(&self) -> (Point, Point) {
+        let mut first = 0.;
+        let mut last = 0.;
+        let curve = BRep_Tool_Curve(&self.0, &mut first, &mut last);
+
+        let start = HandleGeomCurve_Value(&curve, first).into();
+        let end = HandleGeomCurve_Value(&curve, last).into();
+
+        (start, end)
+    }
+}
+
+impl From<UniquePtr<TopoDS_Edge>> for Edge {
+    fn from(value: UniquePtr<TopoDS_Edge>) -> Self {
+        Edge(value)
+    }
 }
 
 impl Command for BRepBuilderAPI_MakeEdge {
+    fn name() -> &'static str {
+        stringify!(BRepBuilderAPI_MakeEdge)
+    }
+
     fn is_done(&self) -> bool {
         self.IsDone()
     }

@@ -28,6 +28,14 @@ impl Point {
     pub fn z(&self) -> f64 {
         self.point.Z()
     }
+
+    pub fn distance(&self, target: &Point) -> f64 {
+        f64::sqrt(
+            f64::powi(self.x() - target.x(), 2)
+                + f64::powi(self.y() - target.y(), 2)
+                + f64::powi(self.z() - target.z(), 2),
+        )
+    }
 }
 
 impl AsRef<gp_Pnt> for Point {
