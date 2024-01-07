@@ -31,9 +31,9 @@ impl Point {
 
     pub fn distance(&self, target: &Point) -> f64 {
         f64::sqrt(
-            f64::powi(self.x() - target.x(), 2)
-                + f64::powi(self.y() - target.y(), 2)
-                + f64::powi(self.z() - target.z(), 2),
+            f64::powi(target.x() - self.x(), 2)
+                + f64::powi(target.y() - self.y(), 2)
+                + f64::powi(target.z() - self.z(), 2),
         )
     }
 }

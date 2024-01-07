@@ -52,13 +52,14 @@ impl TryFrom<Compound> for Wire {
         }
 
         let first = edges.remove(furthest.1);
-        let (_, end) = first.start_end();
+        let (_, mut end) = first.start_end();
         wire_builder.pin_mut().add_edge(&first.0);
 
         'main: loop {
             for i in 0..edges.len() {
-                let (start, _) = edges[i].start_end();
-                if start == end {
+                let (next_start, next_end) = edges[i].start_end();
+                if next_start.distance(&end) < 0.0001 {
+                    end = next_end;
                     wire_builder.pin_mut().add_edge(&edges.remove(i).0);
                     continue 'main;
                 }
