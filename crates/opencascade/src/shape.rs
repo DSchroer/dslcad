@@ -11,11 +11,10 @@ use opencascade_sys::ffi::{
     BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
     BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
     BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
-    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Curve, BRep_Tool_Pnt,
-    BRep_Tool_Triangulation, GProp_GProps_CentreOfMass, GProp_GProps_ctor, HandleGeomCurve_Value,
-    Handle_Poly_Triangulation_Get, Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum,
-    TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
-    TopoDS_cast_to_face,
+    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt, BRep_Tool_Triangulation,
+    GProp_GProps_CentreOfMass, GProp_GProps_ctor, Handle_Poly_Triangulation_Get,
+    Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor,
+    TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_cast_to_face,
 };
 use std::f64::consts::PI;
 
@@ -127,8 +126,8 @@ impl Shape {
         props.Mass()
     }
 
-    pub fn mesh(&self) -> Result<Mesh, Error> {
-        let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(&self.shape, 0.01);
+    pub fn mesh(&self, deflection: f64) -> Result<Mesh, Error> {
+        let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(&self.shape, deflection);
         if !incremental_mesh.IsDone() {
             return Err("unable to build incremental mesh".into());
         }
@@ -175,38 +174,17 @@ impl Shape {
         Ok(mesh)
     }
 
-    pub fn lines(&self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
+    pub fn lines(&self, deflection: f64) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
         let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(self);
         while let Some(edge) = edge_explorer.next() {
-            if let Some(line) = Self::extract_line(edge) {
+            if let Some(line) = Wire::extract_line(edge, deflection) {
                 lines.push(line);
             }
         }
 
         Ok(lines)
-    }
-
-    fn extract_line(edge: &TopoDS_Edge) -> Option<Vec<[f64; 3]>> {
-        let mut first = 0.;
-        let mut last = 0.;
-        let curve = BRep_Tool_Curve(edge, &mut first, &mut last);
-        if curve.IsNull() {
-            return None;
-        }
-
-        let mut points = Vec::new();
-        let cuts = 50;
-        for u in 0..=cuts {
-            let point: Point = HandleGeomCurve_Value(
-                &curve,
-                first + (((last - first) / (cuts as f64)) * u as f64),
-            )
-            .into();
-            points.push(point.into())
-        }
-        Some(points)
     }
 
     pub fn points(&self) -> Result<Vec<[f64; 3]>, Error> {
@@ -280,67 +258,67 @@ mod tests {
     #[test]
     fn it_can_write_box_stl() {
         let shape = Shape::cube(1., 10., 1.).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
     fn it_can_write_sphere_stl() {
         let shape = Shape::sphere(1.).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
     fn it_can_mesh_box_stl() {
         let shape = Shape::cube(1., 10., 1.).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
     fn it_can_fillet_box_stl() {
         let b = Shape::cube(10., 10., 10.).unwrap();
         let shape = Shape::fillet(&b, 0.5).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
     fn it_can_chamfer_box_stl() {
         let b = Shape::cube(10., 10., 10.).unwrap();
         let shape = Shape::chamfer(&b, 0.5).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
     fn it_can_write_cylinder_stl() {
         let shape = Shape::cylinder(10., 100.).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
     fn it_can_write_translated_stl() {
         let b = Shape::cube(10., 10., 10.).unwrap();
         let shape = Shape::translate(&b, &Point::new(10., 0., 0.)).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
     fn it_can_write_rotated_stl() {
         let b = Shape::cube(10., 10., 10.).unwrap();
         let shape = Shape::rotate(&b, Axis::X, 45.).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
     fn it_can_write_scaled_stl() {
         let b = Shape::cube(1., 1., 1.).unwrap();
         let shape = Shape::scale(&b, 10.).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
     fn it_can_write_mirrored_stl() {
         let b = Shape::cube(1., 1., 1.).unwrap();
         let shape = Shape::mirror(&b, Axis::X).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
@@ -348,7 +326,7 @@ mod tests {
         let b = Shape::cube(15., 15., 1.).unwrap();
         let c = Shape::cylinder(10., 100.).unwrap();
         let shape = Shape::fuse(&b, &c).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
@@ -356,7 +334,7 @@ mod tests {
         let b = Shape::cube(15., 15., 1.).unwrap();
         let c = Shape::cylinder(10., 100.).unwrap();
         let shape = Shape::cut(&b, &c).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 
     #[test]
@@ -364,6 +342,6 @@ mod tests {
         let b = Shape::cube(15., 15., 1.).unwrap();
         let c = Shape::cylinder(10., 100.).unwrap();
         let shape = Shape::intersect(&b, &c).unwrap();
-        shape.mesh().unwrap();
+        shape.mesh(0.1).unwrap();
     }
 }

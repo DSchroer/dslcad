@@ -5,9 +5,9 @@ use cxx::UniquePtr;
 use opencascade_sys::ffi::{
     BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor, BRepGProp_LinearProperties,
     BRepOffsetAPI_MakeOffset, BRepOffsetAPI_MakeOffset_wire_ctor, BRep_Tool_Curve,
-    GProp_GProps_CentreOfMass, GProp_GProps_ctor, GeomAbs_JoinType, HandleGeomCurve_Value,
-    TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
-    TopoDS_Wire, TopoDS_cast_to_edge, TopoDS_cast_to_wire,
+    GProp_GProps_CentreOfMass, GProp_GProps_ctor, GeomAbs_JoinType, HandleGeomCurve,
+    HandleGeomCurve_Value, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Shape,
+    TopoDS_Shape_to_owned, TopoDS_Wire, TopoDS_cast_to_edge, TopoDS_cast_to_wire,
 };
 use std::pin::Pin;
 
@@ -111,32 +111,56 @@ impl Wire {
         Ok(Builder::try_build(&mut offset)?.into())
     }
 
-    pub fn points(&self) -> Result<Vec<Vec<[f64; 3]>>, Error> {
+    pub fn points(&self, deflection: f64) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
         let mut edge_explorer = TopExp_Explorer_ctor(&self.0, TopAbs_ShapeEnum::TopAbs_EDGE);
         while edge_explorer.More() {
             let edge = TopoDS_cast_to_edge(edge_explorer.Current());
 
-            lines.push(Self::extract_line(edge));
+            lines.push(Self::extract_line(edge, deflection).unwrap());
             edge_explorer.pin_mut().Next();
         }
 
         Ok(lines)
     }
 
-    fn extract_line(edge: &TopoDS_Edge) -> Vec<[f64; 3]> {
+    pub fn extract_line(edge: &TopoDS_Edge, deflection: f64) -> Option<Vec<[f64; 3]>> {
         let mut first = 0.;
         let mut last = 0.;
         let curve = BRep_Tool_Curve(edge, &mut first, &mut last);
-
-        let mut points = Vec::new();
-        for u in 0..=10 {
-            let point: Point =
-                HandleGeomCurve_Value(&curve, first + (((last - first) / 10.0) * u as f64)).into();
-            points.push(point.into())
+        if curve.IsNull() {
+            return None;
         }
-        points
+
+        let points = Self::points_on_curve(&curve, first, last, deflection);
+        Some(points)
+    }
+
+    /// calculate points along a curve under a maximum `linear deflection`
+    fn points_on_curve(
+        curve: &HandleGeomCurve,
+        start: f64,
+        end: f64,
+        deflection: f64,
+    ) -> Vec<[f64; 3]> {
+        let mid = (start + end) / 2.0;
+
+        let a: Point = HandleGeomCurve_Value(curve, start).into();
+        let b: Point = HandleGeomCurve_Value(curve, mid).into();
+        let c: Point = HandleGeomCurve_Value(curve, end).into();
+
+        let m = (a.clone() + c.clone()) / 2.0;
+
+        if m.distance(&b) > deflection {
+            [
+                Self::points_on_curve(curve, start, mid, deflection),
+                Self::points_on_curve(curve, mid, end, deflection),
+            ]
+            .concat()
+        } else {
+            vec![a.into(), c.into()]
+        }
     }
 
     fn extract_start_end(edge: &TopoDS_Edge) -> (Point, Point) {
@@ -213,6 +237,6 @@ mod tests {
         wire.add_edge(&Edge::new_line(&Point::new(0., 0., 0.), &Point::new(0., 10., 0.)).unwrap());
         let wire = wire.build().unwrap();
 
-        assert!(!wire.points().unwrap().is_empty());
+        assert!(!wire.points(0.1).unwrap().is_empty());
     }
 }

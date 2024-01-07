@@ -1,6 +1,7 @@
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{gp_Pnt, new_point};
 use std::fmt::{Debug, Formatter};
+use std::ops::{Add, Div, Sub};
 
 pub struct Point {
     pub(crate) point: UniquePtr<gp_Pnt>,
@@ -35,6 +36,49 @@ impl Point {
                 + f64::powi(target.y() - self.y(), 2)
                 + f64::powi(target.z() - self.z(), 2),
         )
+    }
+
+    pub fn length(&self) -> f64 {
+        f64::sqrt(f64::powi(self.x(), 2) + f64::powi(self.y(), 2) + f64::powi(self.z(), 2))
+    }
+
+    pub fn dot(&self, target: &Point) -> f64 {
+        (self.x() * target.x()) + (self.y() * target.y()) + (self.z() * target.z())
+    }
+
+    pub fn normalized(self) -> Self {
+        let len = self.length();
+        Self::new(self.x() / len, self.y() / len, self.z() / len)
+    }
+}
+
+impl Clone for Point {
+    fn clone(&self) -> Self {
+        Point::new(self.x(), self.y(), self.z())
+    }
+}
+
+impl Div<f64> for Point {
+    type Output = Point;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        Point::new(self.x() / rhs, self.y() / rhs, self.z() / rhs)
+    }
+}
+
+impl Add for Point {
+    type Output = Point;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Point::new(self.x() + rhs.x(), self.y() + rhs.y(), self.z() + rhs.z())
+    }
+}
+
+impl Sub for Point {
+    type Output = Point;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Point::new(self.x() - rhs.x(), self.y() - rhs.y(), self.z() - rhs.z())
     }
 }
 

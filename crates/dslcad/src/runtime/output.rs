@@ -1,6 +1,8 @@
 use opencascade::{Error, Point, Shape, Wire};
 use persistence::protocol::Part;
 
+const DEFLECTION: f64 = 0.01;
+
 pub trait IntoPart {
     fn into_part(self) -> Result<Part, Error>;
 }
@@ -22,28 +24,28 @@ impl IntoPart for &Wire {
                 .flatten()
                 .map(|p| p.into())
                 .collect(),
-            lines: self.points()?,
+            lines: self.points(DEFLECTION)?,
         })
     }
 }
 
 impl IntoPart for &Shape {
     fn into_part(self) -> Result<Part, Error> {
-        let original = self.mesh()?;
+        let original = self.mesh(DEFLECTION)?;
         let mut mesh = persistence::protocol::Mesh {
             vertices: original.vertices,
             triangles: vec![],
             normals: vec![],
         };
 
-        for (tri, normal) in self.mesh()?.triangles_with_normals() {
+        for (tri, normal) in self.mesh(DEFLECTION)?.triangles_with_normals() {
             mesh.triangles.push(*tri);
             mesh.normals.push(normal);
         }
 
         Ok(Part::Object {
             points: self.points()?,
-            lines: self.lines()?,
+            lines: self.lines(DEFLECTION)?,
             mesh,
         })
     }
