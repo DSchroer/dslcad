@@ -21,6 +21,6 @@ impl Scope {
     }
 
     pub fn set(&mut self, identifier: String, value: Value) {
-        self.variables.entry(identifier).or_insert(value);
+        self.variables.insert(identifier, value);
     }
 }
