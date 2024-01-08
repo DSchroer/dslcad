@@ -12,17 +12,23 @@ pub struct ModelRenderingPlugin;
 
 impl Plugin for ModelRenderingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(PointsPlugin)
+        app.add_plugins(PointsPlugin)
             .add_event::<RenderCommand>()
             .add_event::<RenderEvents>()
             .insert_resource(RenderState::default())
-            .add_system(render_controller)
-            .add_system(mesh_renderer)
-            .add_system(point_renderer)
-            .add_system(line_renderer);
+            .add_systems(
+                Update,
+                (
+                    render_controller,
+                    mesh_renderer,
+                    point_renderer,
+                    line_renderer,
+                ),
+            );
     }
 }
 
+#[derive(Event)]
 pub enum RenderCommand {
     Draw(Vec<Part>),
     Redraw,
@@ -49,6 +55,7 @@ impl Default for RenderState {
     }
 }
 
+#[derive(Event)]
 enum RenderEvents {
     Points,
     Lines,

@@ -62,12 +62,15 @@ pub(crate) fn main(
             }),
             ..default()
         }))
-        .add_plugin(PolylinePlugin)
-        .add_plugin(camera::CameraPlugin)
-        .add_plugin(gui::GuiPlugin::new(cheatsheet))
-        .add_plugin(xyz::XYZPlugin)
-        .add_plugin(rendering::ModelRenderingPlugin)
-        .add_system(
+        .add_plugins((
+            PolylinePlugin,
+            camera::CameraPlugin,
+            gui::GuiPlugin::new(cheatsheet),
+            xyz::XYZPlugin,
+            rendering::ModelRenderingPlugin,
+        ))
+        .add_systems(
+            Update,
             move |mut console: ResMut<gui::Console>, mut re: EventWriter<RenderCommand>| {
                 let rx = rx.lock().unwrap();
                 match rx.try_recv() {

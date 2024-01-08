@@ -12,11 +12,11 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(LookTransformPlugin)
-            .add_plugin(OrbitCameraPlugin::new(true))
-            .add_startup_system(camera_system)
-            .add_system(camera_light)
-            .add_system(input_map);
+        app.add_plugins(LookTransformPlugin)
+            .add_plugins(OrbitCameraPlugin::new(true))
+            .add_systems(Startup, camera_system)
+            .add_systems(Update, camera_light)
+            .add_systems(Update, input_map);
     }
 }
 
@@ -117,7 +117,7 @@ pub fn input_map(
         events.send(ControlEvent::Zoom(0.9));
     }
 
-    if keyboard.pressed(KeyCode::LShift) {
+    if keyboard.pressed(KeyCode::ShiftLeft) {
         if keyboard.pressed(KeyCode::Left) {
             events.send(ControlEvent::TranslateTarget(Vec2::new(
                 1. * zoom_amount,

@@ -27,11 +27,11 @@ impl Plugin for GuiPlugin {
             cheetsheet: self.cheetsheet.clone(),
         })
         .insert_resource(Console { text: None })
-        .add_plugin(EguiPlugin)
-        .add_plugin(MenuPlugin)
-        .add_plugin(ViewMenuPlugin)
-        .add_plugin(HelpPlugin::default())
-        .add_system(console_panel);
+        .add_plugins(EguiPlugin)
+        .add_plugins(MenuPlugin)
+        .add_plugins(ViewMenuPlugin)
+        .add_plugins(HelpPlugin::default())
+        .add_systems(Update, console_panel);
     }
 }
 

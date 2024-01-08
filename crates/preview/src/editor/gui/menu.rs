@@ -14,7 +14,7 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Menu>()
             .add_event::<MenuEvent>()
-            .add_system(main_ui)
+            .add_systems(Update, main_ui)
             .add_persistent_res_loader("points", |value, state: &mut RenderState| {
                 state.show_points = value.unwrap_or("true") == "true";
             })
@@ -62,11 +62,12 @@ impl MenuAppExt for App {
             .expect("unknown top level menu");
         let action_name = path.next().expect("menu must have action");
 
-        self.add_startup_system(move |mut menu: ResMut<Menu>| {
+        self.add_systems(Startup, move |mut menu: ResMut<Menu>| {
             menu.button(menu_name, action_name);
         });
 
-        self.add_system(
+        self.add_systems(
+            Update,
             move |mut events: EventReader<MenuEvent>, mut state: ResMut<T>| {
                 for click in events.iter() {
                     if click.action() == action_name {
@@ -89,11 +90,12 @@ impl MenuAppExt for App {
             .expect("unknown top level menu");
         let action_name = path.next().expect("menu must have action");
 
-        self.add_startup_system(move |mut menu: ResMut<Menu>| {
+        self.add_systems(Startup, move |mut menu: ResMut<Menu>| {
             menu.button(menu_name, action_name);
         });
 
-        self.add_system(
+        self.add_systems(
+            Update,
             move |mut events: EventReader<MenuEvent>,
                   mut state: ResMut<T>,
                   mut store: ResMut<Settings>| {
@@ -113,13 +115,17 @@ impl MenuAppExt for App {
         key: &'static str,
         action: impl Fn(Option<&str>, &mut T) + Send + Sync + 'static,
     ) -> &mut App {
-        self.add_startup_system(move |mut state: ResMut<T>, store: Res<Settings>| {
-            let value = store.load(key);
-            action(value, &mut state);
-        })
+        self.add_systems(
+            Startup,
+            move |mut state: ResMut<T>, store: Res<Settings>| {
+                let value = store.load(key);
+                action(value, &mut state);
+            },
+        )
     }
 }
 
+#[derive(Event)]
 pub struct MenuEvent(&'static str);
 
 impl MenuEvent {

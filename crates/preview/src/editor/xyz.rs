@@ -6,7 +6,7 @@ use bevy_polyline::polyline::{Polyline, PolylineBundle};
 pub struct XYZPlugin;
 impl Plugin for XYZPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(xyz_lines);
+        app.add_systems(Startup, xyz_lines);
     }
 }
 

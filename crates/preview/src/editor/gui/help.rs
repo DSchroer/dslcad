@@ -19,8 +19,7 @@ impl Plugin for HelpPlugin {
             .add_res_menu_button("Help/About", |state: &mut HelpPlugin| {
                 state.about_window = true
             })
-            .add_system(about)
-            .add_system(cheatsheet);
+            .add_systems(Update, (about, cheatsheet));
     }
 }
 
