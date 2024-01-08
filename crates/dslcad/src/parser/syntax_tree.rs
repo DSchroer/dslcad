@@ -1,7 +1,7 @@
 use crate::resources::Resource;
 use logos::Span;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::{Debug, Display, Formatter};
 use std::path::Path;
 use std::sync::Arc;
@@ -71,27 +71,24 @@ impl Statement {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum CallPath {
-    String(String),
+    Function(String),
     Document(DocId),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ArgName {
-    Named(String),
-    Default,
+#[derive(Debug, Clone)]
+pub enum Argument {
+    Named(String, Box<Expression>),
+    Unnamed(Box<Expression>),
 }
 
-impl From<String> for ArgName {
-    fn from(value: String) -> Self {
-        ArgName::Named(value)
-    }
-}
-
-impl From<&'static str> for ArgName {
-    fn from(value: &'static str) -> Self {
-        ArgName::Named(value.to_string())
+impl Argument {
+    pub fn has_name(&self, name: &str) -> bool {
+        match self {
+            Argument::Named(n, _) => n == name,
+            Argument::Unnamed(_) => false,
+        }
     }
 }
 
@@ -101,7 +98,7 @@ pub enum Expression {
     Reference(String, Span),
     Invocation {
         path: CallPath,
-        arguments: HashMap<ArgName, Box<Expression>>,
+        arguments: VecDeque<Argument>,
         span: Span,
     },
     Access(Box<Expression>, String, Span),

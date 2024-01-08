@@ -55,6 +55,36 @@ impl From<f64> for Value {
     }
 }
 
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Value::Bool(value)
+    }
+}
+
+impl From<Vec<Value>> for Value {
+    fn from(value: Vec<Value>) -> Self {
+        Value::List(value)
+    }
+}
+
+impl From<Rc<Point>> for Value {
+    fn from(value: Rc<Point>) -> Self {
+        Value::Point(value)
+    }
+}
+
+impl From<Rc<Wire>> for Value {
+    fn from(value: Rc<Wire>) -> Self {
+        Value::Line(value)
+    }
+}
+
+impl From<Rc<Shape>> for Value {
+    fn from(value: Rc<Shape>) -> Self {
+        Value::Shape(value)
+    }
+}
+
 impl From<ScriptInstance> for Value {
     fn from(value: ScriptInstance) -> Self {
         Value::Script(Rc::new(value))
@@ -122,7 +152,7 @@ impl Value {
                 .filter_map(|i| i.to_text().ok())
                 .reduce(|a, b| format!("{a}\n{b}"))
                 .unwrap_or_default()),
-            _ => Ok(String::new()),
+            _ => Err(RuntimeError::UnexpectedType()),
         }
     }
 
@@ -195,6 +225,18 @@ impl Value {
             Type::Point => self.to_point().is_ok(),
             Type::Edge => self.to_line().is_ok(),
             Type::Shape => self.to_shape().is_ok(),
+        }
+    }
+
+    pub fn to_type(&self, target: Type) -> Result<Value> {
+        match target {
+            Type::Number => Ok(self.to_number()?.into()),
+            Type::Bool => Ok(self.to_bool()?.into()),
+            Type::Text => Ok(self.to_text()?.into()),
+            Type::List => Ok(self.to_list()?.into()),
+            Type::Point => Ok(self.to_point()?.into()),
+            Type::Edge => Ok(self.to_line()?.into()),
+            Type::Shape => Ok(self.to_shape()?.into()),
         }
     }
 

@@ -51,6 +51,10 @@ impl TryFrom<Compound> for Wire {
             edges.push(edge);
         }
 
+        if edges.is_empty() {
+            return Err("slice did not return geometry".into());
+        }
+
         let first = edges.remove(furthest.1);
         let (_, mut end) = first.start_end();
         wire_builder.pin_mut().add_edge(&first.0);

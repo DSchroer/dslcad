@@ -7,8 +7,8 @@ mod stack;
 mod types;
 mod value;
 
-use crate::library::{CallSignature, Library};
-use crate::parser::{ArgName, Ast, CallPath, DocId, Expression, Literal, Statement};
+use crate::library::{ArgValue, CallSignature, Library};
+use crate::parser::{Argument, Ast, CallPath, DocId, Expression, Literal, Statement};
 use crate::runtime::scope::Scope;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -108,54 +108,53 @@ impl<'a> Engine<'a> {
         match expression {
             Expression::Invocation {
                 path, arguments, ..
-            } => match path {
-                CallPath::String(path) => {
-                    let mut argument_values = HashMap::new();
-                    for (name, argument) in arguments.iter() {
-                        let value = self.expression(instance, argument.deref())?;
-                        match name {
-                            ArgName::Named(name) => {
-                                argument_values.insert(name.as_str(), value);
+            } => {
+                let argument_values =
+                    arguments.iter().try_fold(Vec::new(), |mut acc, argument| {
+                        match argument {
+                            Argument::Named(name, expr) => {
+                                let value = self.expression(instance, expr.deref())?;
+                                acc.push(ArgValue::Named(name, value))
                             }
-                            ArgName::Default => {
-                                let name = self
-                                    .library
-                                    .default_argument_name(path, &value)
-                                    .map_err(|e| WithStack::from_err(e, &self.stack))?;
-                                argument_values.insert(name, value);
+                            Argument::Unnamed(expr) => {
+                                let value = self.expression(instance, expr.deref())?;
+                                acc.push(ArgValue::Unnamed(value));
                             }
                         }
-                    }
+                        Ok(acc)
+                    })?;
 
-                    let f = self
-                        .library
-                        .find(CallSignature::new(path, &argument_values))
-                        .map_err(|e| WithStack::from_err(e, &self.stack))?;
-                    Ok(f(&argument_values).map_err(|e| WithStack::from_err(e, &self.stack))?)
-                }
-                CallPath::Document(id) => {
-                    let mut argument_values = HashMap::new();
-                    for (name, argument) in arguments.iter() {
-                        let value = self.expression(instance, argument.deref())?;
-                        match name {
-                            ArgName::Named(name) => {
-                                argument_values.insert(name.as_str(), value);
-                            }
-                            ArgName::Default => {
-                                return Err(WithStack::from_err(
-                                    RuntimeError::UnknownDefaultArgument {
-                                        name: id.to_string(),
-                                    },
-                                    &self.stack,
-                                ))
-                            }
-                        }
+                match path {
+                    CallPath::Function(path) => {
+                        let (f, a) = self
+                            .library
+                            .find(CallSignature::new(path, argument_values))
+                            .map_err(|e| WithStack::from_err(e, &self.stack))?;
+                        Ok(f(&a).map_err(|e| WithStack::from_err(e, &self.stack))?)
                     }
+                    CallPath::Document(id) => {
+                        let named_argument_values = argument_values
+                            .into_iter()
+                            .try_fold(HashMap::new(), |mut acc, v| {
+                                match v {
+                                    ArgValue::Named(name, val) => {
+                                        acc.insert(name, val);
+                                    }
+                                    ArgValue::Unnamed(_) => {
+                                        return Err(RuntimeError::UnknownDefaultArgument {
+                                            name: "".to_string(),
+                                        })
+                                    }
+                                }
+                                Ok(acc)
+                            })
+                            .map_err(|e| WithStack::from_err(e, &self.stack))?;
 
-                    let v = self.eval(id.clone(), argument_values)?;
-                    Ok(Value::Script(Rc::new(v)))
+                        let v = self.eval(id.clone(), named_argument_values)?;
+                        Ok(Value::Script(Rc::new(v)))
+                    }
                 }
-            },
+            }
             Expression::Reference(n, _) => {
                 if let Some(value) = instance.get(n) {
                     Ok(value.clone())

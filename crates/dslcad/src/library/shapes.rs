@@ -1,6 +1,6 @@
 use crate::runtime::{RuntimeError, Value};
 
-use opencascade::{Axis, DsShape, Point, Shape};
+use opencascade::{Axis, DsShape, Point, Shape, Wire};
 
 pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
     let x = x.unwrap_or(1.0);
@@ -88,6 +88,10 @@ pub fn center(
     let y = if y.unwrap_or(true) { -center.y() } else { 0.0 };
     let z = if z.unwrap_or(true) { -center.z() } else { 0.0 };
     translate(shape, Some(x), Some(y), Some(z))
+}
+
+pub fn slice_2d(left: &Shape, right: &Wire) -> Result<Value, RuntimeError> {
+    Ok(left.section_2d(right)?.into())
 }
 
 pub fn slice(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {

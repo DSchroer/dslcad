@@ -7,7 +7,7 @@ mod syntax_tree;
 use lexer::{Lexer, Token};
 use logos::Logos;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::OsStr;
 use std::path::Path;
 use std::str::FromStr;
@@ -151,7 +151,7 @@ impl<R: Reader> Parser<R> {
 
     fn parse_call(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let path = take!(self, lexer,
-            Token::Identifier = "identifier" => CallPath::String(lexer.slice().to_string()),
+            Token::Identifier = "identifier" => CallPath::Function(lexer.slice().to_string()),
             Token::Path = "path" => {
                 let path =  lexer.slice();
 
@@ -183,7 +183,7 @@ impl<R: Reader> Parser<R> {
 
         take!(self, lexer, Token::OpenBracket = "(");
 
-        let mut args = HashMap::new();
+        let mut args = VecDeque::new();
         loop {
             let mut peek = lexer.clone();
             take!(self, peek,
@@ -193,7 +193,7 @@ impl<R: Reader> Parser<R> {
                 },
                 Token::Identifier = "identifier" => {
                     let (name, expression) = self.parse_argument(lexer)?;
-                    args.insert(ArgName::Named(name), Box::new(expression));
+                    args.push_back(Argument::Named(name, Box::new(expression)));
                     take!(self, lexer,
                         Token::Comma = "," => {},
                         Token::CloseBracket = ")" => break
@@ -346,11 +346,12 @@ impl<R: Reader> Parser<R> {
         let sb = SpanBuilder::from(lexer);
         let right = parse_right(self, lexer)?;
         Ok(Expression::Invocation {
-            path: CallPath::String(name.to_string()),
-            arguments: HashMap::from([
-                ("left".into(), left.into()),
-                ("right".into(), right.into()),
-            ]),
+            path: CallPath::Function(name.to_string()),
+            arguments: vec![
+                Argument::Named("left".into(), left.into()),
+                Argument::Named("right".into(), right.into()),
+            ]
+            .into(),
             span: sb.to(lexer),
         })
     }
@@ -475,12 +476,12 @@ impl<R: Reader> Parser<R> {
 
                 let mut peek = lexer.clone();
                 peek.next();
-                let arg = if let Some(Token::OpenBracket) = peek.next() {
-                    ArgName::Default
+                let arg_name = if let Some(Token::OpenBracket) = peek.next() {
+                    None
                 } else {
                     let prop =
                         take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
-                    ArgName::Named(prop.to_string())
+                    Some(prop.to_string())
                 };
 
                 let expr = self.parse_call(lexer)?;
@@ -490,7 +491,12 @@ impl<R: Reader> Parser<R> {
                         mut arguments,
                         ..
                     } => {
-                        arguments.insert(arg, Box::new(first));
+                        arguments.push_front(if let Some(name) = arg_name {
+                            Argument::Named(name, Box::new(first))
+                        } else {
+                            Argument::Unnamed(Box::new(first))
+                        });
+
                         self.try_add_inject(
                             lexer,
                             Expression::Invocation {
@@ -547,13 +553,13 @@ impl<R: Reader> Parser<R> {
                 let expr = self.parse_terminal_expression(lexer)?;
                 let span = sb.to(lexer);
                 Expression::Invocation {
-                    path: CallPath::String("subtract".to_string()),
-                    arguments: HashMap::from([
-                        (
+                    path: CallPath::Function("subtract".to_string()),
+                    arguments: VecDeque::from([
+                        Argument::Named(
                             "left".into(),
                             Box::new(Expression::Literal(Literal::Number(0.0), span.clone())),
                         ),
-                        ("right".into(), Box::new(expr)),
+                        Argument::Named("right".into(), Box::new(expr)),
                     ]),
                     span
                 }
@@ -564,9 +570,9 @@ impl<R: Reader> Parser<R> {
                 let expr = self.parse_terminal_expression(lexer)?;
                 let span = sb.to(lexer);
                 Expression::Invocation {
-                    path: CallPath::String("not".to_string()),
-                    arguments: HashMap::from([
-                         ("value".into(), Box::new(expr)),
+                    path: CallPath::Function("not".to_string()),
+                    arguments: VecDeque::from([
+                        Argument::Named("value".into(), Box::new(expr)),
                     ]),
                     span
                 }
@@ -755,7 +761,7 @@ pub mod tests {
             assert!(matches!(p, Statement::CreatePart(
             Expression::Invocation { arguments: x, .. }
             , ..
-        ) if !x.contains_key(&ArgName::Named("value".to_string()))))
+        ) if !x.iter().any(|a| a.has_name("value"))))
         });
     }
 

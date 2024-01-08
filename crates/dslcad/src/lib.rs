@@ -35,9 +35,7 @@ pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
     trace!("eval in {}s", eval_time.elapsed().as_secs_f64());
 
     let render_time = Instant::now();
-    let text = instance
-        .to_text()
-        .map_err(|e| WithStack::from_err(e, &vec![]))?;
+    let text = instance.to_text().unwrap_or_default();
 
     let output = instance
         .to_output()
