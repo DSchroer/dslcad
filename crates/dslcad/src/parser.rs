@@ -191,10 +191,20 @@ impl<R: Reader> Parser<R> {
                     lexer.next();
                     break;
                 },
-                Token::Identifier = "identifier" => {
-                    let (name, expression) = self.parse_argument(lexer)?;
-                    args.push_back(Argument::Named(name, Box::new(expression)));
-                    take!(self, lexer,
+                _ = "expression" => {
+
+                    let mut arg_lexer = lexer.clone();
+                    if let Ok((name, expression)) = self.parse_argument(&mut arg_lexer) {
+                        *lexer = arg_lexer;
+                        args.push_back(Argument::Named(name, Box::new(expression)));
+                    } else {
+                        let mut expr_lexer = lexer.clone();
+                        let expression = self.parse_expression(&mut expr_lexer)?;
+                        *lexer = expr_lexer;
+                        args.push_back(Argument::Unnamed(Box::new(expression)));
+                    }
+
+                     take!(self, lexer,
                         Token::Comma = "," => {},
                         Token::CloseBracket = ")" => break
                     );
@@ -696,6 +706,9 @@ pub mod tests {
             a.unwrap();
         });
         parse("cube(x=5);", |a| {
+            a.unwrap();
+        });
+        parse("cube(5 + 5);", |a| {
             a.unwrap();
         });
     }

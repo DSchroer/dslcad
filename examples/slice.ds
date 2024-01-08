@@ -1,2 +1,2 @@
-sphere() -> slice(right=cube() -> translate(z=-0.5, x=0.2));
-sphere() -> slice(right=square() -> translate(z=0.3));
+sphere() -> slice(cube() -> translate(z=-0.5, x=0.2));
+sphere() -> slice(square() -> translate(z=0.3));
