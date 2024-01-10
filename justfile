@@ -25,7 +25,7 @@ build-occt: setup-env
     if [ ! -d "occt_prebuilt/{{ TARGET }}" ]; then
       export CMAKE_BUILD_PARALLEL_LEVEL={{CORES}}
       cargo clean --manifest-path tools/opencascade_builder/Cargo.toml
-      cargo build --manifest-path tools/opencascade_builder/Cargo.toml --release --target {{ TARGET }} -vv
+      cargo build --manifest-path tools/opencascade_builder/Cargo.toml --target {{ TARGET }} -vv
     fi
 
 setup-env:

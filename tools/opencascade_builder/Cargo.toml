@@ -8,3 +8,7 @@ edition = "2021"
 [build-dependencies]
 occt-sys = { git = "https://github.com/dschroer/opencascade-rs", rev="73c2745365197af282279450b2b9213d028ba77b" }
 fs_extra = "1.3"
+
+[profile.dev.package.occt-sys]
+opt-level = 3
+debug = false
