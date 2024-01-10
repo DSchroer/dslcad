@@ -1,5 +1,6 @@
 TARGET := `rustc -vV | sed -n 's|host: ||p'`
 DEP_OCCT_ROOT := `pwd` / "occt_prebuilt" / TARGET / "out"
+CORES := `nproc --all`
 
 run *FLAGS: build-occt
     cargo run {{ FLAGS }}
@@ -20,8 +21,11 @@ clean:
 
 build-occt: setup-env
     #!/bin/sh
+    set -ex
     if [ ! -d "occt_prebuilt/{{ TARGET }}" ]; then
-      cargo build --manifest-path tools/opencascade_builder/Cargo.toml --target {{ TARGET }} -vv
+      export CMAKE_BUILD_PARALLEL_LEVEL={{CORES}}
+      cargo clean --manifest-path tools/opencascade_builder/Cargo.toml
+      cargo build --manifest-path tools/opencascade_builder/Cargo.toml --release --target {{ TARGET }} -vv
     fi
 
 setup-env:
