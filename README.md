@@ -12,10 +12,12 @@ Dependencies:
  - Rust
  - Just (https://github.com/casey/just)
 
-To build for local run:
+To build run:
 ```sh
-    just build
+just build
 ```
+
+This will first build OCCT if needed. Then build the rest of the app. OCCT is cached in the `occt_prebuilt` folder.
 
 ## Usage
 
