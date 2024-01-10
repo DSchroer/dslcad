@@ -112,25 +112,25 @@ impl Debug for Value {
 }
 
 impl Value {
-    pub fn to_output(&self) -> Result<Vec<Part>> {
+    pub fn to_output(&self, deflection: f64) -> Result<Vec<Part>> {
         match self {
             Value::Number(_) | Value::Bool(_) | Value::Text(_) => Ok(vec![Part::Empty]),
 
             Value::List(l) => {
                 let mut results = Vec::new();
                 for item in l {
-                    if let Ok(o) = item.to_output() {
+                    if let Ok(o) = item.to_output(deflection) {
                         results.push(o)
                     }
                 }
                 Ok(results.concat())
             }
 
-            Value::Script(s) => Ok(s.value().to_output()?),
+            Value::Script(s) => Ok(s.value().to_output(deflection)?),
 
-            Value::Point(p) => Ok(vec![p.into_part()?]),
-            Value::Line(l) => Ok(vec![l.into_part()?]),
-            Value::Shape(s) => Ok(vec![s.into_part()?]),
+            Value::Point(p) => Ok(vec![p.into_part(deflection)?]),
+            Value::Line(l) => Ok(vec![l.into_part(deflection)?]),
+            Value::Shape(s) => Ok(vec![s.into_part(deflection)?]),
         }
     }
 

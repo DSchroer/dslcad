@@ -19,6 +19,10 @@ struct Args {
     /// Display preview window for editing
     preview: bool,
 
+    #[arg(short, long, default_value_t = 0.01)]
+    /// Deflection used to calculate mesh. Smaller numbers are more detailed.
+    deflection: f64,
+
     #[command(flatten)]
     cheatsheet: Cheatsheet,
 }
@@ -35,14 +39,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     match Args::try_parse() {
         Ok(Args {
-            preview, source, ..
+            preview,
+            source,
+            deflection,
+            ..
         }) => {
             #[cfg(feature = "preview")]
             if preview {
-                return render_to_preview(&source);
+                return render_to_preview(&source, deflection);
             }
 
-            render_to_file(&source)
+            render_to_file(&source, deflection)
         }
         Err(e) => {
             if let Ok(Cheatsheet { cheatsheet: true }) = Cheatsheet::try_parse() {
@@ -60,8 +67,8 @@ fn print_cheatsheet() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn render_to_file(source: &String) -> Result<(), Box<dyn Error>> {
-    let render = render(parse(source.clone())?)?;
+fn render_to_file(source: &String, deflection: f64) -> Result<(), Box<dyn Error>> {
+    let render = render(parse(source.clone())?, deflection)?;
 
     if !render.stdout.is_empty() {
         println!("{}", &render.stdout);
@@ -79,7 +86,7 @@ fn render_to_file(source: &String) -> Result<(), Box<dyn Error>> {
 }
 
 #[cfg(feature = "preview")]
-fn render_to_preview(source: &str) -> Result<(), Box<dyn Error>> {
+fn render_to_preview(source: &str, deflection: f64) -> Result<(), Box<dyn Error>> {
     use notify::{recommended_watcher, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
     use preview::{Preview, PreviewHandle};
     use std::sync::{Arc, Mutex};
@@ -98,6 +105,7 @@ fn render_to_preview(source: &str) -> Result<(), Box<dyn Error>> {
 
     fn render_with_watcher(
         source: &str,
+        deflection: f64,
         handle: PreviewHandle,
         watch: Arc<Mutex<Option<RecommendedWatcher>>>,
     ) -> Result<(), Box<dyn Error>> {
@@ -105,7 +113,7 @@ fn render_to_preview(source: &str) -> Result<(), Box<dyn Error>> {
         match parse(source.to_string()) {
             Ok(ast) => {
                 add_files_to_watch(watch, &ast);
-                match render(ast) {
+                match render(ast, deflection) {
                     Ok(r) => handle.show_render(r)?,
                     Err(e) => handle.show_error(e.to_string())?,
                 }
@@ -126,7 +134,7 @@ fn render_to_preview(source: &str) -> Result<(), Box<dyn Error>> {
                 ..
             }) = event
             {
-                render_with_watcher(&source, handle.clone(), watch.clone()).unwrap()
+                render_with_watcher(&source, deflection, handle.clone(), watch.clone()).unwrap()
             }
         })?
     };
@@ -138,7 +146,7 @@ fn render_to_preview(source: &str) -> Result<(), Box<dyn Error>> {
 
     let source = source.to_string();
     std::thread::spawn(move || {
-        render_with_watcher(&source, handle.clone(), watch.clone()).unwrap();
+        render_with_watcher(&source, deflection, handle.clone(), watch.clone()).unwrap();
     });
 
     preview.open(Library::default().to_string());

@@ -13,6 +13,7 @@ pub mod parser;
 pub mod reader;
 mod resources;
 pub mod runtime;
+mod trace;
 
 pub fn parse(source: String) -> Result<Ast, ParseError> {
     let parse_time = Instant::now();
@@ -25,7 +26,7 @@ pub fn parse(source: String) -> Result<Ast, ParseError> {
     ast
 }
 
-pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
+pub fn render(documents: Ast, deflection: f64) -> Result<Render, WithStack<RuntimeError>> {
     let lib = Library::default();
 
     let mut engine = Engine::new(&lib, documents);
@@ -38,7 +39,7 @@ pub fn render(documents: Ast) -> Result<Render, WithStack<RuntimeError>> {
     let text = instance.to_text().unwrap_or_default();
 
     let output = instance
-        .to_output()
+        .to_output(deflection)
         .map_err(|e| WithStack::from_err(e, &vec![]))?;
     trace!("render in {}s", render_time.elapsed().as_secs_f64());
 
@@ -142,7 +143,7 @@ line(start=point(x=0,y=0), end=point(x=1,y=1))
         let i = run(r"
 [[cube(), cube()], [cube(), cube()]];
         ");
-        assert_eq!(4, i.to_output().unwrap().len());
+        assert_eq!(4, i.to_output(0.1).unwrap().len());
     }
 
     pub struct TestReader(pub &'static str);
