@@ -4,5 +4,8 @@ members = [
     "crates/dslcad",
     "crates/opencascade",
     "crates/persistence",
-    "crates/preview"
+    "crates/preview",
+]
+exclude = [
+    "tools/opencascade_builder"
 ]

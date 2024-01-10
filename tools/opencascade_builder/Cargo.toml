@@ -1,0 +1,10 @@
+[package]
+name = "opencascade_builder"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+occt-sys = { git = "https://github.com/dschroer/opencascade-rs", rev="73c2745365197af282279450b2b9213d028ba77b" }
+fs_extra = "1.3"

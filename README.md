@@ -6,6 +6,17 @@ Inspired by OpenSCAD, it has a language and 3D viewer to simplify the modeling e
 
 ![screenshot](docs/screenshot.png)
 
+## Setup 
+
+Dependencies:
+ - Rust
+ - Just (https://github.com/casey/just)
+
+To build for local run:
+```sh
+    just build
+```
+
 ## Usage
 
 Check out the [documentation](https://dschroer.github.io/dslcad/) pages.

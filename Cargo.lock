@@ -3061,15 +3061,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "occt-sys"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abf7e266531942bf47dfbc2e257cbd83a2b21dd997c15ec257a1168bb62c030a"
-dependencies = [
- "cmake",
-]
-
-[[package]]
 name = "ogg"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3101,7 +3092,6 @@ dependencies = [
  "cmake",
  "cxx",
  "cxx-build",
- "occt-sys",
 ]
 
 [[package]]
