@@ -135,7 +135,10 @@ fn render_to_preview(source: &str) -> Result<(), Box<dyn Error>> {
         g.replace(watcher);
     }
 
-    render_with_watcher(source, handle.clone(), watch.clone())?;
+    let source = source.to_string();
+    std::thread::spawn(move || {
+        render_with_watcher(&source, handle.clone(), watch.clone()).unwrap();
+    });
 
     preview.open(Library::default().to_string());
     Ok(())
