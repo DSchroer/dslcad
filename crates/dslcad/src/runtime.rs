@@ -10,9 +10,11 @@ mod value;
 use crate::library::{ArgValue, CallSignature, Library};
 use crate::parser::{Argument, Ast, CallPath, DocId, Expression, Literal, Statement};
 use crate::runtime::scope::Scope;
+use log::trace;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
+use std::time::Instant;
 
 pub use access::Access;
 pub use stack::WithStack;
@@ -126,11 +128,22 @@ impl<'a> Engine<'a> {
 
                 match path {
                     CallPath::Function(path) => {
+                        let timer = Instant::now();
+
                         let (f, a) = self
                             .library
                             .find(CallSignature::new(path, argument_values))
                             .map_err(|e| WithStack::from_err(e, &self.stack))?;
-                        Ok(f(&a).map_err(|e| WithStack::from_err(e, &self.stack))?)
+                        let res = f(&a).map_err(|e| WithStack::from_err(e, &self.stack))?;
+
+                        if timer.elapsed().as_millis() != 0 {
+                            trace!(
+                                "{:?}(..) executed in {}ms",
+                                path,
+                                timer.elapsed().as_millis()
+                            );
+                        }
+                        Ok(res)
                     }
                     CallPath::Document(id) => {
                         let named_argument_values = argument_values
