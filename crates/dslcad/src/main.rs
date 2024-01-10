@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use dslcad::library::Library;
 use dslcad::parser::{Ast, DocId};
 use dslcad::{parse, render};
@@ -11,28 +11,32 @@ use std::path::Path;
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[command(subcommand)]
-    command: Commands,
+    /// Source path to load
+    source: String,
+
+    #[cfg(feature = "preview")]
+    #[arg(short, long)]
+    /// Display preview window for editing
+    preview: bool,
+
+    #[command(flatten)]
+    cheatsheet: Cheatsheet,
 }
 
-#[derive(Subcommand, Debug, Clone)]
-enum Commands {
-    Render {
-        /// Source path to load
-        source: String,
-        #[cfg(feature = "preview")]
-        #[arg(short, long)]
-        preview: bool,
-    },
-    Cheatsheet {},
+#[derive(Parser, Debug, Clone)]
+#[command(author, version, about, long_about = None)]
+struct Cheatsheet {
+    #[arg(long)]
+    /// Print the cheatsheet
+    cheatsheet: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
-    let args = Args::parse();
-
-    match args.command {
-        Commands::Render { source, preview } => {
+    match Args::try_parse() {
+        Ok(Args {
+            preview, source, ..
+        }) => {
             #[cfg(feature = "preview")]
             if preview {
                 return render_to_preview(&source);
@@ -40,11 +44,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             render_to_file(&source)
         }
-        Commands::Cheatsheet {} => {
-            println!("{}", Library::default());
-            Ok(())
+        Err(e) => {
+            if let Ok(Cheatsheet { cheatsheet: true }) = Cheatsheet::try_parse() {
+                print_cheatsheet()
+            } else {
+                e.exit();
+            }
         }
     }
+}
+
+fn print_cheatsheet() -> Result<(), Box<dyn Error>> {
+    let lib = Library::default();
+    println!("{}", lib);
+    Ok(())
 }
 
 fn render_to_file(source: &String) -> Result<(), Box<dyn Error>> {
