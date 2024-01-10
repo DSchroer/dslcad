@@ -63,7 +63,9 @@ fn print_cheatsheet() -> Result<(), Box<dyn Error>> {
 fn render_to_file(source: &String) -> Result<(), Box<dyn Error>> {
     let render = render(parse(source.clone())?)?;
 
-    println!("{}", &render.stdout);
+    if !render.stdout.is_empty() {
+        println!("{}", &render.stdout);
+    }
 
     let cwd = env::current_dir()?;
     let file = Path::new(source).file_stem().unwrap();

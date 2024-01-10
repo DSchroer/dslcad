@@ -151,7 +151,7 @@ impl Value {
                 .iter()
                 .filter_map(|i| i.to_text().ok())
                 .reduce(|a, b| format!("{a}\n{b}"))
-                .unwrap_or_default()),
+                .ok_or(RuntimeError::UnexpectedType())?),
             _ => Err(RuntimeError::UnexpectedType()),
         }
     }
