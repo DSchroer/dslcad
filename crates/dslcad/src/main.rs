@@ -101,6 +101,7 @@ fn render_to_preview(source: &str) -> Result<(), Box<dyn Error>> {
         handle: PreviewHandle,
         watch: Arc<Mutex<Option<RecommendedWatcher>>>,
     ) -> Result<(), Box<dyn Error>> {
+        handle.show_rendering()?;
         match parse(source.to_string()) {
             Ok(ast) => {
                 add_files_to_watch(watch, &ast);

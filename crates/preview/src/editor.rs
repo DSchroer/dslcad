@@ -74,6 +74,10 @@ pub(crate) fn main(
             move |mut console: ResMut<gui::Console>, mut re: EventWriter<RenderCommand>| {
                 let rx = rx.lock().unwrap();
                 match rx.try_recv() {
+                    Ok(PreviewEvent::Rendering) => {
+                        console.clear();
+                        console.print("Rendering...".to_string());
+                    }
                     Ok(PreviewEvent::Render(render)) => {
                         console.clear();
                         console.print(render.stdout);

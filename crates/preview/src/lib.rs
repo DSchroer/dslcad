@@ -7,6 +7,7 @@ use std::error::Error;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 enum PreviewEvent {
+    Rendering,
     Render(Render),
     Error(String),
 }
@@ -17,6 +18,10 @@ pub struct PreviewHandle {
 }
 
 impl PreviewHandle {
+    pub fn show_rendering(&self) -> Result<(), Box<dyn Error>> {
+        Ok(self.tx.send(PreviewEvent::Rendering)?)
+    }
+
     pub fn show_render(&self, render: Render) -> Result<(), Box<dyn Error>> {
         Ok(self.tx.send(PreviewEvent::Render(render))?)
     }
