@@ -23,7 +23,7 @@ struct Args {
     /// Deflection used to calculate mesh. Smaller numbers are more detailed.
     deflection: f64,
 
-    #[arg(short, long, value_enum)]
+    #[arg(short, long, value_enum, default_value = "3mf")]
     /// Deflection used to calculate mesh. Smaller numbers are more detailed.
     output: Output,
 
