@@ -20,11 +20,11 @@ struct Args {
     preview: bool,
 
     #[arg(short, long, default_value_t = 0.01)]
-    /// Deflection used to calculate mesh. Smaller numbers are more detailed.
+    /// Deflection used to calculate mesh (smaller = more detail)
     deflection: f64,
 
     #[arg(short, long, value_enum, default_value = "3mf")]
-    /// Deflection used to calculate mesh. Smaller numbers are more detailed.
+    /// Output file format
     output: Output,
 
     #[command(flatten)]
