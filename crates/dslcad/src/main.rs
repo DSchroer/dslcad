@@ -1,6 +1,5 @@
 use clap::{Parser, ValueEnum};
 use dslcad::library::Library;
-use dslcad::parser::{Ast, DocId};
 use dslcad::{parse, render};
 use persistence::threemf::ThreeMF;
 use std::env;
@@ -51,19 +50,13 @@ enum Output {
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     match Args::try_parse() {
-        Ok(Args {
-            preview,
-            source,
-            deflection,
-            output,
-            ..
-        }) => {
+        Ok(args) => {
             #[cfg(feature = "preview")]
-            if preview {
-                return render_to_preview(&source, deflection);
+            if args.preview {
+                return render_to_preview(&args.source, args.deflection);
             }
 
-            render_to_file(&source, deflection, output)
+            render_to_file(&args.source, args.deflection, args.output)
         }
         Err(e) => {
             if let Ok(Cheatsheet { cheatsheet: true }) = Cheatsheet::try_parse() {
@@ -111,6 +104,7 @@ fn render_to_file(source: &String, deflection: f64, output: Output) -> Result<()
 
 #[cfg(feature = "preview")]
 fn render_to_preview(source: &str, deflection: f64) -> Result<(), Box<dyn Error>> {
+    use dslcad::parser::{Ast, DocId};
     use notify::{recommended_watcher, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
     use preview::{Preview, PreviewHandle};
     use std::sync::{Arc, Mutex};

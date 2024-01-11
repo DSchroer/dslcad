@@ -8,6 +8,13 @@ run *FLAGS: build-occt
 build *FLAGS: build-occt
     cargo build {{ FLAGS }}
 
+build-preview *FLAGS:
+    cargo build --bin preview {{ FLAGS }}
+
+build-wasm *FLAGS:
+    just TARGET=wasm32-unknown-emscripten build --no-default-features {{ FLAGS }}
+    just TARGET=wasm32-unknown-unknown build-preview {{ FLAGS }}
+
 check: build-occt
     cargo +nightly fmt --check
     cargo clippy --target {{ TARGET }} --all-targets -- -Dwarnings
