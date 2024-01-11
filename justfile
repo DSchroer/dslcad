@@ -3,13 +3,13 @@ DEP_OCCT_ROOT := `pwd` / "occt_prebuilt" / TARGET / "out"
 CORES := `nproc --all`
 
 run *FLAGS: build-occt
-    cargo run {{ FLAGS }}
+    cargo run --target {{ TARGET }} {{ FLAGS }}
 
 build *FLAGS: build-occt
-    cargo build {{ FLAGS }}
+    cargo build --target {{ TARGET }} {{ FLAGS }}
 
 build-preview *FLAGS:
-    cargo build --bin preview {{ FLAGS }}
+    cargo build --bin preview --target {{ TARGET }} {{ FLAGS }}
 
 build-wasm *FLAGS:
     just TARGET=wasm32-unknown-emscripten build --no-default-features {{ FLAGS }}
