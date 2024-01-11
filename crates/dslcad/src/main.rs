@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use dslcad::library::Library;
 use dslcad::parser::{Ast, DocId};
 use dslcad::{parse, render};
@@ -6,6 +6,7 @@ use persistence::threemf::ThreeMF;
 use std::env;
 use std::error::Error;
 use std::fs::File;
+use std::io::Write;
 use std::path::Path;
 
 #[derive(Parser, Debug, Clone)]
@@ -23,6 +24,10 @@ struct Args {
     /// Deflection used to calculate mesh. Smaller numbers are more detailed.
     deflection: f64,
 
+    #[arg(short, long, value_enum)]
+    /// Deflection used to calculate mesh. Smaller numbers are more detailed.
+    output: Output,
+
     #[command(flatten)]
     cheatsheet: Cheatsheet,
 }
@@ -35,6 +40,14 @@ struct Cheatsheet {
     cheatsheet: bool,
 }
 
+#[derive(Debug, Clone, Default, ValueEnum)]
+enum Output {
+    #[default]
+    #[value(name = "3mf")]
+    ThreeMf,
+    Raw,
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     match Args::try_parse() {
@@ -42,6 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             preview,
             source,
             deflection,
+            output,
             ..
         }) => {
             #[cfg(feature = "preview")]
@@ -49,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 return render_to_preview(&source, deflection);
             }
 
-            render_to_file(&source, deflection)
+            render_to_file(&source, deflection, output)
         }
         Err(e) => {
             if let Ok(Cheatsheet { cheatsheet: true }) = Cheatsheet::try_parse() {
@@ -67,7 +81,7 @@ fn print_cheatsheet() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn render_to_file(source: &String, deflection: f64) -> Result<(), Box<dyn Error>> {
+fn render_to_file(source: &String, deflection: f64, output: Output) -> Result<(), Box<dyn Error>> {
     let render = render(parse(source.clone())?, deflection)?;
 
     if !render.stdout.is_empty() {
@@ -76,11 +90,21 @@ fn render_to_file(source: &String, deflection: f64) -> Result<(), Box<dyn Error>
 
     let cwd = env::current_dir()?;
     let file = Path::new(source).file_stem().unwrap();
-    let outpath = cwd.join(format!("{}.3mf", file.to_string_lossy()));
 
-    let threemf: ThreeMF = render.into();
-    let out = File::create(outpath)?;
-    threemf.write_to_zip(out)?;
+    match output {
+        Output::ThreeMf => {
+            let outpath = cwd.join(format!("{}.3mf", file.to_string_lossy()));
+            let threemf: ThreeMF = render.into();
+            let out = File::create(outpath)?;
+            threemf.write_to_zip(out)?;
+        }
+        Output::Raw => {
+            let outpath = cwd.join(format!("{}.bin", file.to_string_lossy()));
+            let raw: Vec<u8> = render.try_into()?;
+            let mut out = File::create(outpath)?;
+            out.write_all(&raw)?
+        }
+    }
 
     Ok(())
 }

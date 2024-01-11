@@ -1,10 +1,27 @@
 use crate::threemf::{ThreeMF, Triangle, Vertex};
 use serde::{Deserialize, Serialize};
+use serde_binary::binary_stream::Endian;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Render {
     pub parts: Vec<Part>,
     pub stdout: String,
+}
+
+impl TryFrom<&[u8]> for Render {
+    type Error = serde_binary::Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        serde_binary::from_slice(value, Endian::Big)
+    }
+}
+
+impl TryFrom<Render> for Vec<u8> {
+    type Error = serde_binary::Error;
+
+    fn try_from(value: Render) -> Result<Self, Self::Error> {
+        serde_binary::to_vec(&value, Endian::Big)
+    }
 }
 
 impl From<Render> for ThreeMF {
