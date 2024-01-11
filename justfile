@@ -37,5 +37,6 @@ build-occt: setup-env
     fi
 
 setup-env:
+    #!/bin/bash
     mkdir -p .cargo
     echo -e "[env]\nDEP_OCCT_ROOT = \"{{DEP_OCCT_ROOT}}\"" > .cargo/config
