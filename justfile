@@ -1,12 +1,13 @@
 TARGET := `rustc -vV | sed -n 's|host: ||p'`
-DEP_OCCT_ROOT := `pwd` / "occt_prebuilt" / TARGET / "out"
+export DEP_OCCT_ROOT := `pwd` / "occt_prebuilt" / TARGET / "out"
+
 CORES := `nproc --all`
 
 run *FLAGS: build-occt
     cargo run --target {{ TARGET }} {{ FLAGS }}
 
 build *FLAGS: build-occt
-    cargo build --target {{ TARGET }} {{ FLAGS }}
+    cargo build --bin dslcad --target {{ TARGET }} {{ FLAGS }}
 
 build-preview *FLAGS:
     cargo build --bin preview --target {{ TARGET }} {{ FLAGS }}
