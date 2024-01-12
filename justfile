@@ -4,10 +4,10 @@ export DEP_OCCT_ROOT := `pwd` / "occt_prebuilt" / TARGET / "out"
 CORES := `nproc --all`
 
 run *FLAGS: build-occt
-    cargo run --target {{ TARGET }} {{ FLAGS }}
+    DEP_OCCT_ROOT={{DEP_OCCT_ROOT}} cargo run --target {{ TARGET }} {{ FLAGS }}
 
 build *FLAGS: build-occt
-    cargo build --bin dslcad --target {{ TARGET }} {{ FLAGS }}
+    DEP_OCCT_ROOT={{DEP_OCCT_ROOT}} cargo build --bin dslcad --target {{ TARGET }} {{ FLAGS }}
 
 build-preview *FLAGS:
     cargo build --bin preview --target {{ TARGET }} {{ FLAGS }}
@@ -18,22 +18,26 @@ build-wasm *FLAGS:
 
 check: build-occt
     cargo +nightly fmt --check
-    cargo clippy --target {{ TARGET }} --all-targets -- -Dwarnings
-    cargo test --target {{ TARGET }}
+    DEP_OCCT_ROOT={{DEP_OCCT_ROOT}} cargo clippy --target {{ TARGET }} --all-targets -- -Dwarnings
+    DEP_OCCT_ROOT={{DEP_OCCT_ROOT}} cargo test --target {{ TARGET }}
 
 install: build-occt
-    cargo install --path crates/dslcad
+    DEP_OCCT_ROOT={{DEP_OCCT_ROOT}} cargo install --path crates/dslcad
 
 clean:
     cargo clean
 
 build-occt: setup-env
-    #!/bin/sh
+    #!/bin/bash
     set -ex
     if [ ! -d "occt_prebuilt/{{ TARGET }}" ]; then
       export CMAKE_BUILD_PARALLEL_LEVEL={{CORES}}
       cargo clean --manifest-path tools/opencascade_builder/Cargo.toml
-      cargo build --manifest-path tools/opencascade_builder/Cargo.toml --target {{ TARGET }} -vv
+      cargo build --manifest-path tools/opencascade_builder/Cargo.toml --release --target {{ TARGET }} -vv
+
+      # Copy built files
+      mkdir -p occt_prebuilt/{{ TARGET }}
+      cp -r tools/opencascade_builder/target/{{ TARGET }}/release/build/occt-sys-*/out occt_prebuilt/{{ TARGET }}
     fi
 
 setup-env:

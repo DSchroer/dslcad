@@ -47,8 +47,7 @@ impl TryInto<Shape> for TriangleMesh {
     type Error = Error;
 
     fn try_into(self) -> Result<Shape, Self::Error> {
-        let ptr = self.0.into_raw();
-        let handle = unsafe { Handle_Poly_Triangulation_ctor(ptr) };
+        let handle = Handle_Poly_Triangulation_ctor(self.0);
         let mut shape_on_mesh = BRepBuilderAPI_MakeShapeOnMesh_ctor(&handle);
         let shape: Shape = Builder::<TopoDS_Shape>::try_build(&mut shape_on_mesh)?.into();
 

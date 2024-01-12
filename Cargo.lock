@@ -2969,7 +2969,6 @@ dependencies = [
 [[package]]
 name = "opencascade-sys"
 version = "0.2.0"
-source = "git+https://github.com/dschroer/opencascade-rs?rev=73c2745365197af282279450b2b9213d028ba77b#73c2745365197af282279450b2b9213d028ba77b"
 dependencies = [
  "cmake",
  "cxx",

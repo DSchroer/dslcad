@@ -240,7 +240,7 @@ impl Value {
         }
     }
 
-    fn fuse_list<T: DsShape>(lines: &Vec<Rc<T>>) -> Result<Rc<T>> {
+    fn fuse_list<T: DsShape>(lines: &[Rc<T>]) -> Result<Rc<T>> {
         match lines.len() {
             0 => Err(RuntimeError::UnexpectedType()),
             1 => Ok(lines[0].clone()),

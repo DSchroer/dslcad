@@ -1,3 +1,5 @@
+use occt_sys;
+
 fn main() {
-    println!("work was performed in the build.rs file")
+    println!("copy from path {:?}", occt_sys::occt_path())
 }

@@ -106,7 +106,7 @@ pub fn union_edge(left: &Wire, right: &Wire) -> Result<Value, RuntimeError> {
     Ok(Value::Line(Rc::new(edge.build()?)))
 }
 
-pub fn face(parts: &Vec<Value>) -> Result<Value, RuntimeError> {
+pub fn face(parts: &[Value]) -> Result<Value, RuntimeError> {
     if parts.is_empty() {
         return point(None, None, None);
     }
