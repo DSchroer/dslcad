@@ -1,42 +1,45 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
+    <title>Title</title>
     <style>
-        body {
-            background: linear-gradient(
-                    135deg,
-                    white 0%,
-                    white 49%,
-                    black 49%,
-                    black 51%,
-                    white 51%,
-                    white 100%
-            );
-            background-repeat: repeat;
-            background-size: 20px 20px;
-        }
-        canvas {
-            background-color: white;
-            padding-left: 0;
-            padding-right: 0;
-            margin-left: auto;
-            margin-right: auto;
-            display: block;
+        #editor {
+            width: 100%;
         }
     </style>
 </head>
-<script type="importmap">
-{
-  "imports": {
-    "env": "./env.js"
-  }
-}
-</script>
-<script type="module">
-    import { newServer, run } from "./dslcad.js"
-
-    const server = await newServer();
-    await run(server);
-</script>
+<body>
+<div>
+    <textarea id="editor">cube();</textarea>
+    <button id="render">render</button>
+</div>
 <canvas id="dslcad"></canvas>
+<script type="module">
+    import preview from "./lib/preview.js";
+    import dslcad from "./lib/dslcad.js";
+
+    let btn = document.getElementById("render");
+    let editor = document.getElementById("editor");
+    let module = await preview();
+
+    btn.onclick = async () => {
+        let text = editor.value;
+
+        let cad = await dslcad({ noInitialRun: true });
+        cad.FS.writeFile("input.ds", text);
+        cad.callMain(["input.ds", "-o", "raw", "-l", "trace"]);
+        const out = cad.FS.readFile("input.bin");
+
+        let len = out.length;
+        let ptr = module.allocate(len);
+        const input = new Int8Array(module.memory.buffer, ptr, len);
+        input.set(out);
+
+        module.render_raw(ptr, len);
+    };
+
+    module.main(0, 0);
+</script>
+</body>
 </html>

@@ -1,6 +1,7 @@
 use clap::{Parser, ValueEnum};
 use dslcad::library::Library;
 use dslcad::{parse, render};
+use log::info;
 use persistence::threemf::ThreeMF;
 use std::env;
 use std::error::Error;
@@ -27,6 +28,10 @@ struct Args {
     /// Output file format
     output: Output,
 
+    #[arg(short, long)]
+    /// Log filter
+    log: Option<String>,
+
     #[command(flatten)]
     cheatsheet: Cheatsheet,
 }
@@ -48,9 +53,12 @@ enum Output {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::init();
     match Args::try_parse() {
         Ok(args) => {
+            if let Some(log) = &args.log {
+                env_logger::builder().parse_filters(log).init();
+            }
+
             #[cfg(feature = "preview")]
             if args.preview {
                 return render_to_preview(&args.source, args.deflection);
@@ -84,20 +92,24 @@ fn render_to_file(source: &String, deflection: f64, output: Output) -> Result<()
     let cwd = env::current_dir()?;
     let file = Path::new(source).file_stem().unwrap();
 
-    match output {
+    let outfile = match output {
         Output::ThreeMf => {
             let outpath = cwd.join(format!("{}.3mf", file.to_string_lossy()));
             let threemf: ThreeMF = render.into();
-            let out = File::create(outpath)?;
+            let out = File::create(&outpath)?;
             threemf.write_to_zip(out)?;
+            outpath
         }
         Output::Raw => {
             let outpath = cwd.join(format!("{}.bin", file.to_string_lossy()));
             let raw: Vec<u8> = render.try_into()?;
-            let mut out = File::create(outpath)?;
-            out.write_all(&raw)?
+            let mut out = File::create(&outpath)?;
+            out.write_all(&raw)?;
+            outpath
         }
-    }
+    };
+
+    info!("output written to {}", outfile.to_string_lossy());
 
     Ok(())
 }
