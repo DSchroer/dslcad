@@ -1633,7 +1633,7 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 
 [[package]]
 name = "dslcad"
-version = "0.1.0"
+version = "0.0.3"
 dependencies = [
  "clap",
  "env_logger",
@@ -3109,7 +3109,7 @@ checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
 name = "preview"
-version = "0.1.0"
+version = "0.0.3"
 dependencies = [
  "bevy",
  "bevy_egui",

@@ -5,10 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.0.3]
 
 ### Added
+- `slice` operator to take cross-sections of 3D parts
+- `offset` operator to modify a 2D part
+- Ability to skip the parameter name in `->` operations
+- Ability to skip the parameter name by parameter order
+- `--log` parameter to set the log level
+- `--preview` parameter to view the preview window
 - WASM build for browser support
+- Import from `stl` file
+- Import from `ini` file
+- Export to `3mf` format
+- Export to `raw` format
+
+### Changed
+- Removed editor by default
+
+### Removed
+- Export to `txt` file
+- Export to `stl` file
 
 ## [v0.0.2] - 2023-03-10
 
