@@ -9,7 +9,10 @@ pub trait Store: Resource + Default {
     fn store(&mut self, key: &'static str, value: &str);
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub type Settings = FileStore;
+#[cfg(target_arch = "wasm32")]
+pub type Settings = MemStore;
 
 #[derive(Default, Resource)]
 pub struct MemStore {

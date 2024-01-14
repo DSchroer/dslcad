@@ -6,6 +6,7 @@ pub fn main() {
         println!("cargo:rustc-link-arg=-sMODULARIZE");
         println!("cargo:rustc-link-arg=-sEXPORT_NAME=dslcad");
         println!("cargo:rustc-link-arg=-sEXPORT_ES6=1");
+        println!("cargo:rustc-link-arg=-sSTACK_SIZE=10485760");
         println!("cargo:rustc-link-arg=-sEXPORTED_RUNTIME_METHODS=FS,callMain");
     }
 }

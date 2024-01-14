@@ -8,7 +8,5 @@ nav:
   - Web Editor: editor.md
   - Concepts: concepts.md
   - Syntax Reference: reference.md
-hooks:
-  - ./docs/web_editor.py
-extra:
-  editor_dir: ./browser
+markdown_extensions:
+  - attr_list

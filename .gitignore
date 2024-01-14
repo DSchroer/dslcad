@@ -10,6 +10,6 @@ packages/arch/*
 !packages/arch/PKGBUILD
 !packages/arch/dslcad.desktop
 site/
-browser/lib
+docs/editor
 __pycache__
 occt_prebuilt/

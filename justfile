@@ -16,11 +16,11 @@ build-wasm *FLAGS:
     just TARGET=wasm32-unknown-emscripten build --no-default-features --release {{ FLAGS }}
     just TARGET=wasm32-unknown-unknown build-preview --release {{ FLAGS }}
 
-    mkdir -p browser/lib
-    cp target/wasm32-unknown-emscripten/release/dslcad.* browser/lib/
+    mkdir -p docs/editor
+    cp target/wasm32-unknown-emscripten/release/dslcad.* ./docs/editor/
 
-    wasm-bindgen --out-dir ./browser/lib --target web ./target/wasm32-unknown-unknown/release/preview.wasm
-    sed -i 's/wasm.__wbindgen_start();//' ./browser/lib/preview.js
+    wasm-bindgen --out-dir ./docs/editor --target web ./target/wasm32-unknown-unknown/release/preview.wasm
+    sed -i 's/wasm.__wbindgen_start();//' ./docs/editor/preview.js
 
 check: build-occt
     cargo +nightly fmt --check

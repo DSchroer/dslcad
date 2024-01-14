@@ -42,11 +42,13 @@ fn cheatsheet(
     mut state: ResMut<HelpPlugin>,
     cheetsheet: Res<CheatSheet>,
 ) {
-    egui::Window::new("Cheat Sheet")
-        .open(&mut state.cheatsheet_window)
-        .show(egui_ctx.single_mut().get_mut(), |ui| {
-            egui::ScrollArea::vertical()
-                .max_height(512.)
-                .show(ui, |ui| ui.monospace(&cheetsheet.cheetsheet));
-        });
+    if !cheetsheet.cheetsheet.is_empty() {
+        egui::Window::new("Cheat Sheet")
+            .open(&mut state.cheatsheet_window)
+            .show(egui_ctx.single_mut().get_mut(), |ui| {
+                egui::ScrollArea::vertical()
+                    .max_height(512.)
+                    .show(ui, |ui| ui.monospace(&cheetsheet.cheetsheet));
+            });
+    }
 }

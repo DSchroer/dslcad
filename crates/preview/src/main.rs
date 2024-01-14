@@ -2,24 +2,39 @@ use persistence::protocol::Render;
 use preview::{Preview, PreviewHandle};
 use std::error::Error;
 use std::sync::OnceLock;
-use std::{env, fs, slice};
+use std::{env, fs};
 
 static HANDLE: OnceLock<PreviewHandle> = OnceLock::new();
 
 #[no_mangle]
-pub extern "C" fn allocate(len: usize) -> *const u8 {
+pub extern "C" fn allocate(len: usize) -> *mut u8 {
     let vec = Vec::with_capacity(len);
     let ptr = vec.leak();
-    ptr as *const [u8] as *const u8
+    ptr as *const [u8] as *mut u8
+}
+
+#[no_mangle]
+pub extern "C" fn show_rendering() {
+    HANDLE.get().unwrap().show_rendering().unwrap();
 }
 
 #[no_mangle]
 /// # Safety
 /// This is safe to call if ptr and len are from a Rust vec that has been forgotten.
 /// Make sure that the original vec has been shrink_to_fit as len and cap are assumed equal.
-pub unsafe extern "C" fn render_raw(ptr: *const u8, len: usize) {
-    let model = slice::from_raw_parts(ptr, len);
-    let render: Render = model.try_into().unwrap();
+pub unsafe extern "C" fn show_error(ptr: *mut u8, len: usize) {
+    let data = Vec::from_raw_parts(ptr, len, len);
+    let error = String::from_utf8(data).unwrap();
+    HANDLE.get().unwrap().show_error(error).unwrap();
+}
+
+#[no_mangle]
+/// # Safety
+/// This is safe to call if ptr and len are from a Rust vec that has been forgotten.
+/// Make sure that the original vec has been shrink_to_fit as len and cap are assumed equal.
+pub unsafe extern "C" fn show_render(ptr: *mut u8, len: usize) {
+    let model = Vec::from_raw_parts(ptr, len, len);
+    let render: Render = model.as_slice().try_into().unwrap();
     HANDLE.get().unwrap().show_render(render).unwrap();
 }
 
@@ -37,7 +52,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 
         // SAFETY: safe to call since we built the vec above
         unsafe {
-            render_raw(ptr as *const [u8] as *const u8, len);
+            show_render(ptr as *const [u8] as *mut u8, len);
         }
     }
 
