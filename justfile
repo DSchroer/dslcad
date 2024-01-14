@@ -12,6 +12,11 @@ build *FLAGS: build-occt
 build-preview *FLAGS:
     cargo build --bin preview --target {{ TARGET }} {{ FLAGS }}
 
+pack: (build "--release")
+    -rm {{TARGET}}.zip
+    rm target/{{TARGET}}/release/*.d
+    zip -j {{TARGET}}.zip target/{{TARGET}}/release/*
+
 build-wasm *FLAGS:
     just TARGET=wasm32-unknown-emscripten build --no-default-features --release {{ FLAGS }}
     just TARGET=wasm32-unknown-unknown build-preview --release {{ FLAGS }}
@@ -21,6 +26,13 @@ build-wasm *FLAGS:
 
     wasm-bindgen --out-dir ./docs/editor --target web ./target/wasm32-unknown-unknown/release/preview.wasm
     sed -i 's/wasm.__wbindgen_start();//' ./docs/editor/preview.js
+
+pack-wasm: build-wasm
+    -rm wasm32-unknown-unknown.zip
+    rm target/wasm32-unknown-emscripten/release/*.d
+    rm target/wasm32-unknown-unknown/release/*.d
+    zip -j wasm32-unknown-unknown.zip target/wasm32-unknown-emscripten/release/*
+    zip -j wasm32-unknown-unknown.zip target/wasm32-unknown-unknown/release/*
 
 check: build-occt
     cargo +nightly fmt --check
