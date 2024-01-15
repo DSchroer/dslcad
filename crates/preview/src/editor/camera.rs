@@ -85,22 +85,14 @@ fn camera_handler(
         match command {
             CameraCommand::Focus(aabb) => {
                 if state.focus.is_none() {
-                    let mut transform = camera.single_mut();
-                    let center = aabb.center();
-                    transform.target =
-                        Vec3::new(center[1] as f32, center[2] as f32, center[0] as f32);
-                    transform.eye = transform.target + Vec3::splat(aabb.max_len() as f32 * 2.);
+                    focus_on(&mut camera, aabb);
                 }
 
                 state.focus = Some(aabb.clone());
             }
             CameraCommand::Refocus() => {
                 if let Some(aabb) = &state.focus {
-                    let mut transform = camera.single_mut();
-                    let center = aabb.center();
-                    transform.target =
-                        Vec3::new(center[1] as f32, center[2] as f32, center[0] as f32);
-                    transform.eye = transform.target + Vec3::splat(aabb.max_len() as f32 * 2.);
+                    focus_on(&mut camera, aabb);
                 } else {
                     let mut transform = camera.single_mut();
                     transform.target = Vec3::default();
@@ -109,6 +101,16 @@ fn camera_handler(
             }
         }
     }
+}
+
+fn focus_on(
+    camera: &mut Query<&mut LookTransform, With<OrbitCameraController>>,
+    aabb: &BoundingBox,
+) {
+    let mut transform = camera.single_mut();
+    let center = aabb.center();
+    transform.target = Vec3::new(center[1] as f32, center[2] as f32, center[0] as f32);
+    transform.eye = transform.target + Vec3::splat(f32::max(aabb.max_len() as f32 * 2., 1.));
 }
 
 #[allow(clippy::too_many_arguments)]
