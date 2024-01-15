@@ -11,6 +11,7 @@ use std::error::Error;
 use crate::editor::rendering::RenderCommand;
 use crate::settings::Settings;
 use crate::PreviewEvent;
+use bevy::log::LogPlugin;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::sync::mpsc::Receiver;
@@ -53,15 +54,19 @@ pub(crate) fn main(
     app.insert_resource(Msaa::default())
         .insert_resource(ClearColor(Blueprint::blue()))
         .insert_resource(store)
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: persistence::constants::FULL_NAME.to_string(),
-                canvas: Some("#dslcad".to_string()),
-                fit_canvas_to_parent: true,
-                ..Default::default()
-            }),
-            ..default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: persistence::constants::FULL_NAME.to_string(),
+                        canvas: Some("#dslcad".to_string()),
+                        fit_canvas_to_parent: true,
+                        ..Default::default()
+                    }),
+                    ..default()
+                })
+                .disable::<LogPlugin>(),
+        )
         .add_plugins((
             PolylinePlugin,
             camera::CameraPlugin,
