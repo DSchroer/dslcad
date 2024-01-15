@@ -259,33 +259,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#features" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation
+      Features
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Installation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#system-requirements" class="md-nav__link">
-    <span class="md-ellipsis">
-      System Requirements
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
+  <a href="#installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Usage
+      Installation
     </span>
   </a>
   
@@ -395,33 +380,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#features" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation
+      Features
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Installation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#system-requirements" class="md-nav__link">
-    <span class="md-ellipsis">
-      System Requirements
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
+  <a href="#installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Usage
+      Installation
     </span>
   </a>
   
@@ -455,37 +425,46 @@
 
 
 <h1 id="getting-started">Getting Started</h1>
-<p>DSLCAD is a programming language &amp; interpreter for building 3D models.</p>
+<p>DSLCAD is a parametric CAD package. It offers a programming language &amp; interpreter for building 3D models. It is designed 
+for the 3D printing space but is flexible for use in other areas.</p>
+<p>DSLCAD is free, open source and cross-platform!</p>
 <p>Inspired by <a href="http://openscad.org/">OpenSCAD</a>, it has a language and 3D viewer to simplify the modeling experience.</p>
 <p><img alt="screenshot" src="screenshot.png" /></p>
+<h2 id="features">Features</h2>
+<ul>
+<li>100% scriptable parametric modeling</li>
+<li>Fully cross-platform</li>
+<li>Built in preview tool</li>
+<li>Web compatible</li>
+</ul>
 <h2 id="installation">Installation</h2>
-<p>Download the latest DSLCAD from the <a href="https://github.com/DSchroer/model-script/releases">Releases</a> tab of this repo.</p>
-<p>You can find pre-built binaries for:</p>
+<p>Download the latest DSLCAD from the <a href="https://github.com/DSchroer/dslcad/releases">Releases</a> page or use the <a href="editor/">Online Editor</a> to try it out.</p>
+<p>DSLCAD is available for:</p>
 <ul>
 <li>Windows</li>
 <li>MacOS</li>
 <li>Linux</li>
 </ul>
 <p>Download the zip file for your system and extract it.</p>
-<p>To start the DSLCAD viewer simply run the program.</p>
-<h3 id="system-requirements">System Requirements</h3>
-<p>The core compiler and CLI should run on just about any system.</p>
-<p>In order to use the GUI you need to meet the <a href="https://github.com/bevyengine/bevy/blob/latest/docs/linux_dependencies.md">bevy system requirements</a>.
-Notably you should have a vulkan enabled graphics driver.</p>
-<h2 id="usage">Usage</h2>
-<p>For basic editing, run DSLCAD and use the GUI.</p>
-<p>For automated usage, list the CLI options with <code>dslcad --help</code>.</p>
-<p>To see what can be built check out the <a href="https://github.com/DSchroer/dslcad/tree/master/examples">examples</a> folder.</p>
 <h2 id="hello-world">Hello World</h2>
-<p>To create a DSLCAD program. Simply create a new <code>*.ds</code> file or use <code>File &gt; New</code>.
+<p>To create a DSLCAD program, create a new <code>hello.ds</code> file.
 Edit the file and add the following code:</p>
+<div class="tryme">
+
+
 <pre><code>// create a simple cube
 cube();
 </code></pre>
-<p>Now run the program and open the file by following <code>File &gt; Open</code> and selecting
-the file you just created.</p>
-<p>If everything worked you should see a cube in your editor like this:
-<img alt="hello" src="hello.png" /></p>
+
+
+</div>
+
+<p>Now render it in DSLCAD:</p>
+<pre><code class="language-sh">dslcad ./hello.ds --preview
+</code></pre>
+<p>You should see the preview open with a cube:
+<img alt="hello" src="hello.png" style="height:250px;aspect-ratio:auto" /></p>
+<p>To learn more, check out the <a href="concepts/">concepts</a> page.</p>
 
 
 
@@ -509,6 +488,8 @@ the file you just created.</p>
       </main>
       
         <script async src="https://eyes.schroer.ca/tracker.js" data-ackee-server="https://eyes.schroer.ca" data-ackee-domain-id="e0b2e9fa-5152-43db-9738-ff54f0bf2703"></script>
+<script async src="/utils.js"></script>
+<link rel="stylesheet" type="text/css" rel="noopener" target="_blank" href="/utils.css">
       
     </div>
     <div class="md-dialog" data-md-component="dialog">

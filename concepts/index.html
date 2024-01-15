@@ -301,11 +301,86 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#scripts" class="md-nav__link">
+  <a href="#shapes" class="md-nav__link">
     <span class="md-ellipsis">
-      Scripts
+      Shapes
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Shapes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2d-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      2D Shapes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3d-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      3D Shapes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#moving-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      Moving Objects
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#boolean-operations-csg" class="md-nav__link">
+    <span class="md-ellipsis">
+      Boolean Operations (CSG)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2d-to-3d" class="md-nav__link">
+    <span class="md-ellipsis">
+      2D to 3D
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3d-to-2d" class="md-nav__link">
+    <span class="md-ellipsis">
+      3D to 2D
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -382,11 +457,86 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#scripts" class="md-nav__link">
+  <a href="#shapes" class="md-nav__link">
     <span class="md-ellipsis">
-      Scripts
+      Shapes
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Shapes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2d-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      2D Shapes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3d-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      3D Shapes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#moving-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      Moving Objects
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#boolean-operations-csg" class="md-nav__link">
+    <span class="md-ellipsis">
+      Boolean Operations (CSG)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2d-to-3d" class="md-nav__link">
+    <span class="md-ellipsis">
+      2D to 3D
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3d-to-2d" class="md-nav__link">
+    <span class="md-ellipsis">
+      3D to 2D
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -427,24 +577,164 @@
 
 
 <h1 id="concepts">Concepts</h1>
-<h2 id="scripts">Scripts</h2>
-<p>Everything in DSLCAD starts with a script. A script contains the instructions on 
-how to create a model. Scripts can even use other scripts to build complex
-projects.</p>
-<p>Every script is a <code>*.ds</code> file. To create a new script simply create a new file. </p>
-<p>Every script needs to create something. A script that doesn't create something has 
-no value in 3D modeling and therefore results in an error.</p>
-<p>You can use scripts from other scripts. Simply use a relative path
-and execute the script by name. Suppose I have two scripts:</p>
-<ol>
-<li><code>script1.ds</code></li>
-<li><code>script2.ds</code></li>
-</ol>
-<p>If I want to use <code>script2</code> from within <code>script1</code> I can do the following. Note how I 
-use a relative path to identify <code>script2</code>.</p>
-<pre><code>// call script2 from within script1
-./script2();
+<p>DSLCAD has some main concepts to understand when modeling. This page does over them at a high level and explains their intended use.
+For a more detailed list of operations check out the <a href="../reference/">Syntax Reference</a> page.</p>
+<h2 id="shapes">Shapes</h2>
+<p>When building anything in DSLCAD you need to start somewhere. Normally this is done by starting with a 2D or 3D shape. </p>
+<h3 id="2d-shapes">2D Shapes</h3>
+<p>The basic 2D shapes are made using the <code>square</code> and <code>circle</code> functions.</p>
+<div class="tryme">
+
+
+<pre><code>square(x=5, y=7);
 </code></pre>
+
+
+</div>
+
+<div class="tryme">
+
+
+<pre><code>circle(radius=7);
+</code></pre>
+
+
+</div>
+
+<h3 id="3d-shapes">3D Shapes</h3>
+<p>The basic 3D shapes are made using the <code>cube</code>, <code>sphere</code> and <code>cylinder</code> functions.</p>
+<div class="tryme">
+
+
+<pre><code>cube(x=1, y=3, z=5);
+</code></pre>
+
+
+</div>
+
+<div class="tryme">
+
+
+<pre><code>sphere(radius=4);
+</code></pre>
+
+
+</div>
+
+<div class="tryme">
+
+
+<pre><code>cylinder(radius=2, height=4);
+</code></pre>
+
+
+</div>
+
+<h2 id="operations">Operations</h2>
+<h3 id="moving-objects">Moving Objects</h3>
+<p>Often you need to position objects in 3D space. 
+The <code>translate</code> function lets you move an object.
+The <code>rotate</code> function lets you rotate an object around the x, y or z axis.
+The <code>scale</code> function lets scale an object up or down.</p>
+<div class="tryme">
+
+
+<pre><code>// Cube moved up the z axix by 2 units
+cube() -&gt; translate(z=2);
+
+// Cube rotated 225 degrees
+cube() -&gt; rotate(z=180 + 45);
+
+// Cube doubled in size
+cube() -&gt; scale(scale=2);
+</code></pre>
+
+
+</div>
+
+<p>The <code>center</code> function lets you center any object on any axis you want.</p>
+<div class="tryme">
+
+
+<pre><code>// Cube centered on the x and y axis.
+cube() -&gt; center(z=false);
+</code></pre>
+
+
+</div>
+
+<h3 id="boolean-operations-csg">Boolean Operations (CSG)</h3>
+<p>To manipulate 3D objects DSLCAD uses boolean operations (AKA <a href="https://en.wikipedia.org/wiki/Constructive_solid_geometry">Constructive Solid Geometry</a>).</p>
+<p>You can combine two objects using the <code>union</code> function. This joins both object into a single object.</p>
+<div class="tryme">
+
+
+<pre><code>// Cube combined with a sphere
+cube() -&gt; union(sphere(radius=1));
+</code></pre>
+
+
+</div>
+
+<p>You can cut away at an object using the <code>difference</code> function. This removes the second object from the first object.</p>
+<div class="tryme">
+
+
+<pre><code>// Cube with a sphere cut out
+cube() -&gt; difference(sphere(radius=1));
+</code></pre>
+
+
+</div>
+
+<p>You can get the overlap using the <code>intersect</code> function. This leaves the overlapping parts of both objects.</p>
+<div class="tryme">
+
+
+<pre><code>// Overlap of a cube and sphere
+cube() -&gt; intersect(sphere(radius=1));
+</code></pre>
+
+
+</div>
+
+<h3 id="2d-to-3d">2D to 3D</h3>
+<p>2D objects can be converted to 3D objects using the <code>extrude</code> or <code>revolve</code> functions.</p>
+<div class="tryme">
+
+
+<pre><code>// Extrude a square into a rectangular cube
+square() -&gt; extrude(z=2);
+</code></pre>
+
+
+</div>
+
+<div class="tryme">
+
+
+<pre><code>// Revolve a square around the y axis to make a half moon
+square() -&gt; revolve(y=180);
+</code></pre>
+
+
+</div>
+
+<h3 id="3d-to-2d">3D to 2D</h3>
+<p>Sometimes you need a 2D outline of a 3D part, use the <code>slice</code> function to cut a cross-section.</p>
+<div class="tryme">
+
+
+<pre><code>// Cut the outline of a complex shape
+cube() 
+-&gt; union(sphere() -&gt; translate(y=0.5)) 
+-&gt; center(x=false, y=false)
+-&gt; slice(square(x=10, y=10));
+</code></pre>
+
+
+</div>
+
 <h2 id="parts">Parts</h2>
 <p>Simple projects can get away with single 3D models. For more complex projects
 it is often useful to break things into multiple parts.</p>
@@ -502,6 +792,8 @@ final dimensions of your part. </p>
       </main>
       
         <script async src="https://eyes.schroer.ca/tracker.js" data-ackee-server="https://eyes.schroer.ca" data-ackee-domain-id="e0b2e9fa-5152-43db-9738-ff54f0bf2703"></script>
+<script async src="/utils.js"></script>
+<link rel="stylesheet" type="text/css" rel="noopener" target="_blank" href="/utils.css">
       
     </div>
     <div class="md-dialog" data-md-component="dialog">
