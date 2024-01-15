@@ -1,28 +1,171 @@
 # Concepts
 
-## Scripts
+DSLCAD has some main concepts to understand when modeling. This page does over them at a high level and explains their intended use.
+For a more detailed list of operations check out the [Syntax Reference](reference.md) page.
 
-Everything in DSLCAD starts with a script. A script contains the instructions on 
-how to create a model. Scripts can even use other scripts to build complex
-projects.
+## Shapes
 
-Every script is a `*.ds` file. To create a new script simply create a new file. 
+When building anything in DSLCAD you need to start somewhere. Normally this is done by starting with a 2D or 3D shape. 
 
-Every script needs to create something. A script that doesn't create something has 
-no value in 3D modeling and therefore results in an error.
+### 2D Shapes
 
-You can use scripts from other scripts. Simply use a relative path
-and execute the script by name. Suppose I have two scripts:
+The basic 2D shapes are made using the `square` and `circle` functions.
 
-1. `script1.ds`
-2. `script2.ds`
+<div class="tryme">
 
-If I want to use `script2` from within `script1` I can do the following. Note how I 
-use a relative path to identify `script2`.
 ```
-// call script2 from within script1
-./script2();
+square(x=5, y=7);
 ```
+
+</div>
+
+<div class="tryme">
+
+```
+circle(radius=7);
+```
+
+</div>
+
+### 3D Shapes
+
+The basic 3D shapes are made using the `cube`, `sphere` and `cylinder` functions.
+
+<div class="tryme">
+
+```
+cube(x=1, y=3, z=5);
+```
+
+</div>
+
+<div class="tryme">
+
+```
+sphere(radius=4);
+```
+
+</div>
+
+<div class="tryme">
+
+```
+cylinder(radius=2, height=4);
+```
+
+</div>
+
+## Operations
+
+### Moving Objects
+
+Often you need to position objects in 3D space. 
+The `translate` function lets you move an object.
+The `rotate` function lets you rotate an object around the x, y or z axis.
+The `scale` function lets scale an object up or down.
+
+
+<div class="tryme">
+
+```
+// Cube moved up the z axix by 2 units
+cube() -> translate(z=2);
+
+// Cube rotated 225 degrees
+cube() -> rotate(z=180 + 45);
+
+// Cube doubled in size
+cube() -> scale(scale=2);
+```
+
+</div>
+
+The `center` function lets you center any object on any axis you want.
+
+<div class="tryme">
+
+```
+// Cube centered on the x and y axis.
+cube() -> center(z=false);
+```
+
+</div>
+
+
+### Boolean Operations (CSG)
+
+To manipulate 3D objects DSLCAD uses boolean operations (AKA [Constructive Solid Geometry](https://en.wikipedia.org/wiki/Constructive_solid_geometry)).
+
+You can combine two objects using the `union` function. This joins both object into a single object.
+
+<div class="tryme">
+
+```
+// Cube combined with a sphere
+cube() -> union(sphere(radius=1));
+```
+
+</div>
+
+You can cut away at an object using the `difference` function. This removes the second object from the first object.
+
+<div class="tryme">
+
+```
+// Cube with a sphere cut out
+cube() -> difference(sphere(radius=1));
+```
+
+</div>
+
+You can get the overlap using the `intersect` function. This leaves the overlapping parts of both objects.
+
+<div class="tryme">
+
+```
+// Overlap of a cube and sphere
+cube() -> intersect(sphere(radius=1));
+```
+
+</div>
+
+### 2D to 3D
+
+2D objects can be converted to 3D objects using the `extrude` or `revolve` functions.
+
+<div class="tryme">
+
+```
+// Extrude a square into a rectangular cube
+square() -> extrude(z=2);
+```
+
+</div>
+
+<div class="tryme">
+
+```
+// Revolve a square around the y axis to make a half moon
+square() -> revolve(y=180);
+```
+
+</div>
+
+### 3D to 2D
+
+Sometimes you need a 2D outline of a 3D part, use the `slice` function to cut a cross-section.
+
+<div class="tryme">
+
+```
+// Cut the outline of a complex shape
+cube() 
+-> union(sphere() -> translate(y=0.5)) 
+-> center(x=false, y=false)
+-> slice(square(x=10, y=10));
+```
+
+</div>
 
 ## Parts
 

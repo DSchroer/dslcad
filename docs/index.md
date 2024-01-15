@@ -1,16 +1,26 @@
 # Getting Started
 
-DSLCAD is a programming language & interpreter for building 3D models.
+DSLCAD is a parametric CAD package. It offers a programming language & interpreter for building 3D models. It is designed 
+for the 3D printing space but is flexible for use in other areas.
+
+DSLCAD is free, open source and cross-platform!
 
 Inspired by [OpenSCAD](http://openscad.org/), it has a language and 3D viewer to simplify the modeling experience.
 
 ![screenshot](./screenshot.png)
 
+## Features
+
+- 100% scriptable parametric modeling
+- Fully cross-platform
+- Built in preview tool
+- Web compatible
+
 ## Installation
 
-Download the latest DSLCAD from the [Releases](https://github.com/DSchroer/model-script/releases) tab of this repo.
+Download the latest DSLCAD from the [Releases](https://github.com/DSchroer/dslcad/releases) page or use the [Online Editor](editor.md) to try it out.
 
-You can find pre-built binaries for:
+DSLCAD is available for:
 
 - Windows
 - MacOS
@@ -18,35 +28,27 @@ You can find pre-built binaries for:
 
 Download the zip file for your system and extract it.
 
-To start the DSLCAD viewer simply run the program.
-
-### System Requirements
-
-The core compiler and CLI should run on just about any system.
-
-In order to use the GUI you need to meet the [bevy system requirements](https://github.com/bevyengine/bevy/blob/latest/docs/linux_dependencies.md).
-Notably you should have a vulkan enabled graphics driver.
-
-## Usage
-
-For basic editing, run DSLCAD and use the GUI.
-
-For automated usage, list the CLI options with `dslcad --help`.
-
-To see what can be built check out the [examples](https://github.com/DSchroer/dslcad/tree/master/examples) folder.
-
 ## Hello World
 
-To create a DSLCAD program. Simply create a new `*.ds` file or use `File > New`.
+To create a DSLCAD program, create a new `hello.ds` file.
 Edit the file and add the following code:
+
+<div class="tryme">
 
 ```
 // create a simple cube
 cube();
 ```
 
-Now run the program and open the file by following `File > Open` and selecting
-the file you just created.
+</div>
 
-If everything worked you should see a cube in your editor like this:
-![hello](./hello.png)
+Now render it in DSLCAD:
+
+```sh
+dslcad ./hello.ds --preview
+```
+
+You should see the preview open with a cube:
+![hello](./hello.png){: style="height:250px;aspect-ratio:auto"}
+
+To learn more, check out the [concepts](concepts.md) page.
