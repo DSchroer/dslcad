@@ -160,7 +160,7 @@ Sometimes you need a 2D outline of a 3D part, use the `slice` function to cut a 
 ```
 // Cut the outline of a complex shape
 cube() 
--> union(sphere() -> translate(y=0.5)) 
+-> union(sphere() -> translate(y=0.9)) 
 -> center(x=false, y=false)
 -> slice(square(x=10, y=10));
 ```
