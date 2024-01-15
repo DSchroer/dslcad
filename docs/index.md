@@ -49,6 +49,7 @@ dslcad ./hello.ds --preview
 ```
 
 You should see the preview open with a cube:
+
 ![hello](./hello.png){: style="height:250px;aspect-ratio:auto"}
 
 To learn more, check out the [concepts](concepts.md) page.
