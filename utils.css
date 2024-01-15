@@ -5,7 +5,8 @@
 }
 
 .tryme pre {
-    min-width: 100%;
+    width: 100%;
+    overflow: scroll;
     margin-top: 0;
 }
 
