@@ -34,6 +34,9 @@ impl Plugin for GuiPlugin {
         .add_event_menu_button("Camera/Focus", |c: &mut EventWriter<CameraCommand>| {
             c.send(CameraCommand::Refocus())
         })
+        .add_event_menu_button("Camera/Reset", |c: &mut EventWriter<CameraCommand>| {
+            c.send(CameraCommand::Reset())
+        })
         .add_plugins(HelpPlugin::default())
         .add_systems(Update, console_panel);
     }

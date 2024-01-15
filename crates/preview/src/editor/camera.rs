@@ -32,6 +32,7 @@ struct CameraState {
 #[derive(Event)]
 pub enum CameraCommand {
     Refocus(),
+    Reset(),
     Focus(BoundingBox),
 }
 
@@ -98,6 +99,11 @@ fn camera_handler(
                     transform.target = Vec3::default();
                     transform.eye = Vec3::splat(100.);
                 }
+            }
+            CameraCommand::Reset() => {
+                let mut transform = camera.single_mut();
+                transform.target = Vec3::default();
+                transform.eye = Vec3::splat(100.);
             }
         }
     }
