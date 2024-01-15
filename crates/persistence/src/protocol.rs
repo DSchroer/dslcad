@@ -1,4 +1,7 @@
+mod aabb;
+
 use crate::threemf::{ThreeMF, Triangle, Vertex};
+pub use aabb::BoundingBox;
 use serde::{Deserialize, Serialize};
 use serde_binary::binary_stream::Endian;
 

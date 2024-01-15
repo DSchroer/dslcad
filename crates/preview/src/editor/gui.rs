@@ -5,10 +5,11 @@ mod view_menu;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
+use crate::editor::camera::CameraCommand;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 
 use crate::editor::gui::help::HelpPlugin;
-use crate::editor::gui::menu::MenuPlugin;
+use crate::editor::gui::menu::{MenuAppExt, MenuPlugin};
 use crate::editor::gui::view_menu::ViewMenuPlugin;
 
 pub struct GuiPlugin {
@@ -30,6 +31,9 @@ impl Plugin for GuiPlugin {
         .add_plugins(EguiPlugin)
         .add_plugins(MenuPlugin)
         .add_plugins(ViewMenuPlugin)
+        .add_event_menu_button("Camera/Focus", |c: &mut EventWriter<CameraCommand>| {
+            c.send(CameraCommand::Refocus())
+        })
         .add_plugins(HelpPlugin::default())
         .add_systems(Update, console_panel);
     }

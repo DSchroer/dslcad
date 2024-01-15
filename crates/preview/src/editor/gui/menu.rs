@@ -31,6 +31,12 @@ impl Plugin for MenuPlugin {
 }
 
 pub trait MenuAppExt {
+    fn add_event_menu_button<T: Event>(
+        &mut self,
+        path: &'static str,
+        action: impl Fn(&mut EventWriter<T>) + Send + Sync + 'static,
+    ) -> &mut App;
+
     fn add_res_menu_button<T: Resource>(
         &mut self,
         path: &'static str,
@@ -52,6 +58,33 @@ pub trait MenuAppExt {
 }
 
 impl MenuAppExt for App {
+    fn add_event_menu_button<T: Event>(
+        &mut self,
+        path: &'static str,
+        action: impl Fn(&mut EventWriter<T>) + Send + Sync + 'static,
+    ) -> &mut App {
+        let mut path = path.split('/');
+        let menu_name = TopLevelMenu::from_str(path.next().expect("menu must have top level"))
+            .expect("unknown top level menu");
+        let action_name = path.next().expect("menu must have action");
+
+        self.add_systems(Startup, move |mut menu: ResMut<Menu>| {
+            menu.button(menu_name, action_name);
+        });
+
+        self.add_systems(
+            Update,
+            move |mut events: EventReader<MenuEvent>, mut event: EventWriter<T>| {
+                for click in events.iter() {
+                    if click.action() == action_name {
+                        action(&mut event);
+                    }
+                }
+            },
+        );
+        self
+    }
+
     fn add_res_menu_button<T: Resource>(
         &mut self,
         path: &'static str,
@@ -138,6 +171,7 @@ impl MenuEvent {
 enum TopLevelMenu {
     File,
     View,
+    Camera,
     Rendering,
     Export,
     Window,

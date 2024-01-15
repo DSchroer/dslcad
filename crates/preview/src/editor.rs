@@ -8,6 +8,7 @@ use bevy::prelude::*;
 use bevy_polyline::prelude::*;
 use std::error::Error;
 
+use crate::editor::camera::CameraCommand;
 use crate::editor::rendering::RenderCommand;
 use crate::settings::Settings;
 use crate::PreviewEvent;
@@ -76,7 +77,9 @@ pub(crate) fn main(
         ))
         .add_systems(
             Update,
-            move |mut console: ResMut<gui::Console>, mut re: EventWriter<RenderCommand>| {
+            move |mut console: ResMut<gui::Console>,
+                  mut re: EventWriter<RenderCommand>,
+                  mut ca: EventWriter<CameraCommand>| {
                 let rx = rx.lock().unwrap();
                 match rx.try_recv() {
                     Ok(PreviewEvent::Rendering) => {
@@ -84,6 +87,7 @@ pub(crate) fn main(
                         console.print("Rendering...".to_string());
                     }
                     Ok(PreviewEvent::Render(render)) => {
+                        ca.send(CameraCommand::Focus(render.aabb()));
                         console.clear();
                         console.print(render.stdout);
                         re.send(RenderCommand::Draw(render.parts));

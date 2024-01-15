@@ -3,21 +3,36 @@ use bevy::input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::EguiContext;
+use persistence::protocol::BoundingBox;
 use smooth_bevy_cameras::controllers::orbit::{
     ControlEvent, OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
 };
-use smooth_bevy_cameras::LookTransformPlugin;
+use smooth_bevy_cameras::{LookTransform, LookTransformPlugin};
 
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(LookTransformPlugin)
+            .add_event::<CameraCommand>()
+            .insert_resource(CameraState::default())
             .add_plugins(OrbitCameraPlugin::new(true))
             .add_systems(Startup, camera_system)
             .add_systems(Update, camera_light)
+            .add_systems(Update, camera_handler)
             .add_systems(Update, input_map);
     }
+}
+
+#[derive(Default, Resource)]
+struct CameraState {
+    focus: Option<BoundingBox>,
+}
+
+#[derive(Event)]
+pub enum CameraCommand {
+    Refocus(),
+    Focus(BoundingBox),
 }
 
 fn camera_light(
@@ -50,8 +65,8 @@ fn camera_system(mut commands: Commands) {
             color: Blueprint::white(),
             ..default()
         },
-        transform: Transform::from_translation(Vec3::new(100.0, 100.0, 100.0))
-            .looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
+        transform: Transform::from_translation(Vec3::splat(100.))
+            .looking_at(Vec3::default(), Vec3::Y),
         ..default()
     });
 
@@ -59,6 +74,41 @@ fn camera_system(mut commands: Commands) {
         color: Blueprint::blue(),
         brightness: 0.2,
     });
+}
+
+fn camera_handler(
+    mut camera_commands: EventReader<CameraCommand>,
+    mut camera: Query<&mut LookTransform, With<OrbitCameraController>>,
+    mut state: ResMut<CameraState>,
+) {
+    for command in camera_commands.iter() {
+        match command {
+            CameraCommand::Focus(aabb) => {
+                if state.focus.is_none() {
+                    let mut transform = camera.single_mut();
+                    let center = aabb.center();
+                    transform.target =
+                        Vec3::new(center[1] as f32, center[2] as f32, center[0] as f32);
+                    transform.eye = transform.target + Vec3::splat(aabb.max_len() as f32 * 2.);
+                }
+
+                state.focus = Some(aabb.clone());
+            }
+            CameraCommand::Refocus() => {
+                if let Some(aabb) = &state.focus {
+                    let mut transform = camera.single_mut();
+                    let center = aabb.center();
+                    transform.target =
+                        Vec3::new(center[1] as f32, center[2] as f32, center[0] as f32);
+                    transform.eye = transform.target + Vec3::splat(aabb.max_len() as f32 * 2.);
+                } else {
+                    let mut transform = camera.single_mut();
+                    transform.target = Vec3::default();
+                    transform.eye = Vec3::splat(100.);
+                }
+            }
+        }
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
