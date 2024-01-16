@@ -2943,6 +2943,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "occt-sys"
+version = "0.4.0"
+source = "git+https://github.com/dschroer/opencascade-rs?rev=38959e#38959e5c4441bc48652895f07df712d3cc7b739a"
+dependencies = [
+ "cmake",
+]
+
+[[package]]
 name = "ogg"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2969,11 +2977,12 @@ dependencies = [
 [[package]]
 name = "opencascade-sys"
 version = "0.2.0"
-source = "git+https://github.com/dschroer/opencascade-rs?rev=1b425e7#1b425e75a0b433136bcb9ee5bafe09aaeca9a1d2"
+source = "git+https://github.com/dschroer/opencascade-rs?rev=38959e#38959e5c4441bc48652895f07df712d3cc7b739a"
 dependencies = [
  "cmake",
  "cxx",
  "cxx-build",
+ "occt-sys",
 ]
 
 [[package]]
