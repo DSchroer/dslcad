@@ -2,9 +2,9 @@ use crate::library::Library;
 use crate::parser::{Ast, DocId, DocumentParseError, Literal, ParseError, Parser};
 use crate::reader::FsReader;
 use crate::resources::ResourceExt;
-use crate::runtime::{Engine, RuntimeError, WithStack};
+use crate::runtime::{Engine, RuntimeError, Value, WithStack};
 use log::trace;
-use persistence::protocol::Render;
+use persistence::protocol::{Part, Render};
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -55,17 +55,35 @@ pub fn render(
     trace!("eval in {}s", eval_time.elapsed().as_secs_f64());
 
     let render_time = Instant::now();
+
     let text = instance.to_text().unwrap_or_default();
 
-    let output = instance
-        .to_output(deflection)
-        .map_err(|e| WithStack::from_err(e, &vec![]))?;
+    let parts: Vec<_> = instance.flatten().into_iter().cloned().collect();
+    let output = values_to_output(parts, deflection);
+
     trace!("render in {}s", render_time.elapsed().as_secs_f64());
 
     Ok(Render {
-        parts: output,
+        parts: output.map_err(|e| WithStack::from_err(e, &vec![]))?,
         stdout: text,
     })
+}
+
+#[cfg(feature = "rayon")]
+fn values_to_output(values: Vec<Value>, deflection: f64) -> Result<Vec<Part>, RuntimeError> {
+    use rayon::iter::{IntoParallelIterator, ParallelIterator};
+    values
+        .into_par_iter()
+        .map(|v| v.to_output(deflection))
+        .collect()
+}
+
+#[cfg(not(feature = "rayon"))]
+fn values_to_output(values: Vec<Value>, deflection: f64) -> Result<Vec<Part>, RuntimeError> {
+    values
+        .into_iter()
+        .map(|v| v.to_output(deflection))
+        .collect()
 }
 
 #[cfg(test)]
@@ -184,7 +202,12 @@ line(start=point(x=0,y=0), end=point(x=1,y=1))
         let i = run(r"
 [[cube(), cube()], [cube(), cube()]];
         ");
-        assert_eq!(4, i.to_output(0.1).unwrap().len());
+        let parts: Vec<_> = i
+            .flatten()
+            .iter()
+            .map(|v| v.to_output(0.1).unwrap())
+            .collect();
+        assert_eq!(4, parts.len());
     }
 
     pub struct TestReader(pub &'static str);

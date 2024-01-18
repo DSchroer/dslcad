@@ -25,6 +25,8 @@ pub enum Value {
     Script(Rc<ScriptInstance>),
 }
 
+unsafe impl Send for Value {}
+
 impl From<Point> for Value {
     fn from(value: Point) -> Self {
         Value::Point(Rc::new(value))
@@ -112,25 +114,28 @@ impl Debug for Value {
 }
 
 impl Value {
-    pub fn to_output(&self, deflection: f64) -> Result<Vec<Part>> {
+    pub fn flatten(&self) -> Vec<&Value> {
         match self {
-            Value::Number(_) | Value::Bool(_) | Value::Text(_) => Ok(vec![Part::Empty]),
+            Value::Number(_) => vec![self],
+            Value::Bool(_) => vec![self],
+            Value::Text(_) => vec![self],
+            Value::Point(_) => vec![self],
+            Value::Line(_) => vec![self],
+            Value::Shape(_) => vec![self],
+            Value::List(list) => list.iter().flat_map(|l| l.flatten()).collect(),
+            Value::Script(s) => s.value().flatten(),
+        }
+    }
 
-            Value::List(l) => {
-                let mut results = Vec::new();
-                for item in l {
-                    if let Ok(o) = item.to_output(deflection) {
-                        results.push(o)
-                    }
-                }
-                Ok(results.concat())
+    pub fn to_output(&self, deflection: f64) -> Result<Part> {
+        match self {
+            Value::Number(_) | Value::Bool(_) | Value::Text(_) => Ok(Part::Empty),
+            Value::Point(p) => Ok(p.into_part(deflection)?),
+            Value::Line(l) => Ok(l.into_part(deflection)?),
+            Value::Shape(s) => Ok(s.into_part(deflection)?),
+            Value::List(_) | Value::Script(_) => {
+                panic!("can not be turned into Part directly, use `flatten` first")
             }
-
-            Value::Script(s) => Ok(s.value().to_output(deflection)?),
-
-            Value::Point(p) => Ok(vec![p.into_part(deflection)?]),
-            Value::Line(l) => Ok(vec![l.into_part(deflection)?]),
-            Value::Shape(s) => Ok(vec![s.into_part(deflection)?]),
         }
     }
 
