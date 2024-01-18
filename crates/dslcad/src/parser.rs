@@ -422,18 +422,19 @@ impl<R: Reader> Parser<R> {
         })
     }
 
-    fn parse_scope(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
-        let sb = SpanBuilder::from(lexer);
+    fn parse_scope(
+        &mut self,
+        lexer: &mut Lexer,
+        allow_parameters: bool,
+    ) -> Result<Vec<Statement>, DocumentParseError> {
         take!(self, lexer, Token::OpenScope = "{");
 
         let outer = self.variables.clone();
-        let statements = self.parse_document(lexer, Some(Token::CloseScope), false)?;
+        let statements = self.parse_document(lexer, Some(Token::CloseScope), allow_parameters)?;
         self.variables = outer;
 
         take!(self, lexer, Token::CloseScope = "}");
-        let span = sb.to(lexer);
-
-        Ok(Expression::Scope { statements, span })
+        Ok(statements)
     }
 
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
@@ -688,7 +689,15 @@ impl<R: Reader> Parser<R> {
                 self.parse_list(lexer)?
             },
             Token::OpenScope = "{" => {
-                self.parse_scope(lexer)?
+                let sb = SpanBuilder::from(lexer);
+                let statements = self.parse_scope(lexer, false)?;
+                Expression::Scope { statements, span: sb.to(lexer) }
+            },
+            Token::Function = "func" => {
+                let sb = SpanBuilder::from(lexer);
+                lexer.next();
+                let statements = self.parse_scope(lexer, true)?;
+                Expression::Literal(Literal::Function(statements), sb.to(lexer))
             },
             Token::Map = "map" => {
                 self.parse_map(lexer)?
@@ -940,6 +949,23 @@ pub mod tests {
             a.unwrap_err();
         });
         parse("{ var t; };", |a| {
+            a.unwrap_err();
+        });
+    }
+
+    #[test]
+    fn it_can_parse_functions() {
+        parse("var s = func {};", |a| {
+            a.unwrap();
+        });
+        parse("var s = func { 5; };", |a| {
+            a.unwrap();
+        });
+        parse("func { var t; };", |a| {
+            a.unwrap();
+        });
+
+        parse("func { var t = 0; }; t;", |a| {
             a.unwrap_err();
         });
     }

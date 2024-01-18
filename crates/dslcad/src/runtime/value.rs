@@ -5,6 +5,8 @@ use std::rc::Rc;
 
 use super::Access;
 use super::Type;
+use crate::parser::Statement;
+use crate::runtime::scope::Scope;
 use crate::runtime::{RuntimeError, ScriptInstance};
 use opencascade::{DsShape, Point, Shape, Wire};
 
@@ -22,7 +24,15 @@ pub enum Value {
 
     List(Vec<Value>),
 
+    Function(Rc<Function>),
+
     Script(Rc<ScriptInstance>),
+}
+
+#[derive(Clone)]
+pub struct Function {
+    pub clojure: Scope,
+    pub statements: Vec<Statement>,
 }
 
 unsafe impl Send for Value {}
@@ -87,6 +97,12 @@ impl From<Rc<Shape>> for Value {
     }
 }
 
+impl From<Rc<Function>> for Value {
+    fn from(value: Rc<Function>) -> Self {
+        Value::Function(value)
+    }
+}
+
 impl From<ScriptInstance> for Value {
     fn from(value: ScriptInstance) -> Self {
         Value::Script(Rc::new(value))
@@ -109,6 +125,7 @@ impl Debug for Value {
                 .field("z", &p.x())
                 .finish(),
             Value::Line(_) => f.debug_tuple("Line").finish(),
+            Value::Function(_) => f.debug_tuple("Func").finish(),
         }
     }
 }
@@ -124,6 +141,7 @@ impl Value {
             Value::Shape(_) => vec![self],
             Value::List(list) => list.iter().flat_map(|l| l.flatten()).collect(),
             Value::Script(s) => s.value().flatten(),
+            Value::Function(_) => vec![],
         }
     }
 
@@ -133,7 +151,7 @@ impl Value {
             Value::Point(p) => Ok(p.into_part(deflection)?),
             Value::Line(l) => Ok(l.into_part(deflection)?),
             Value::Shape(s) => Ok(s.into_part(deflection)?),
-            Value::List(_) | Value::Script(_) => {
+            _ => {
                 panic!("can not be turned into Part directly, use `flatten` first")
             }
         }
@@ -221,6 +239,14 @@ impl Value {
         }
     }
 
+    pub fn to_function(&self) -> Result<Rc<Function>> {
+        match self {
+            Value::Function(s) => Ok(s.clone()),
+            Value::Script(i) => i.value().to_function(),
+            _ => Err(RuntimeError::UnexpectedType()),
+        }
+    }
+
     pub fn is_type(&self, target: Type) -> bool {
         match target {
             Type::Number => self.to_number().is_ok(),
@@ -230,6 +256,7 @@ impl Value {
             Type::Point => self.to_point().is_ok(),
             Type::Edge => self.to_line().is_ok(),
             Type::Shape => self.to_shape().is_ok(),
+            Type::Function => self.to_function().is_ok(),
         }
     }
 
@@ -242,6 +269,7 @@ impl Value {
             Type::Point => Ok(self.to_point()?.into()),
             Type::Edge => Ok(self.to_line()?.into()),
             Type::Shape => Ok(self.to_shape()?.into()),
+            Type::Function => Ok(self.to_function()?.into()),
         }
     }
 

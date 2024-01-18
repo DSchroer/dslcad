@@ -60,6 +60,9 @@ pub enum Token {
     #[token("not")]
     Not,
 
+    #[token("func")]
+    Function,
+
     #[token("->")]
     Inject,
 
@@ -166,6 +169,14 @@ mod tests {
         assert_eq!(
             vec![Var, Identifier, Equal, OpenScope, CloseScope, Semicolon],
             tokens("var i = {};")
+        );
+    }
+
+    #[test]
+    fn it_can_lex_functions() {
+        assert_eq!(
+            vec![Var, Identifier, Equal, Function, OpenScope, CloseScope, Semicolon],
+            tokens("var i = func {};")
         );
     }
 

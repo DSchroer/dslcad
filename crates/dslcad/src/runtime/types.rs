@@ -9,6 +9,7 @@ pub enum Type {
     Point,
     Edge,
     Shape,
+    Function,
 }
 
 impl Display for Type {
@@ -21,6 +22,7 @@ impl Display for Type {
             Type::Point => f.write_str("point"),
             Type::Edge => f.write_str("edge"),
             Type::Shape => f.write_str("shape"),
+            Type::Function => f.write_str("function"),
         }
     }
 }

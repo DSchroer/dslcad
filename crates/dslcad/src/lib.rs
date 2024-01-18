@@ -180,6 +180,11 @@ mod tests {
     }
 
     #[test]
+    fn it_supports_functions() {
+        assert_eq!(Ok(5.), run("var f = func { 5; }; f();").to_number());
+    }
+
+    #[test]
     fn it_has_if_statements() {
         assert_eq!(Ok(10.), run("if true: 10 else: 0;").to_number());
     }

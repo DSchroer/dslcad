@@ -23,6 +23,7 @@ pub use types::Type;
 pub use value::Value;
 
 use crate::runtime::stack::{Stack, StackFrame};
+use crate::runtime::value::Function;
 pub use runtime_error::RuntimeError;
 pub use script_instance::ScriptInstance;
 
@@ -157,11 +158,28 @@ impl<'a> Engine<'a> {
                     CallPath::Function(path) => {
                         let timer = Instant::now();
 
-                        let (f, a) = self
-                            .library
-                            .find(CallSignature::new(path, argument_values))
-                            .map_err(|e| WithStack::from_err(e, &self.stack))?;
-                        let res = f(&a).map_err(|e| WithStack::from_err(e, &self.stack))?;
+                        let res = if let Some(value) = instance.get(path) {
+                            let func = value
+                                .to_function()
+                                .map_err(|e| WithStack::from_err(e, &self.stack))?;
+                            let named_argument_values =
+                                Self::to_named_argument_values(argument_values)
+                                    .map_err(|e| WithStack::from_err(e, &self.stack))?;
+
+                            self.eval_statements(
+                                DocId::new(path.clone()),
+                                named_argument_values,
+                                func.clojure.clone(),
+                                &func.statements,
+                            )?
+                            .into()
+                        } else {
+                            let (f, a) = self
+                                .library
+                                .find(CallSignature::new(path, argument_values))
+                                .map_err(|e| WithStack::from_err(e, &self.stack))?;
+                            f(&a).map_err(|e| WithStack::from_err(e, &self.stack))?
+                        };
 
                         if timer.elapsed().as_millis() != 0 {
                             trace!(
@@ -173,23 +191,8 @@ impl<'a> Engine<'a> {
                         Ok(res)
                     }
                     CallPath::Document(id) => {
-                        let named_argument_values = argument_values
-                            .into_iter()
-                            .try_fold(HashMap::new(), |mut acc, v| {
-                                match v {
-                                    ArgValue::Named(name, val) => {
-                                        acc.insert(name, val);
-                                    }
-                                    ArgValue::Unnamed(_) => {
-                                        return Err(RuntimeError::UnknownDefaultArgument {
-                                            name: "".to_string(),
-                                        })
-                                    }
-                                }
-                                Ok(acc)
-                            })
+                        let named_argument_values = Self::to_named_argument_values(argument_values)
                             .map_err(|e| WithStack::from_err(e, &self.stack))?;
-
                         let v = self.eval(id.clone(), named_argument_values)?;
                         Ok(Value::Script(Rc::new(v)))
                     }
@@ -220,6 +223,10 @@ impl<'a> Engine<'a> {
                 Literal::Resource(r) => r
                     .to_instance()
                     .map_err(|e| WithStack::from_err(e, &self.stack))?,
+                Literal::Function(statements) => Value::Function(Rc::new(Function {
+                    clojure: instance.clone(),
+                    statements: statements.clone(),
+                })),
             }),
             Expression::Map {
                 identifier,
@@ -311,6 +318,26 @@ impl<'a> Engine<'a> {
                 Ok(Value::Script(Rc::new(inst)))
             }
         }
+    }
+
+    fn to_named_argument_values(
+        argument_values: Vec<ArgValue>,
+    ) -> Result<HashMap<&str, Value>, RuntimeError> {
+        argument_values
+            .into_iter()
+            .try_fold(HashMap::new(), |mut acc, v| {
+                match v {
+                    ArgValue::Named(name, val) => {
+                        acc.insert(name, val);
+                    }
+                    ArgValue::Unnamed(_) => {
+                        return Err(RuntimeError::UnknownDefaultArgument {
+                            name: "".to_string(),
+                        })
+                    }
+                }
+                Ok(acc)
+            })
     }
 
     fn access(

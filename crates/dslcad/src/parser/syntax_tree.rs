@@ -156,4 +156,5 @@ pub enum Literal {
     Text(String),
     List(Vec<Expression>),
     Resource(Arc<dyn Resource>),
+    Function(Vec<Statement>),
 }
