@@ -167,6 +167,24 @@ cube()
 
 </div>
 
+## Scopes
+
+For private variables, you can make use of scopes:
+
+<div class="tryme">
+
+```
+var object = {
+    var base = 10;
+    var height = 10;
+    cube(x=base, y=base, z=height);
+};
+
+object;
+```
+
+</div>
+
 ## Parts
 
 Simple projects can get away with single 3D models. For more complex projects

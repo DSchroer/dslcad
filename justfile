@@ -36,8 +36,8 @@ build-docs-editor *FLAGS:
     just TARGET=wasm32-unknown-unknown build-preview {{ FLAGS }}
 
     mkdir -p docs/editor
-    cp target/wasm32-unknown-emscripten/release/dslcad.* ./docs/editor/
-    cp target/wasm32-unknown-unknown/release/preview.* ./docs/editor/
+    cp target/wasm32-unknown-emscripten/release/dslcad* ./docs/editor/
+    cp target/wasm32-unknown-unknown/release/preview* ./docs/editor/
 
 pack: (build "--release") build-preview
     -rm {{ TARGET }}.zip
