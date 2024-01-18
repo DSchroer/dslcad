@@ -6,7 +6,7 @@ use cxx::UniquePtr;
 use opencascade_sys::ffi::{
     cast_face_to_shape, BRepBuilderAPI_MakeShapeOnMesh, BRepBuilderAPI_MakeShapeOnMesh_ctor,
     BRepBuilderAPI_MakeSolid, BRepBuilderAPI_MakeSolid_ctor, BRep_Builder_ctor,
-    BRep_Builder_upcast_to_topods_builder, Handle_Poly_Triangulation_ctor, Poly_Triangle_ctor,
+    BRep_Builder_upcast_to_topods_builder, HandlePoly_Triangulation_ctor, Poly_Triangle_ctor,
     Poly_Triangulation, Poly_Triangulation_ctor, TopoDS_Face, TopoDS_Shape, TopoDS_Shell_as_shape,
     TopoDS_Shell_ctor, TopoDS_cast_to_shell,
 };
@@ -47,7 +47,7 @@ impl TryInto<Shape> for TriangleMesh {
     type Error = Error;
 
     fn try_into(self) -> Result<Shape, Self::Error> {
-        let handle = Handle_Poly_Triangulation_ctor(self.0);
+        let handle = HandlePoly_Triangulation_ctor(self.0);
         let mut shape_on_mesh = BRepBuilderAPI_MakeShapeOnMesh_ctor(&handle);
         let shape: Shape = Builder::<TopoDS_Shape>::try_build(&mut shape_on_mesh)?.into();
 

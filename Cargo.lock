@@ -2945,7 +2945,7 @@ dependencies = [
 [[package]]
 name = "occt-sys"
 version = "0.4.0"
-source = "git+https://github.com/dschroer/opencascade-rs?rev=38959e#38959e5c4441bc48652895f07df712d3cc7b739a"
+source = "git+https://github.com/dschroer/opencascade-rs?rev=7e7b8a#7e7b8ad2a5e449371ead2ec579a43779443002f0"
 dependencies = [
  "cmake",
 ]
@@ -2977,7 +2977,7 @@ dependencies = [
 [[package]]
 name = "opencascade-sys"
 version = "0.2.0"
-source = "git+https://github.com/dschroer/opencascade-rs?rev=38959e#38959e5c4441bc48652895f07df712d3cc7b739a"
+source = "git+https://github.com/dschroer/opencascade-rs?rev=7e7b8a#7e7b8ad2a5e449371ead2ec579a43779443002f0"
 dependencies = [
  "cmake",
  "cxx",
