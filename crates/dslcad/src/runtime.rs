@@ -55,8 +55,6 @@ impl<'a> Engine<'a> {
         id: DocId,
         arguments: HashMap<&str, Value>,
     ) -> Result<ScriptInstance, WithStack<RuntimeError>> {
-        let mut scope = Scope::new(arguments);
-
         let statements = self
             .ast
             .documents
@@ -66,8 +64,19 @@ impl<'a> Engine<'a> {
             })?
             .clone();
 
+        let scope = Scope::default();
+        self.eval_statements(id, arguments, scope, &statements)
+    }
+
+    fn eval_statements(
+        &mut self,
+        id: DocId,
+        arguments: HashMap<&str, Value>,
+        mut scope: Scope,
+        statements: &[Statement],
+    ) -> Result<ScriptInstance, WithStack<RuntimeError>> {
         let mut ret = Vec::new();
-        for statement in &statements {
+        for statement in statements {
             self.stack.push(StackFrame::from_statement(&id, statement));
 
             if self.stack.len() >= MAX_STACK_SIZE {
@@ -80,7 +89,11 @@ impl<'a> Engine<'a> {
             match statement {
                 Statement::Variable { name, value, .. } => match value {
                     Some(value) => {
-                        let value = self.expression(&scope, value)?;
+                        let value = if let Some(value) = arguments.get(name.as_str()).cloned() {
+                            value
+                        } else {
+                            self.expression(&scope, value)?
+                        };
                         scope.set(name.to_string(), value);
                     }
                     None => {
@@ -273,6 +286,15 @@ impl<'a> Engine<'a> {
                     .to_number()
                     .map_err(|e| WithStack::from_err(e, &self.stack))?;
                 Ok(list[index.round() as usize].clone())
+            }
+            Expression::Scope { statements, .. } => {
+                let inst = self.eval_statements(
+                    DocId::new("scope".to_string()),
+                    HashMap::new(),
+                    instance.clone(),
+                    statements,
+                )?;
+                Ok(Value::Script(Rc::new(inst)))
             }
         }
     }

@@ -71,8 +71,9 @@ impl<R: Reader> Parser<R> {
                 .reader
                 .read(doc.to_path())
                 .map_err(|_| ParseError::NoSuchFile { file: doc.clone() })?;
+            let mut lexer = Token::lexer(&source);
             let document = self
-                .parse_document(&source)
+                .parse_document(&mut lexer, None, true)
                 .map_err(|e| e.with_source(doc.clone(), source))?;
             ast.documents.insert(doc, document);
         }
@@ -89,22 +90,33 @@ impl<R: Reader> Parser<R> {
         self
     }
 
-    fn parse_document(&mut self, source: &str) -> Result<Vec<Statement>, DocumentParseError> {
-        let mut lex = Token::lexer(source);
-
+    fn parse_document(
+        &mut self,
+        lexer: &mut Lexer,
+        terminal: Option<Token>,
+        allow_parameters: bool,
+    ) -> Result<Vec<Statement>, DocumentParseError> {
         let mut statements = Vec::new();
-        while let Some(_) = lex.clone().next() {
-            let statement = self.parse_statement(&mut lex)?;
+        while let Some(n) = lexer.clone().next() {
+            if Some(n) == terminal {
+                break;
+            }
+
+            let statement = self.parse_statement(lexer, allow_parameters)?;
             statements.push(statement);
         }
 
         Ok(statements)
     }
 
-    fn parse_statement(&mut self, lexer: &mut Lexer) -> Result<Statement, DocumentParseError> {
+    fn parse_statement(
+        &mut self,
+        lexer: &mut Lexer,
+        allow_parameters: bool,
+    ) -> Result<Statement, DocumentParseError> {
         let mut peek = lexer.clone();
         match peek.next() {
-            Some(Token::Var) => self.parse_variable_statement(lexer),
+            Some(Token::Var) => self.parse_variable_statement(lexer, allow_parameters),
             Some(_) => self.parse_return_statement(lexer),
             None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
@@ -123,6 +135,7 @@ impl<R: Reader> Parser<R> {
     fn parse_variable_statement(
         &mut self,
         lexer: &mut Lexer,
+        allow_parameters: bool,
     ) -> Result<Statement, DocumentParseError> {
         take!(self, lexer, Token::Var = "var");
         let sb = SpanBuilder::from(lexer);
@@ -142,6 +155,13 @@ impl<R: Reader> Parser<R> {
                 Some(expr)
             }
         );
+
+        if !allow_parameters && expr.is_none() {
+            return Err(DocumentParseError::ParametersNotAllowedInScopes(
+                sb.to(lexer),
+            ));
+        }
+
         Ok(Statement::Variable {
             name: name.to_string(),
             value: expr,
@@ -364,6 +384,20 @@ impl<R: Reader> Parser<R> {
             .into(),
             span: sb.to(lexer),
         })
+    }
+
+    fn parse_scope(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
+        let sb = SpanBuilder::from(lexer);
+        take!(self, lexer, Token::OpenScope = "{");
+
+        let outer = self.variables.clone();
+        let statements = self.parse_document(lexer, Some(Token::CloseScope), false)?;
+        self.variables = outer;
+
+        take!(self, lexer, Token::CloseScope = "}");
+        let span = sb.to(lexer);
+
+        Ok(Expression::Scope { statements, span })
     }
 
     fn parse_expression(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
@@ -617,6 +651,9 @@ impl<R: Reader> Parser<R> {
             Token::OpenList = "[" => {
                 self.parse_list(lexer)?
             },
+            Token::OpenScope = "{" => {
+                self.parse_scope(lexer)?
+            },
             Token::Map = "map" => {
                 self.parse_map(lexer)?
             },
@@ -716,7 +753,7 @@ pub mod tests {
     #[test]
     fn it_can_parse_resource_calls() {
         parse("./cube.stl();", |a| {
-            dbg!(a.unwrap());
+            a.unwrap();
         });
     }
 
@@ -838,6 +875,23 @@ pub mod tests {
     fn it_can_parse_map() {
         parse("var foo = map [] as x: x;", |a| {
             a.unwrap();
+        });
+    }
+
+    #[test]
+    fn it_can_parse_scopes() {
+        parse("var s = {};", |a| {
+            a.unwrap();
+        });
+        parse("var s = { 5; };", |a| {
+            a.unwrap();
+        });
+
+        parse("{ var t = 0; }; t;", |a| {
+            a.unwrap_err();
+        });
+        parse("{ var t; };", |a| {
+            a.unwrap_err();
         });
     }
 

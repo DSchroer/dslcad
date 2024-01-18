@@ -127,6 +127,10 @@ pub enum Expression {
         if_false: Box<Expression>,
         span: Span,
     },
+    Scope {
+        statements: Vec<Statement>,
+        span: Span,
+    },
 }
 
 impl Expression {
@@ -140,6 +144,7 @@ impl Expression {
             Expression::Map { span, .. } => span,
             Expression::Reduce { span, .. } => span,
             Expression::If { span, .. } => span,
+            Expression::Scope { span, .. } => span,
         }
     }
 }

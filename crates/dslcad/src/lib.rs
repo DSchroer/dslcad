@@ -121,6 +121,13 @@ mod tests {
     }
 
     #[test]
+    fn it_supports_scopes() {
+        assert_eq!(Ok(5.), run("{ 5; };").to_number());
+        assert_eq!(Ok(5.), run("{ var t = 5; t; };").to_number());
+        assert_eq!(Ok(5.), run("var t = 5; { t; };").to_number());
+    }
+
+    #[test]
     fn it_has_if_statements() {
         assert_eq!(Ok(10.), run("if true: 10 else: 0;").to_number());
     }

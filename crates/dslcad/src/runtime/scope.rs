@@ -1,7 +1,7 @@
 use super::Value;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Scope {
     pub variables: HashMap<String, Value>,
 }

@@ -81,6 +81,11 @@ impl Display for ParseError {
                         f.write_fmt(format_args!("error: {}[{}:{}]\n", file, line, col.start))?;
                         f.write_fmt(format_args!("unknown resource extension {}", extension))?
                     }
+                    DocumentParseError::ParametersNotAllowedInScopes(span) => {
+                        let (line, col) = line_col(text, span);
+                        f.write_fmt(format_args!("error: {}[{}:{}]\n", file, line, col.start))?;
+                        f.write_fmt(format_args!("parameters are not allowed in scopes"))?;
+                    }
                 }
             }
         }
@@ -95,6 +100,7 @@ pub enum DocumentParseError {
     UnknownResourceType(String, Span),
     UndeclaredIdentifier(Span),
     DuplicateVariableName(Span),
+    ParametersNotAllowedInScopes(Span),
     Expected(&'static str, Span),
     ExpectedOneOf(Vec<&'static str>, Span),
 }

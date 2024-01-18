@@ -23,6 +23,11 @@ pub enum Token {
     #[token(".")]
     Period,
 
+    #[token("{")]
+    OpenScope,
+    #[token("}")]
+    CloseScope,
+
     #[token("+")]
     Plus,
     #[token("-")]
@@ -153,6 +158,14 @@ mod tests {
         assert_eq!(
             vec![Map, OpenList, CloseList, As, Identifier, Colon],
             tokens("map [] as n:")
+        );
+    }
+
+    #[test]
+    fn it_can_lex_scope() {
+        assert_eq!(
+            vec![Var, Identifier, Equal, OpenScope, CloseScope, Semicolon],
+            tokens("var i = {};")
         );
     }
 
