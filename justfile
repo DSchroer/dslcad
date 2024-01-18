@@ -6,17 +6,23 @@ run *FLAGS:
 
 build *FLAGS:
     #!/usr/bin/env bash
-    set -x
+    set -ex
 
     if [ "{{ TARGET }}" == "wasm32-unknown-emscripten" ]; then
       FLAGS="--no-default-features";
+    elif [ "{{ TARGET }}" == "wasm32-unknown-unknown" ]; then
+        exit 0
     fi
 
     cargo build --bin dslcad --target {{ TARGET }} $FLAGS {{ FLAGS }}
 
 build-preview *FLAGS:
     #!/usr/bin/env bash
-    set -x
+    set -ex
+
+    if [ "{{ TARGET }}" == "wasm32-unknown-emscripten" ]; then
+        exit 0
+    fi
 
     cargo build --bin preview --target {{ TARGET }} --release {{ FLAGS }}
 
@@ -33,7 +39,7 @@ build-docs-editor *FLAGS:
     cp target/wasm32-unknown-emscripten/release/dslcad.* ./docs/editor/
     cp target/wasm32-unknown-unknown/release/preview.* ./docs/editor/
 
-pack: (build "--release")
+pack: (build "--release") build-preview
     -rm {{ TARGET }}.zip
     rm target/{{ TARGET }}/release/*.d
     zip -j {{ TARGET }}.zip target/{{ TARGET }}/release/*
