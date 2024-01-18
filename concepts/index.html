@@ -385,6 +385,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#scopes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scopes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#parts" class="md-nav__link">
     <span class="md-ellipsis">
       Parts
@@ -537,6 +546,15 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scopes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scopes
+    </span>
+  </a>
   
 </li>
       
@@ -730,6 +748,23 @@ cube()
 -&gt; union(sphere() -&gt; translate(y=0.9)) 
 -&gt; center(x=false, y=false)
 -&gt; slice(square(x=10, y=10));
+</code></pre>
+
+
+</div>
+
+<h2 id="scopes">Scopes</h2>
+<p>For private variables, you can make use of scopes:</p>
+<div class="tryme">
+
+
+<pre><code>var object = {
+    var base = 10;
+    var height = 10;
+    cube(x=base, y=base, z=height);
+};
+
+object;
 </code></pre>
 
 
