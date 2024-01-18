@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
 use dslcad::library::Library;
-use dslcad::{parse, render};
+use dslcad::{parse, parse_arguments, render};
 use log::info;
 use persistence::threemf::ThreeMF;
 use std::env;
@@ -19,6 +19,10 @@ struct Args {
     #[arg(short, long)]
     /// Display preview window for editing
     preview: bool,
+
+    #[arg(short, long)]
+    /// Arguments for the script (examples: "foo=5", "name=\"bob\"")
+    argument: Vec<String>,
 
     #[arg(short, long, default_value_t = 0.01)]
     /// Deflection used to calculate mesh (smaller = more detail)
@@ -52,7 +56,7 @@ enum Output {
     Raw,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     match Args::try_parse() {
         Ok(args) => {
             if let Some(log) = &args.log {
@@ -61,14 +65,21 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             #[cfg(feature = "preview")]
             if args.preview {
-                return render_to_preview(&args.source, args.deflection);
+                if let Err(e) = render_to_preview(&args.source, args.argument, args.deflection) {
+                    eprintln!("{}", e);
+                }
+                return;
             }
 
-            render_to_file(&args.source, args.deflection, args.output)
+            if let Err(e) =
+                render_to_file(&args.source, args.argument, args.deflection, args.output)
+            {
+                eprintln!("{}", e);
+            }
         }
         Err(e) => {
             if let Ok(Cheatsheet { cheatsheet: true }) = Cheatsheet::try_parse() {
-                print_cheatsheet()
+                println!("{}", Library::default());
             } else {
                 e.exit();
             }
@@ -76,14 +87,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn print_cheatsheet() -> Result<(), Box<dyn Error>> {
-    let lib = Library::default();
-    println!("{}", lib);
-    Ok(())
-}
-
-fn render_to_file(source: &String, deflection: f64, output: Output) -> Result<(), Box<dyn Error>> {
-    let render = render(parse(source.clone())?, deflection)?;
+fn render_to_file(
+    source: &String,
+    arguments: Vec<String>,
+    deflection: f64,
+    output: Output,
+) -> Result<(), Box<dyn Error>> {
+    let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
+    let render = render(parse(source.clone())?, arguments, deflection)?;
 
     if !render.stdout.is_empty() {
         println!("{}", &render.stdout);
@@ -115,7 +126,11 @@ fn render_to_file(source: &String, deflection: f64, output: Output) -> Result<()
 }
 
 #[cfg(feature = "preview")]
-fn render_to_preview(source: &str, deflection: f64) -> Result<(), Box<dyn Error>> {
+fn render_to_preview(
+    source: &str,
+    arguments: Vec<String>,
+    deflection: f64,
+) -> Result<(), Box<dyn Error>> {
     use dslcad::parser::{Ast, DocId};
     use notify::{recommended_watcher, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
     use preview::{Preview, PreviewHandle};
@@ -135,6 +150,7 @@ fn render_to_preview(source: &str, deflection: f64) -> Result<(), Box<dyn Error>
 
     fn render_with_watcher(
         source: &str,
+        arguments: &[String],
         deflection: f64,
         handle: PreviewHandle,
         watch: Arc<Mutex<Option<RecommendedWatcher>>>,
@@ -143,7 +159,8 @@ fn render_to_preview(source: &str, deflection: f64) -> Result<(), Box<dyn Error>
         match parse(source.to_string()) {
             Ok(ast) => {
                 add_files_to_watch(watch, &ast);
-                match render(ast, deflection) {
+                let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
+                match render(ast, arguments, deflection) {
                     Ok(r) => handle.show_render(r)?,
                     Err(e) => handle.show_error(e.to_string())?,
                 }
@@ -157,14 +174,26 @@ fn render_to_preview(source: &str, deflection: f64) -> Result<(), Box<dyn Error>
     let watch = Arc::new(Mutex::new(None));
 
     let watcher = {
-        let (source, watch, handle) = (source.to_string(), watch.clone(), handle.clone());
+        let (source, arguments, watch, handle) = (
+            source.to_string(),
+            arguments.clone(),
+            watch.clone(),
+            handle.clone(),
+        );
         recommended_watcher(move |event| {
             if let Ok(notify::Event {
                 kind: EventKind::Modify(_),
                 ..
             }) = event
             {
-                render_with_watcher(&source, deflection, handle.clone(), watch.clone()).unwrap()
+                render_with_watcher(
+                    &source,
+                    &arguments,
+                    deflection,
+                    handle.clone(),
+                    watch.clone(),
+                )
+                .unwrap()
             }
         })?
     };
@@ -176,7 +205,14 @@ fn render_to_preview(source: &str, deflection: f64) -> Result<(), Box<dyn Error>
 
     let source = source.to_string();
     std::thread::spawn(move || {
-        render_with_watcher(&source, deflection, handle.clone(), watch.clone()).unwrap();
+        render_with_watcher(
+            &source,
+            &arguments,
+            deflection,
+            handle.clone(),
+            watch.clone(),
+        )
+        .unwrap();
     });
 
     preview.open(Library::default().to_string());

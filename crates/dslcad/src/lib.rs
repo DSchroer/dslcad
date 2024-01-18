@@ -1,5 +1,5 @@
 use crate::library::Library;
-use crate::parser::{Ast, DocId, ParseError};
+use crate::parser::{Ast, DocId, DocumentParseError, Literal, ParseError, Parser};
 use crate::reader::FsReader;
 use crate::resources::ResourceExt;
 use crate::runtime::{Engine, RuntimeError, WithStack};
@@ -26,13 +26,32 @@ pub fn parse(source: String) -> Result<Ast, ParseError> {
     ast
 }
 
-pub fn render(documents: Ast, deflection: f64) -> Result<Render, WithStack<RuntimeError>> {
+/// Parse arguments for use in DSLCAD.
+/// Arguments take the form of name=literal
+pub fn parse_arguments<'a>(
+    arguments: impl Iterator<Item = &'a str>,
+) -> Result<HashMap<&'a str, Literal>, DocumentParseError> {
+    let parse_time = Instant::now();
+
+    let parser = Parser::new((), DocId::new(String::new()));
+    let arguments = parser.parse_arguments(arguments)?;
+
+    trace!("arguments in {}s", parse_time.elapsed().as_secs_f64());
+
+    Ok(arguments)
+}
+
+pub fn render(
+    documents: Ast,
+    arguments: HashMap<&str, Literal>,
+    deflection: f64,
+) -> Result<Render, WithStack<RuntimeError>> {
     let lib = Library::default();
 
     let mut engine = Engine::new(&lib, documents);
 
     let eval_time = Instant::now();
-    let instance = engine.eval_root(HashMap::new())?;
+    let instance = engine.eval_root(arguments)?;
     trace!("eval in {}s", eval_time.elapsed().as_secs_f64());
 
     let render_time = Instant::now();
@@ -52,17 +71,22 @@ pub fn render(documents: Ast, deflection: f64) -> Result<Render, WithStack<Runti
 #[cfg(test)]
 mod tests {
     use crate::library::Library;
-    use crate::parser::{DocId, Reader};
+    use crate::parser::{Ast, DocId, Reader};
     use crate::runtime::{Engine, Value};
+    use crate::{parse_arguments, render};
     use std::collections::HashMap;
     use std::io::Error;
     use std::path::{Path, PathBuf};
 
-    fn run(code: &'static str) -> Value {
+    fn parse_str(code: &'static str) -> Ast {
         let reader = TestReader(code);
         let root = DocId::new("test".to_string());
         let parser = crate::parser::Parser::new(reader, root);
-        let documents = parser.parse().unwrap();
+        parser.parse().unwrap()
+    }
+
+    fn run(code: &'static str) -> Value {
+        let documents = parse_str(code);
         let lib = Library::default();
         let mut engine = Engine::new(&lib, documents);
         engine.eval_root(HashMap::new()).expect("failed to eval")
@@ -118,6 +142,16 @@ mod tests {
     fn it_has_lines() {
         run("line(start=point(x=0,y=0), end=point(x=1,y=1));");
         run("arc(start=point(x=0,y=0),center=point(x=1,y=0), end=point(x=0,y=1));");
+    }
+
+    #[test]
+    fn it_supports_arguments() {
+        let args = parse_arguments(vec!["a=\"5\""].into_iter()).unwrap();
+
+        let ast = parse_str("var a; a;");
+        let res = render(ast, args, 0.001).unwrap();
+
+        assert_eq!("5", &res.stdout);
     }
 
     #[test]

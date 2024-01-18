@@ -11,6 +11,7 @@ use crate::library::{ArgValue, CallSignature, Library};
 use crate::parser::{Argument, Ast, CallPath, DocId, Expression, Literal, Statement};
 use crate::runtime::scope::Scope;
 use log::trace;
+use logos::Span;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -44,9 +45,19 @@ impl<'a> Engine<'a> {
 
     pub fn eval_root(
         &mut self,
-        arguments: HashMap<&str, Value>,
+        arguments: HashMap<&str, Literal>,
     ) -> Result<Value, WithStack<RuntimeError>> {
         let root = self.ast.root().clone();
+        let arguments = arguments
+            .into_iter()
+            .map(|(k, v)| {
+                (
+                    k,
+                    self.expression(&Scope::default(), &Expression::Literal(v, Span::default()))
+                        .unwrap(),
+                )
+            })
+            .collect();
         Ok(self.eval(root, arguments)?.into())
     }
 
@@ -97,12 +108,15 @@ impl<'a> Engine<'a> {
                         scope.set(name.to_string(), value);
                     }
                     None => {
-                        if scope.get(name).is_none() {
+                        let value = if let Some(value) = arguments.get(name.as_str()).cloned() {
+                            value
+                        } else {
                             return Err(WithStack::from_err(
                                 RuntimeError::UnsetParameter(name.to_string()),
                                 &self.stack,
                             ));
-                        }
+                        };
+                        scope.set(name.to_string(), value);
                     }
                 },
                 Statement::CreatePart(e, _) => {

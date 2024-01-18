@@ -45,8 +45,8 @@ macro_rules! take {
     };
 }
 
-impl<R: Reader> Parser<R> {
-    pub fn new(reader: R, root: DocId) -> Self {
+impl<T> Parser<T> {
+    pub fn new(reader: T, root: DocId) -> Self {
         Parser {
             reader,
             current_id: root,
@@ -56,6 +56,42 @@ impl<R: Reader> Parser<R> {
         }
     }
 
+    pub fn parse_arguments<'a>(
+        self,
+        arguments: impl Iterator<Item = &'a str>,
+    ) -> Result<HashMap<&'a str, Literal>, DocumentParseError> {
+        let mut ret = HashMap::new();
+        for argument in arguments {
+            let mut lexer = Token::lexer(argument);
+
+            let name = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
+            take!(self, lexer, Token::Equal = "=");
+            let value = take!(self, lexer,
+                Token::Minus = "-" => {
+                    let number = take!(self, lexer, Token::Number = "number" => lexer.slice());
+                    let value = f64::from_str(number).unwrap();
+                    Literal::Number(-value)
+                },
+                Token::Number = "number" => {
+                    let value = f64::from_str(lexer.slice()).unwrap();
+                    Literal::Number(value)
+                },
+                Token::Bool = "boolean" => {
+                    let value = lexer.slice() == "true";
+                    Literal::Bool(value)
+                },
+                Token::String = "string" => {
+                    let value = lexer.slice();
+                    Literal::Text(escape_string(value))
+                }
+            );
+            ret.insert(name, value);
+        }
+        Ok(ret)
+    }
+}
+
+impl<R: Reader> Parser<R> {
     pub fn parse(mut self) -> Result<Ast, ParseError> {
         self.to_parse.push(self.current_id.clone());
         let mut ast = Ast::new(self.current_id.clone());
@@ -718,6 +754,19 @@ pub mod tests {
         let doc = parsed.root_document();
         let statement = doc.iter().next();
         action(statement.unwrap());
+    }
+
+    #[test]
+    fn it_parses_arguments() {
+        let p = Parser::new((), DocId::new(String::new()));
+        let parsed = p
+            .parse_arguments(vec!["a=5", "b=true", "c=\"hi\"", "d=-5"].into_iter())
+            .unwrap();
+
+        assert!(matches!(parsed.get("a").unwrap(), Literal::Number(_)));
+        assert!(matches!(parsed.get("b").unwrap(), Literal::Bool(true)));
+        assert!(matches!(parsed.get("c").unwrap(), Literal::Text(_)));
+        assert!(matches!(parsed.get("d").unwrap(), Literal::Number(_)));
     }
 
     #[test]
