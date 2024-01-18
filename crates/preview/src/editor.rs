@@ -87,7 +87,9 @@ pub(crate) fn main(
                         console.print("Rendering...".to_string());
                     }
                     Ok(PreviewEvent::Render(render)) => {
-                        ca.send(CameraCommand::Focus(render.aabb()));
+                        if let Some(aabb) = render.aabb() {
+                            ca.send(CameraCommand::Focus(aabb));
+                        }
                         console.clear();
                         console.print(render.stdout);
                         re.send(RenderCommand::Draw(render.parts));

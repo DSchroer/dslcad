@@ -1,6 +1,6 @@
 use crate::protocol::{Part, Point, Render};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BoundingBox {
     x_range: (f64, f64),
     y_range: (f64, f64),
@@ -61,7 +61,7 @@ impl BoundingBox {
 }
 
 impl Render {
-    pub fn aabb(&self) -> BoundingBox {
+    pub fn aabb(&self) -> Option<BoundingBox> {
         let mut aabb = BoundingBox::default();
 
         for part in &self.parts {
@@ -75,6 +75,10 @@ impl Render {
             }
         }
 
-        aabb
+        if aabb == Default::default() {
+            None
+        } else {
+            Some(aabb)
+        }
     }
 }
