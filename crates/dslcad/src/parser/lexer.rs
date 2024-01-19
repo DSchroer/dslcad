@@ -63,7 +63,7 @@ pub enum Token {
     #[token("func")]
     Function,
 
-    #[token("->")]
+    #[regex("->([a-zA-Z_][a-zA-Z0-9_]*)?")]
     Inject,
 
     #[token("map")]
@@ -194,6 +194,12 @@ mod tests {
             vec![If, Bool, Colon, Number, Else, Colon, Number],
             tokens("if true: 1 else: 0")
         );
+    }
+
+    #[test]
+    fn it_can_lex_inject() {
+        assert_eq!(vec![Inject], tokens("->foo"));
+        assert_eq!(vec![Inject], tokens("->"));
     }
 
     #[test]

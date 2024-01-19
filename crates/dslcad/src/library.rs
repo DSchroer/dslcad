@@ -241,6 +241,10 @@ impl Display for Category {
 }
 
 impl Library {
+    pub fn contains(&self, name: &str) -> bool {
+        self.lookup.get(name).is_some()
+    }
+
     fn from_signatures(signatures: Vec<Signature>) -> Self {
         let lookup = Self::build_lookup(&signatures);
         Library { signatures, lookup }

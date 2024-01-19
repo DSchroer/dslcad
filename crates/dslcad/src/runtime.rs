@@ -158,27 +158,35 @@ impl<'a> Engine<'a> {
                     CallPath::Function(path) => {
                         let timer = Instant::now();
 
-                        let res = if let Some(value) = instance.get(path) {
-                            let func = value
-                                .to_function()
-                                .map_err(|e| WithStack::from_err(e, &self.stack))?;
-                            let named_argument_values =
-                                Self::to_named_argument_values(argument_values)
-                                    .map_err(|e| WithStack::from_err(e, &self.stack))?;
+                        let value = self.expression(instance, path)?;
+                        let func = value
+                            .to_function()
+                            .map_err(|e| WithStack::from_err(e, &self.stack))?;
 
-                            self.eval_statements(
-                                DocId::new(path.clone()),
-                                named_argument_values,
-                                func.clojure.clone(),
-                                &func.statements,
-                            )?
-                            .into()
-                        } else {
-                            let (f, a) = self
-                                .library
-                                .find(CallSignature::new(path, argument_values))
-                                .map_err(|e| WithStack::from_err(e, &self.stack))?;
-                            f(&a).map_err(|e| WithStack::from_err(e, &self.stack))?
+                        let res = match func.as_ref() {
+                            Function::Builtin { name } => {
+                                let (f, a) = self
+                                    .library
+                                    .find(CallSignature::new(name, argument_values))
+                                    .map_err(|e| WithStack::from_err(e, &self.stack))?;
+                                f(&a).map_err(|e| WithStack::from_err(e, &self.stack))?
+                            }
+                            Function::Defined {
+                                clojure,
+                                statements,
+                            } => {
+                                let named_argument_values =
+                                    Self::to_named_argument_values(argument_values)
+                                        .map_err(|e| WithStack::from_err(e, &self.stack))?;
+
+                                self.eval_statements(
+                                    DocId::new("fn".to_string()),
+                                    named_argument_values,
+                                    clojure.clone(),
+                                    statements,
+                                )?
+                                .into()
+                            }
                         };
 
                         if timer.elapsed().as_millis() != 0 {
@@ -201,6 +209,10 @@ impl<'a> Engine<'a> {
             Expression::Reference(n, _) => {
                 if let Some(value) = instance.get(n) {
                     Ok(value.clone())
+                } else if self.library.contains(n) {
+                    Ok(Value::Function(Rc::new(Function::Builtin {
+                        name: n.to_string(),
+                    })))
                 } else {
                     Err(WithStack::from_err(
                         RuntimeError::UnknownIdentifier(n.to_string()),
@@ -223,7 +235,7 @@ impl<'a> Engine<'a> {
                 Literal::Resource(r) => r
                     .to_instance()
                     .map_err(|e| WithStack::from_err(e, &self.stack))?,
-                Literal::Function(statements) => Value::Function(Rc::new(Function {
+                Literal::Function(statements) => Value::Function(Rc::new(Function::Defined {
                     clojure: instance.clone(),
                     statements: statements.clone(),
                 })),

@@ -12,6 +12,7 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::str::FromStr;
 
+use crate::library::Library;
 use crate::parser::span_builder::SpanBuilder;
 use crate::parser::Literal::Resource;
 use crate::resources::ResourceLoader;
@@ -207,7 +208,6 @@ impl<R: Reader> Parser<R> {
 
     fn parse_call(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let path = take!(self, lexer,
-            Token::Identifier = "identifier" => CallPath::Function(lexer.slice().to_string()),
             Token::Path = "path" => {
                 let path =  lexer.slice();
 
@@ -237,6 +237,19 @@ impl<R: Reader> Parser<R> {
         );
         let sb = SpanBuilder::from(lexer);
 
+        let args = self.parse_call_arguments(lexer)?;
+
+        Ok(Expression::Invocation {
+            path,
+            arguments: args,
+            span: sb.to(lexer),
+        })
+    }
+
+    fn parse_call_arguments(
+        &mut self,
+        lexer: &mut Lexer,
+    ) -> Result<VecDeque<Argument>, DocumentParseError> {
         take!(self, lexer, Token::OpenBracket = "(");
 
         let mut args = VecDeque::new();
@@ -267,12 +280,7 @@ impl<R: Reader> Parser<R> {
                 }
             )
         }
-
-        Ok(Expression::Invocation {
-            path,
-            arguments: args,
-            span: sb.to(lexer),
-        })
+        Ok(args)
     }
 
     fn parse_argument(
@@ -289,7 +297,7 @@ impl<R: Reader> Parser<R> {
         let name = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
         let sb = SpanBuilder::from(lexer);
 
-        if !self.variables.contains(name) {
+        if !self.variables.contains(name) && !Library::default().contains(name) {
             return Err(DocumentParseError::UndeclaredIdentifier(lexer.span()));
         }
 
@@ -412,7 +420,7 @@ impl<R: Reader> Parser<R> {
         let sb = SpanBuilder::from(lexer);
         let right = parse_right(self, lexer)?;
         Ok(Expression::Invocation {
-            path: CallPath::Function(name.to_string()),
+            path: CallPath::Function(Expression::Reference(name.to_string(), 0..0).into()),
             arguments: vec![
                 Argument::Named("left".into(), left.into()),
                 Argument::Named("right".into(), right.into()),
@@ -555,17 +563,14 @@ impl<R: Reader> Parser<R> {
                 let first_span = first.span().clone();
                 let sb = SpanBuilder::from(lexer);
 
-                let mut peek = lexer.clone();
-                peek.next();
-                let arg_name = if let Some(Token::OpenBracket) = peek.next() {
+                let name = &lexer.slice()[2..];
+                let arg_name = if name.is_empty() {
                     None
                 } else {
-                    let prop =
-                        take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
-                    Some(prop.to_string())
+                    Some(name.to_string())
                 };
 
-                let expr = self.parse_call(lexer)?;
+                let expr = self.parse_spanning(lexer)?;
                 match expr {
                     Expression::Invocation {
                         path,
@@ -587,7 +592,10 @@ impl<R: Reader> Parser<R> {
                             },
                         )
                     }
-                    _ => panic!("parse_call failed to return invocation"),
+                    _ => Err(DocumentParseError::ExpectedOneOf(
+                        vec!["function"],
+                        sb.to(lexer),
+                    )),
                 }
             }
             Some(_) => Ok(first),
@@ -600,6 +608,14 @@ impl<R: Reader> Parser<R> {
         loop {
             let mut peek = lexer.clone();
             first = match peek.next() {
+                Some(Token::OpenBracket) => {
+                    let arguments = self.parse_call_arguments(lexer)?;
+                    Expression::Invocation {
+                        path: CallPath::Function(first.into()),
+                        arguments,
+                        span: Default::default(),
+                    }
+                }
                 Some(Token::Period) => {
                     lexer.next();
                     let sb = SpanBuilder::from(lexer);
@@ -637,7 +653,7 @@ impl<R: Reader> Parser<R> {
                 let expr = self.parse_terminal_expression(lexer)?;
                 let span = sb.to(lexer);
                 Expression::Invocation {
-                    path: CallPath::Function("subtract".to_string()),
+                    path: CallPath::Function(Expression::Reference("subtract".to_string(), 0..0).into()),
                     arguments: VecDeque::from([
                         Argument::Named(
                             "left".into(),
@@ -654,7 +670,7 @@ impl<R: Reader> Parser<R> {
                 let expr = self.parse_terminal_expression(lexer)?;
                 let span = sb.to(lexer);
                 Expression::Invocation {
-                    path: CallPath::Function("not".to_string()),
+                    path: CallPath::Function(Expression::Reference("not".to_string(), 0..0).into()),
                     arguments: VecDeque::from([
                         Argument::Named("value".into(), Box::new(expr)),
                     ]),
@@ -677,12 +693,7 @@ impl<R: Reader> Parser<R> {
                 Expression::Literal(Literal::Text(escape_string(value)), lexer.span())
             },
             Token::Path = "path" => self.parse_call(lexer)?,
-            Token::Identifier = "identifier" => {
-                match peek.next() {
-                    Some(Token::OpenBracket) => self.parse_call(lexer)?,
-                    _ => self.parse_reference(lexer)?,
-                }
-            },
+            Token::Identifier = "identifier" => self.parse_reference(lexer)?,
             Token::OpenBracket = "(" => {
                 lexer.next();
                 let expr = self.parse_expression(lexer)?;
@@ -809,6 +820,9 @@ pub mod tests {
         parse("cube(5 + 5);", |a| {
             a.unwrap();
         });
+        parse("cube.foo(5 + 5);", |a| {
+            a.unwrap();
+        });
     }
 
     #[test]
@@ -820,7 +834,7 @@ pub mod tests {
 
     #[test]
     fn it_can_parse() {
-        parse("test(x=10,y=10);", |a| {
+        parse("cube(x=10,y=10);", |a| {
             a.unwrap();
         });
     }
@@ -868,7 +882,7 @@ pub mod tests {
             a.unwrap();
         });
 
-        parse_statement("5 ->value a() ->test b();", |p| {
+        parse_statement("5 ->value cube() ->test cube();", |p| {
             assert!(matches!(p, Statement::CreatePart(
             Expression::Invocation { arguments: x, .. }
             , ..
@@ -981,7 +995,7 @@ pub mod tests {
         parse("var foo = reduce [] as a,b: a;", |a| {
             a.unwrap();
         });
-        parse("var foo = reduce [] from t() as a,b: a;", |a| {
+        parse("var foo = reduce [] from cube() as a,b: a;", |a| {
             a.unwrap();
         });
     }
@@ -1007,7 +1021,7 @@ pub mod tests {
         parse("var foo = [1 2];", |a| {
             a.expect_err("should not parse lists without commas");
         });
-        parse("var foo = [test(), 2];", |a| {
+        parse("var foo = [cube(), 2];", |a| {
             a.unwrap();
         });
     }

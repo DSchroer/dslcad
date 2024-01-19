@@ -182,6 +182,11 @@ mod tests {
     #[test]
     fn it_supports_functions() {
         assert_eq!(Ok(5.), run("var f = func { 5; }; f();").to_number());
+        assert_eq!(Ok(5.), run("var a = { func { 5; }; }; a();").to_number());
+        assert_eq!(
+            Ok(5.),
+            run("var a = { var b = func { 5; }; 3; }; a.b();").to_number()
+        );
     }
 
     #[test]

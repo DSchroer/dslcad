@@ -73,7 +73,7 @@ impl Statement {
 
 #[derive(Debug, Clone)]
 pub enum CallPath {
-    Function(String),
+    Function(Box<Expression>),
     Document(DocId),
 }
 

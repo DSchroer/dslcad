@@ -30,9 +30,14 @@ pub enum Value {
 }
 
 #[derive(Clone)]
-pub struct Function {
-    pub clojure: Scope,
-    pub statements: Vec<Statement>,
+pub enum Function {
+    Builtin {
+        name: String,
+    },
+    Defined {
+        clojure: Scope,
+        statements: Vec<Statement>,
+    },
 }
 
 unsafe impl Send for Value {}
