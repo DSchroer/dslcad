@@ -596,30 +596,33 @@ impl<R: Reader> Parser<R> {
     }
 
     fn parse_spanning(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
-        let first = self.parse_terminal_expression(lexer)?;
-        let mut peek = lexer.clone();
-        match peek.next() {
-            Some(Token::Period) => {
-                lexer.next();
-                let sb = SpanBuilder::from(lexer);
-                let l = Box::new(first);
-                let r = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
-                Ok(Expression::Access(l, r.to_string(), sb.to(lexer)))
+        let mut first = self.parse_terminal_expression(lexer)?;
+        loop {
+            let mut peek = lexer.clone();
+            first = match peek.next() {
+                Some(Token::Period) => {
+                    lexer.next();
+                    let sb = SpanBuilder::from(lexer);
+                    let l = Box::new(first);
+                    let r = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
+                    Expression::Access(l, r.to_string(), sb.to(lexer))
+                }
+                Some(Token::OpenList) => {
+                    lexer.next();
+                    let sb = SpanBuilder::from(lexer);
+                    let r = self.parse_expression(lexer)?;
+                    take!(self, lexer, Token::CloseList = "]");
+                    Expression::Index {
+                        target: first.into(),
+                        index: r.into(),
+                        span: sb.to(lexer),
+                    }
+                }
+                Some(_) => break,
+                None => return Err(DocumentParseError::UnexpectedEndOfFile()),
             }
-            Some(Token::OpenList) => {
-                lexer.next();
-                let sb = SpanBuilder::from(lexer);
-                let r = self.parse_expression(lexer)?;
-                take!(self, lexer, Token::CloseList = "]");
-                Ok(Expression::Index {
-                    target: first.into(),
-                    index: r.into(),
-                    span: sb.to(lexer),
-                })
-            }
-            Some(_) => Ok(first),
-            None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
+        Ok(first)
     }
 
     fn parse_terminal_expression(
@@ -918,6 +921,9 @@ pub mod tests {
     #[test]
     fn it_can_parse_access() {
         parse("var foo; foo.bar;", |a| {
+            a.unwrap();
+        });
+        parse("var foo; foo.bar.baz;", |a| {
             a.unwrap();
         });
     }
