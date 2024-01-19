@@ -6,7 +6,7 @@ use bevy_points::prelude::*;
 
 use bevy_polyline::material::PolylineMaterial;
 use bevy_polyline::polyline::{Polyline, PolylineBundle};
-use persistence::protocol::{Part, Point};
+use dslcad_storage::protocol::{Part, Point};
 
 pub struct ModelRenderingPlugin;
 

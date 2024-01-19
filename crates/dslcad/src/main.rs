@@ -1,8 +1,8 @@
 use clap::{Parser, ValueEnum};
 use dslcad::library::Library;
 use dslcad::{parse, parse_arguments, render};
+use dslcad_storage::threemf::ThreeMF;
 use log::info;
-use persistence::threemf::ThreeMF;
 use std::env;
 use std::error::Error;
 use std::fs::File;
@@ -17,7 +17,7 @@ struct Args {
 
     #[cfg(feature = "preview")]
     #[arg(short, long)]
-    /// Display preview window for editing
+    /// Display dslcad_viewer window for editing
     preview: bool,
 
     #[arg(short, long)]
@@ -132,8 +132,8 @@ fn render_to_preview(
     deflection: f64,
 ) -> Result<(), Box<dyn Error>> {
     use dslcad::parser::{Ast, DocId};
+    use dslcad_viewer::{Preview, PreviewHandle};
     use notify::{recommended_watcher, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-    use preview::{Preview, PreviewHandle};
     use std::sync::{Arc, Mutex};
 
     fn add_files_to_watch(watch: Arc<Mutex<Option<RecommendedWatcher>>>, ast: &Ast) {

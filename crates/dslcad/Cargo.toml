@@ -9,8 +9,8 @@ clap = { version = "4.4.2", features = ["derive"]}
 logos = "0.12.1"
 serde = "1.0"
 thiserror = "1.0.38"
-opencascade = { path = "../opencascade" }
-persistence = { path = "../persistence" }
+dslcad-occt = { path = "../dslcad_occt" }
+dslcad-storage = { path = "../dslcad_storage" }
 indexmap = "2.0.0"
 stl_io = "0.7.0"
 proc-macro2 = "1.0.66"
@@ -18,7 +18,7 @@ log = "0.4.20"
 env_logger = "0.10.0"
 
 notify = { version = "6.0.1", optional = true }
-preview = { path = "../preview", optional = true  }
+dslcad-viewer = { path = "../dslcad_viewer", optional = true  }
 rayon = { version = "1.8.1", optional = true  }
 
 [dev-dependencies]
@@ -26,5 +26,5 @@ walkdir = "2"
 
 [features]
 default = ["preview", "rayon"]
-preview = ["dep:preview", "dep:notify"]
+preview = ["dep:dslcad-viewer", "dep:notify"]
 rayon = ["dep:rayon"]

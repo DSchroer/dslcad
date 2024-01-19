@@ -1,5 +1,5 @@
-use persistence::protocol::Render;
-use preview::{Preview, PreviewHandle};
+use dslcad_storage::protocol::Render;
+use dslcad_viewer::{Preview, PreviewHandle};
 use std::error::Error;
 use std::sync::OnceLock;
 use std::{env, fs};

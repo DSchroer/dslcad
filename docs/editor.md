@@ -36,7 +36,7 @@
 </div>
 
 <script type="module">
-    import preview from "./preview.js";
+    import preview from "./dslcad-viewer.js";
     import dslcad from "./dslcad.js";
 
     let btn = document.getElementById("render");

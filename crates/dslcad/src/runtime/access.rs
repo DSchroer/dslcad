@@ -1,5 +1,5 @@
 use super::value::Value;
-use opencascade::{Point, Shape, Wire};
+use dslcad_occt::{Point, Shape, Wire};
 
 pub trait Access {
     fn get(&self, identifier: &str) -> Option<Value>;

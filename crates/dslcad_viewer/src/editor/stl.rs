@@ -1,7 +1,7 @@
 use bevy::prelude::Mesh;
 use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 
-pub fn stl_to_triangle_mesh(stl: &persistence::protocol::Mesh) -> Mesh {
+pub fn stl_to_triangle_mesh(stl: &dslcad_storage::protocol::Mesh) -> Mesh {
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
 
     let vertex_count = stl.triangles.len() * 3;

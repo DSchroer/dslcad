@@ -2,9 +2,9 @@
 resolver = "2"
 members = [
     "crates/dslcad",
-    "crates/opencascade",
-    "crates/persistence",
-    "crates/preview",
+    "crates/dslcad_occt",
+    "crates/dslcad_storage",
+    "crates/dslcad_viewer",
 ]
 exclude = [
     "tools/opencascade_builder"

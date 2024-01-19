@@ -1,5 +1,5 @@
 use crate::runtime::{RuntimeError, Value};
-use opencascade::{Axis, DsShape, Edge, Point, Shape, Wire, WireFactory};
+use dslcad_occt::{Axis, DsShape, Edge, Point, Shape, Wire, WireFactory};
 use std::rc::Rc;
 
 pub fn point(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {

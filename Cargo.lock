@@ -1652,20 +1652,54 @@ name = "dslcad"
 version = "0.0.3"
 dependencies = [
  "clap",
+ "dslcad-occt",
+ "dslcad-storage",
+ "dslcad-viewer",
  "env_logger",
  "indexmap 2.0.0",
  "log",
  "logos",
  "notify",
- "opencascade",
- "persistence",
- "preview",
  "proc-macro2",
  "rayon",
  "serde",
  "stl_io",
  "thiserror",
  "walkdir",
+]
+
+[[package]]
+name = "dslcad-occt"
+version = "0.1.0"
+dependencies = [
+ "cxx",
+ "log",
+ "opencascade-sys",
+]
+
+[[package]]
+name = "dslcad-storage"
+version = "0.1.0"
+dependencies = [
+ "quick-xml",
+ "serde",
+ "serde-binary",
+ "zip",
+]
+
+[[package]]
+name = "dslcad-viewer"
+version = "0.0.3"
+dependencies = [
+ "bevy",
+ "bevy_egui",
+ "bevy_points",
+ "bevy_polyline",
+ "dslcad-storage",
+ "rand",
+ "smooth-bevy-cameras",
+ "strum",
+ "strum_macros",
 ]
 
 [[package]]
@@ -2989,15 +3023,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 
 [[package]]
-name = "opencascade"
-version = "0.1.0"
-dependencies = [
- "cxx",
- "log",
- "opencascade-sys",
-]
-
-[[package]]
 name = "opencascade-sys"
 version = "0.2.0"
 source = "git+https://github.com/dschroer/opencascade-rs?rev=7e7b8a#7e7b8ad2a5e449371ead2ec579a43779443002f0"
@@ -3080,16 +3105,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b2a4787296e9989611394c33f193f676704af1686e70b8f8033ab5ba9a35a94"
 
 [[package]]
-name = "persistence"
-version = "0.1.0"
-dependencies = [
- "quick-xml",
- "serde",
- "serde-binary",
- "zip",
-]
-
-[[package]]
 name = "petgraph"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3138,21 +3153,6 @@ name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
-
-[[package]]
-name = "preview"
-version = "0.0.3"
-dependencies = [
- "bevy",
- "bevy_egui",
- "bevy_points",
- "bevy_polyline",
- "persistence",
- "rand",
- "smooth-bevy-cameras",
- "strum",
- "strum_macros",
-]
 
 [[package]]
 name = "proc-macro-crate"

@@ -1,4 +1,4 @@
-use opencascade::Error;
+use dslcad_occt::Error;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -18,7 +18,7 @@ pub enum RuntimeError {
     #[error("Stack overflow")]
     StackOverflow(),
     #[error("{0}")]
-    Opencascade(opencascade::Error),
+    Opencascade(dslcad_occt::Error),
     #[error("Could not find function with name '{name}'")]
     CouldNotFindFunction { name: String },
     #[error("Could not find default argument for function '{name}'")]
@@ -36,7 +36,7 @@ pub enum RuntimeError {
     ArcWithIdenticalPoints(),
 }
 
-impl From<opencascade::Error> for RuntimeError {
+impl From<dslcad_occt::Error> for RuntimeError {
     fn from(value: Error) -> Self {
         RuntimeError::Opencascade(value)
     }

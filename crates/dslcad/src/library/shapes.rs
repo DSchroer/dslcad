@@ -1,6 +1,6 @@
 use crate::runtime::{RuntimeError, Value};
 
-use opencascade::{Axis, DsShape, Point, Shape, Wire};
+use dslcad_occt::{Axis, DsShape, Point, Shape, Wire};
 
 pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
     let x = x.unwrap_or(1.0);

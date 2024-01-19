@@ -613,7 +613,7 @@ impl Debug for Signature {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use opencascade::Point;
+    use dslcad_occt::Point;
     use std::rc::Rc;
 
     #[test]

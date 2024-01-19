@@ -16,7 +16,7 @@ build *FLAGS:
 
     cargo build --bin dslcad --target {{ TARGET }} $FLAGS {{ FLAGS }}
 
-build-preview *FLAGS:
+build-viewer *FLAGS:
     #!/usr/bin/env bash
     set -ex
 
@@ -24,22 +24,22 @@ build-preview *FLAGS:
         exit 0
     fi
 
-    cargo build --bin preview --target {{ TARGET }} --release {{ FLAGS }}
+    cargo build --bin dslcad-viewer --target {{ TARGET }} --release {{ FLAGS }}
 
     if [ "{{ TARGET }}" == "wasm32-unknown-unknown" ]; then
-      wasm-bindgen --out-dir ./target/wasm32-unknown-unknown/release --target web ./target/wasm32-unknown-unknown/release/preview.wasm
-      sed -i 's/wasm.__wbindgen_start();//' ./target/wasm32-unknown-unknown/release/preview.js
+      wasm-bindgen --out-dir ./target/wasm32-unknown-unknown/release --target web ./target/wasm32-unknown-unknown/release/dslcad-viewer.wasm
+      sed -i 's/wasm.__wbindgen_start();//' ./target/wasm32-unknown-unknown/release/dslcad-viewer.js
     fi
 
 build-docs-editor *FLAGS:
     just TARGET=wasm32-unknown-emscripten build --release {{ FLAGS }}
-    just TARGET=wasm32-unknown-unknown build-preview {{ FLAGS }}
+    just TARGET=wasm32-unknown-unknown build-viewer {{ FLAGS }}
 
     mkdir -p docs/editor
     cp target/wasm32-unknown-emscripten/release/dslcad* ./docs/editor/
-    cp target/wasm32-unknown-unknown/release/preview* ./docs/editor/
+    cp target/wasm32-unknown-unknown/release/dslcad-viewer* ./docs/editor/
 
-pack: (build "--release") build-preview
+pack: (build "--release") build-viewer
     -rm {{ TARGET }}.zip
     rm target/{{ TARGET }}/release/*.d
     zip -j {{ TARGET }}.zip target/{{ TARGET }}/release/*

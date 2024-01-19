@@ -3,8 +3,8 @@ use crate::parser::{Ast, DocId, DocumentParseError, Literal, ParseError, Parser}
 use crate::reader::FsReader;
 use crate::resources::ResourceExt;
 use crate::runtime::{Engine, RuntimeError, Value, WithStack};
+use dslcad_storage::protocol::{Part, Render};
 use log::trace;
-use persistence::protocol::{Part, Render};
 use std::collections::HashMap;
 use std::time::Instant;
 

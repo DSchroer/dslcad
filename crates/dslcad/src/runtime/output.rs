@@ -1,6 +1,6 @@
 use crate::elapsed;
-use opencascade::{Error, Point, Shape, Wire};
-use persistence::protocol::Part;
+use dslcad_occt::{Error, Point, Shape, Wire};
+use dslcad_storage::protocol::Part;
 
 pub trait IntoPart {
     fn into_part(self, deflection: f64) -> Result<Part, Error>;
@@ -31,7 +31,7 @@ impl IntoPart for &Wire {
 impl IntoPart for &Shape {
     fn into_part(self, deflection: f64) -> Result<Part, Error> {
         let original = elapsed!("generated mesh", self.mesh(deflection)?);
-        let mut mesh = persistence::protocol::Mesh {
+        let mut mesh = dslcad_storage::protocol::Mesh {
             vertices: original.vertices.clone(),
             triangles: vec![],
             normals: vec![],

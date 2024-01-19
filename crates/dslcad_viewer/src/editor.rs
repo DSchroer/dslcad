@@ -59,7 +59,7 @@ pub(crate) fn main(
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        title: persistence::constants::FULL_NAME.to_string(),
+                        title: dslcad_storage::constants::FULL_NAME.to_string(),
                         canvas: Some("#dslcad".to_string()),
                         fit_canvas_to_parent: true,
                         ..Default::default()

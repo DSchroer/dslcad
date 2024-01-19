@@ -3,7 +3,7 @@ use bevy::input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::EguiContext;
-use persistence::protocol::BoundingBox;
+use dslcad_storage::protocol::BoundingBox;
 use smooth_bevy_cameras::controllers::orbit::{
     ControlEvent, OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
 };

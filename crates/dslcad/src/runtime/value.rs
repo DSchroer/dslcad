@@ -1,5 +1,5 @@
 use crate::runtime::output::IntoPart;
-use persistence::protocol::Part;
+use dslcad_storage::protocol::Part;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
@@ -8,7 +8,7 @@ use super::Type;
 use crate::parser::Statement;
 use crate::runtime::scope::Scope;
 use crate::runtime::{RuntimeError, ScriptInstance};
-use opencascade::{DsShape, Point, Shape, Wire};
+use dslcad_occt::{DsShape, Point, Shape, Wire};
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 

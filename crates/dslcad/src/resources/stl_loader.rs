@@ -1,7 +1,7 @@
 use crate::parser::{DocumentParseError, Reader};
 use crate::resources::{Resource, ResourceLoader};
 use crate::runtime::{RuntimeError, Value};
-use opencascade::{Point, TriangleMesh};
+use dslcad_occt::{Point, TriangleMesh};
 use std::io::Cursor;
 use std::path::Path;
 use std::rc::Rc;
