@@ -7,6 +7,8 @@ pub struct Point {
     pub(crate) point: UniquePtr<gp_Pnt>,
 }
 
+unsafe impl Send for Point {}
+
 impl Point {
     pub fn new_2d(x: f64, y: f64) -> Self {
         Point::new(x, y, 0.0)

@@ -1,3 +1,4 @@
+use crate::parser::syntax_visitor::{ExpressionVisitor, LiteralVisitor, StatementVisitor};
 use crate::resources::Resource;
 use logos::Span;
 use serde::{Deserialize, Serialize};
@@ -44,9 +45,11 @@ impl Ast {
             documents: HashMap::new(),
         }
     }
+
     pub fn root(&self) -> &DocId {
         &self.root
     }
+
     pub fn root_document(&self) -> &Vec<Statement> {
         self.documents.get(&self.root).unwrap()
     }
@@ -54,19 +57,30 @@ impl Ast {
 
 #[derive(Debug, Clone)]
 pub enum Statement {
-    Variable {
-        name: String,
-        value: Option<Expression>,
-        span: Span,
-    },
+    Variable(Variable, Span),
     CreatePart(Expression, Span),
+}
+
+#[derive(Debug, Clone)]
+pub struct Variable {
+    pub name: String,
+    pub value: Option<Expression>,
+}
+
+impl Statement {
+    pub fn walk_statement<T: StatementVisitor>(&self, visitor: &mut T) -> T::Result {
+        match self {
+            Statement::Variable(v, s) => visitor.visit_variable(v, s),
+            Statement::CreatePart(v, s) => visitor.visit_create_part(v, s),
+        }
+    }
 }
 
 impl Statement {
     pub fn span(&self) -> &Span {
         match self {
-            Statement::Variable { span, .. } => span,
-            Statement::CreatePart(_, span) => span,
+            Statement::Variable(_, s) => s,
+            Statement::CreatePart(_, s) => s,
         }
     }
 }
@@ -95,56 +109,93 @@ impl Argument {
 #[derive(Debug, Clone)]
 pub enum Expression {
     Literal(Literal, Span),
-    Reference(String, Span),
-    Invocation {
-        path: CallPath,
-        arguments: VecDeque<Argument>,
-        span: Span,
-    },
-    Access(Box<Expression>, String, Span),
-    Index {
-        target: Box<Expression>,
-        index: Box<Expression>,
-        span: Span,
-    },
-    Map {
-        identifier: String,
-        range: Box<Expression>,
-        action: Box<Expression>,
-        span: Span,
-    },
-    Reduce {
-        left: String,
-        right: String,
-        root: Option<Box<Expression>>,
-        range: Box<Expression>,
-        action: Box<Expression>,
-        span: Span,
-    },
-    If {
-        condition: Box<Expression>,
-        if_true: Box<Expression>,
-        if_false: Box<Expression>,
-        span: Span,
-    },
-    Scope {
-        statements: Vec<Statement>,
-        span: Span,
-    },
+    Reference(Reference, Span),
+    Invocation(Invocation, Span),
+    Property(Property, Span),
+    Index(Index, Span),
+    Map(Map, Span),
+    Reduce(Reduce, Span),
+    If(If, Span),
+    Scope(NestedScope, Span),
+}
+
+#[derive(Debug, Clone)]
+pub struct Invocation {
+    pub path: CallPath,
+    pub arguments: VecDeque<Argument>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Reference {
+    pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct Property {
+    pub target: Box<Expression>,
+    pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct Index {
+    pub target: Box<Expression>,
+    pub index: Box<Expression>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Map {
+    pub identifier: String,
+    pub range: Box<Expression>,
+    pub action: Box<Expression>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Reduce {
+    pub left: String,
+    pub right: String,
+    pub root: Option<Box<Expression>>,
+    pub range: Box<Expression>,
+    pub action: Box<Expression>,
+}
+
+#[derive(Debug, Clone)]
+pub struct If {
+    pub condition: Box<Expression>,
+    pub if_true: Box<Expression>,
+    pub if_false: Box<Expression>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NestedScope {
+    pub statements: Vec<Statement>,
 }
 
 impl Expression {
+    pub fn walk_expression<T: ExpressionVisitor>(&self, visitor: &mut T) -> T::Result {
+        match self {
+            Expression::Literal(v, s) => visitor.visit_literal(v, s),
+            Expression::Reference(v, s) => visitor.visit_reference(v, s),
+            Expression::Invocation(v, s) => visitor.visit_invocation(v, s),
+            Expression::Property(v, s) => visitor.visit_property(v, s),
+            Expression::Index(v, s) => visitor.visit_index(v, s),
+            Expression::Map(v, s) => visitor.visit_map(v, s),
+            Expression::Reduce(v, s) => visitor.visit_reduce(v, s),
+            Expression::If(v, s) => visitor.visit_if(v, s),
+            Expression::Scope(v, s) => visitor.visit_scope(v, s),
+        }
+    }
+
     pub fn span(&self) -> &Span {
         match self {
             Expression::Literal(_, span) => span,
             Expression::Reference(_, span) => span,
-            Expression::Invocation { span, .. } => span,
-            Expression::Access(_, _, span) => span,
-            Expression::Index { span, .. } => span,
-            Expression::Map { span, .. } => span,
-            Expression::Reduce { span, .. } => span,
-            Expression::If { span, .. } => span,
-            Expression::Scope { span, .. } => span,
+            Expression::Invocation(_, span) => span,
+            Expression::Property(_, span) => span,
+            Expression::Index(_, span) => span,
+            Expression::Map(_, span) => span,
+            Expression::Reduce(_, span) => span,
+            Expression::If(_, span) => span,
+            Expression::Scope(_, span) => span,
         }
     }
 }
@@ -157,4 +208,17 @@ pub enum Literal {
     List(Vec<Expression>),
     Resource(Arc<dyn Resource>),
     Function(Vec<Statement>),
+}
+
+impl Literal {
+    pub fn walk_literal<T: LiteralVisitor>(&self, visitor: &mut T) -> T::Result {
+        match self {
+            Literal::Number(v) => visitor.visit_number(v),
+            Literal::Bool(v) => visitor.visit_bool(v),
+            Literal::Text(v) => visitor.visit_text(v),
+            Literal::List(v) => visitor.visit_list(v),
+            Literal::Resource(v) => visitor.visit_resource(v),
+            Literal::Function(v) => visitor.visit_function(v),
+        }
+    }
 }

@@ -13,7 +13,7 @@ pub trait ResourceLoader<TReader: Reader> {
     fn load(&self, path: &str, reader: &TReader) -> Result<Arc<dyn Resource>, DocumentParseError>;
 }
 
-pub trait Resource: Debug {
+pub trait Resource: Debug + Send + Sync {
     fn to_instance(&self) -> Result<Value, RuntimeError>;
 }
 

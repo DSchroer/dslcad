@@ -3,6 +3,7 @@ mod parse_error;
 mod reader;
 mod span_builder;
 mod syntax_tree;
+mod syntax_visitor;
 
 use lexer::{Lexer, Token};
 use logos::Logos;
@@ -19,6 +20,7 @@ use crate::resources::ResourceLoader;
 pub use parse_error::{DocumentParseError, ParseError};
 pub use reader::Reader;
 pub use syntax_tree::*;
+pub use syntax_visitor::*;
 
 pub struct Parser<R> {
     reader: R,
@@ -199,11 +201,13 @@ impl<R: Reader> Parser<R> {
             ));
         }
 
-        Ok(Statement::Variable {
-            name: name.to_string(),
-            value: expr,
-            span: sb.to(lexer),
-        })
+        Ok(Statement::Variable(
+            Variable {
+                name: name.to_string(),
+                value: expr,
+            },
+            sb.to(lexer),
+        ))
     }
 
     fn parse_call(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
@@ -239,11 +243,13 @@ impl<R: Reader> Parser<R> {
 
         let args = self.parse_call_arguments(lexer)?;
 
-        Ok(Expression::Invocation {
-            path,
-            arguments: args,
-            span: sb.to(lexer),
-        })
+        Ok(Expression::Invocation(
+            Invocation {
+                path,
+                arguments: args,
+            },
+            sb.to(lexer),
+        ))
     }
 
     fn parse_call_arguments(
@@ -301,7 +307,12 @@ impl<R: Reader> Parser<R> {
             return Err(DocumentParseError::UndeclaredIdentifier(lexer.span()));
         }
 
-        Ok(Expression::Reference(name.to_string(), sb.to(lexer)))
+        Ok(Expression::Reference(
+            Reference {
+                name: name.to_string(),
+            },
+            sb.to(lexer),
+        ))
     }
 
     fn parse_list(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
@@ -341,12 +352,14 @@ impl<R: Reader> Parser<R> {
         let action = self.parse_expression(lexer)?;
         self.variables.remove(ident);
 
-        Ok(Expression::Map {
-            identifier: ident.to_string(),
-            range: Box::new(range),
-            action: Box::new(action),
-            span: sb.to(lexer),
-        })
+        Ok(Expression::Map(
+            Map {
+                identifier: ident.to_string(),
+                range: Box::new(range),
+                action: Box::new(action),
+            },
+            sb.to(lexer),
+        ))
     }
 
     fn parse_reduce(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
@@ -373,14 +386,16 @@ impl<R: Reader> Parser<R> {
         self.variables.remove(left);
         self.variables.remove(right);
 
-        Ok(Expression::Reduce {
-            left: left.to_string(),
-            right: right.to_string(),
-            root,
-            range: Box::new(range),
-            action: Box::new(action),
-            span: sb.to(lexer),
-        })
+        Ok(Expression::Reduce(
+            Reduce {
+                left: left.to_string(),
+                right: right.to_string(),
+                root,
+                range: Box::new(range),
+                action: Box::new(action),
+            },
+            sb.to(lexer),
+        ))
     }
 
     fn parse_if(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
@@ -401,12 +416,14 @@ impl<R: Reader> Parser<R> {
             Token::If = "if" => self.parse_if(lexer)?
         );
 
-        Ok(Expression::If {
-            condition: condition.into(),
-            if_true: if_true.into(),
-            if_false: if_false.into(),
-            span: sb.to(lexer),
-        })
+        Ok(Expression::If(
+            If {
+                condition: condition.into(),
+                if_true: if_true.into(),
+                if_false: if_false.into(),
+            },
+            sb.to(lexer),
+        ))
     }
 
     fn operator(
@@ -419,15 +436,25 @@ impl<R: Reader> Parser<R> {
         lexer.next();
         let sb = SpanBuilder::from(lexer);
         let right = parse_right(self, lexer)?;
-        Ok(Expression::Invocation {
-            path: CallPath::Function(Expression::Reference(name.to_string(), 0..0).into()),
-            arguments: vec![
-                Argument::Named("left".into(), left.into()),
-                Argument::Named("right".into(), right.into()),
-            ]
-            .into(),
-            span: sb.to(lexer),
-        })
+        Ok(Expression::Invocation(
+            Invocation {
+                path: CallPath::Function(
+                    Expression::Reference(
+                        Reference {
+                            name: name.to_string(),
+                        },
+                        0..0,
+                    )
+                    .into(),
+                ),
+                arguments: vec![
+                    Argument::Named("left".into(), left.into()),
+                    Argument::Named("right".into(), right.into()),
+                ]
+                .into(),
+            },
+            sb.to(lexer),
+        ))
     }
 
     fn parse_scope(
@@ -572,11 +599,14 @@ impl<R: Reader> Parser<R> {
 
                 let expr = self.parse_spanning(lexer)?;
                 match expr {
-                    Expression::Invocation {
-                        path,
-                        mut arguments,
-                        ..
-                    } => {
+                    Expression::Invocation(
+                        Invocation {
+                            path,
+                            mut arguments,
+                            ..
+                        },
+                        _,
+                    ) => {
                         arguments.push_front(if let Some(name) = arg_name {
                             Argument::Named(name, Box::new(first))
                         } else {
@@ -585,11 +615,10 @@ impl<R: Reader> Parser<R> {
 
                         self.try_add_inject(
                             lexer,
-                            Expression::Invocation {
-                                path,
-                                arguments,
-                                span: first_span.start..sb.to(lexer).end,
-                            },
+                            Expression::Invocation(
+                                Invocation { path, arguments },
+                                first_span.start..sb.to(lexer).end,
+                            ),
                         )
                     }
                     _ => Err(DocumentParseError::ExpectedOneOf(
@@ -610,29 +639,39 @@ impl<R: Reader> Parser<R> {
             first = match peek.next() {
                 Some(Token::OpenBracket) => {
                     let arguments = self.parse_call_arguments(lexer)?;
-                    Expression::Invocation {
-                        path: CallPath::Function(first.into()),
-                        arguments,
-                        span: Default::default(),
-                    }
+                    Expression::Invocation(
+                        Invocation {
+                            path: CallPath::Function(first.into()),
+                            arguments,
+                        },
+                        Default::default(),
+                    )
                 }
                 Some(Token::Period) => {
                     lexer.next();
                     let sb = SpanBuilder::from(lexer);
                     let l = Box::new(first);
                     let r = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
-                    Expression::Access(l, r.to_string(), sb.to(lexer))
+                    Expression::Property(
+                        Property {
+                            target: l,
+                            name: r.to_string(),
+                        },
+                        sb.to(lexer),
+                    )
                 }
                 Some(Token::OpenList) => {
                     lexer.next();
                     let sb = SpanBuilder::from(lexer);
                     let r = self.parse_expression(lexer)?;
                     take!(self, lexer, Token::CloseList = "]");
-                    Expression::Index {
-                        target: first.into(),
-                        index: r.into(),
-                        span: sb.to(lexer),
-                    }
+                    Expression::Index(
+                        Index {
+                            target: first.into(),
+                            index: r.into(),
+                        },
+                        sb.to(lexer),
+                    )
                 }
                 Some(_) => break,
                 None => return Err(DocumentParseError::UnexpectedEndOfFile()),
@@ -652,8 +691,8 @@ impl<R: Reader> Parser<R> {
                 let sb = SpanBuilder::from(lexer);
                 let expr = self.parse_terminal_expression(lexer)?;
                 let span = sb.to(lexer);
-                Expression::Invocation {
-                    path: CallPath::Function(Expression::Reference("subtract".to_string(), 0..0).into()),
+                Expression::Invocation( Invocation {
+                    path: CallPath::Function(Expression::Reference( Reference { name: "subtract".to_string() } , 0..0).into()),
                     arguments: VecDeque::from([
                         Argument::Named(
                             "left".into(),
@@ -661,21 +700,19 @@ impl<R: Reader> Parser<R> {
                         ),
                         Argument::Named("right".into(), Box::new(expr)),
                     ]),
-                    span
-                }
+                }, span)
             },
             Token::Not = "not" => {
                 lexer.next();
                 let sb = SpanBuilder::from(lexer);
                 let expr = self.parse_terminal_expression(lexer)?;
                 let span = sb.to(lexer);
-                Expression::Invocation {
-                    path: CallPath::Function(Expression::Reference("not".to_string(), 0..0).into()),
+                Expression::Invocation( Invocation {
+                    path: CallPath::Function(Expression::Reference(Reference{ name: "not".to_string() }, 0..0).into()),
                     arguments: VecDeque::from([
                         Argument::Named("value".into(), Box::new(expr)),
                     ]),
-                    span
-                }
+                }, span)
             },
             Token::Number = "number" => {
                 lexer.next();
@@ -705,7 +742,7 @@ impl<R: Reader> Parser<R> {
             Token::OpenScope = "{" => {
                 let sb = SpanBuilder::from(lexer);
                 let statements = self.parse_scope(lexer, false)?;
-                Expression::Scope { statements, span: sb.to(lexer) }
+                Expression::Scope( NestedScope { statements }, sb.to(lexer))
             },
             Token::Function = "func" => {
                 let sb = SpanBuilder::from(lexer);
@@ -884,7 +921,7 @@ pub mod tests {
 
         parse_statement("5 ->value cube() ->test cube();", |p| {
             assert!(matches!(p, Statement::CreatePart(
-            Expression::Invocation { arguments: x, .. }
+            Expression::Invocation ( Invocation { arguments: x, .. }, _)
             , ..
         ) if !x.iter().any(|a| a.has_name("value"))))
         });
