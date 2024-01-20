@@ -165,8 +165,8 @@ impl<R: Reader> Parser<R> {
         &mut self,
         lexer: &mut Lexer,
     ) -> Result<Statement, DocumentParseError> {
+        let sb = SpanBuilder::from(lexer);
         let expr = self.parse_expression(lexer)?;
-        let sb = SpanBuilder::from_expr(&expr);
         take!(self, lexer, Token::Semicolon = "semicolon");
         Ok(Statement::CreatePart(expr, sb.to(lexer)))
     }
