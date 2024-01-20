@@ -4,7 +4,7 @@ use crate::parser::{
 };
 use crate::resources::Resource;
 use logos::Span;
-use std::sync::Arc;
+use std::rc::Rc;
 
 pub trait StatementVisitor: Sized {
     type Result;
@@ -43,6 +43,6 @@ pub trait LiteralVisitor: Sized {
     fn visit_bool(&mut self, v: &bool) -> Self::Result;
     fn visit_text(&mut self, v: &str) -> Self::Result;
     fn visit_list(&mut self, v: &[Expression]) -> Self::Result;
-    fn visit_resource(&mut self, v: &Arc<dyn Resource>) -> Self::Result;
-    fn visit_function(&mut self, v: &[Statement]) -> Self::Result;
+    fn visit_resource(&mut self, v: &dyn Resource) -> Self::Result;
+    fn visit_function(&mut self, v: &Rc<Vec<Statement>>) -> Self::Result;
 }

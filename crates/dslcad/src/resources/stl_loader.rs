@@ -5,18 +5,17 @@ use dslcad_occt::{Point, TriangleMesh};
 use std::io::Cursor;
 use std::path::Path;
 use std::rc::Rc;
-use std::sync::Arc;
 use stl_io::IndexedMesh;
 
 pub struct StlLoader;
 
 impl<R: Reader> ResourceLoader<R> for StlLoader {
-    fn load(&self, path: &str, reader: &R) -> Result<Arc<dyn Resource>, DocumentParseError> {
+    fn load(&self, path: &str, reader: &R) -> Result<Box<dyn Resource>, DocumentParseError> {
         let data = reader.read_bytes(Path::new(path)).unwrap();
         let mut cursor = Cursor::new(&data);
         let mesh =
             stl_io::read_stl(&mut cursor).map_err(|_| DocumentParseError::UnexpectedEndOfFile())?;
-        Ok(Arc::new(mesh))
+        Ok(Box::new(mesh))
     }
 }
 

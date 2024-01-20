@@ -36,7 +36,7 @@ pub enum Function {
     },
     Defined {
         clojure: Scope,
-        statements: Vec<Statement>,
+        statements: Rc<Vec<Statement>>,
     },
 }
 

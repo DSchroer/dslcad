@@ -48,7 +48,7 @@ pub fn render(
 ) -> Result<Render, WithStack<RuntimeError>> {
     let lib = Library::default();
 
-    let mut engine = Engine::new(&lib, documents);
+    let mut engine = Engine::new(&lib, &documents);
 
     let eval_time = Instant::now();
     let instance = engine.eval_root(arguments)?;
@@ -106,7 +106,7 @@ mod tests {
     fn run(code: &'static str) -> Value {
         let documents = parse_str(code);
         let lib = Library::default();
-        let mut engine = Engine::new(&lib, documents);
+        let mut engine = Engine::new(&lib, &documents);
         engine.eval_root(HashMap::new()).expect("failed to eval")
     }
 

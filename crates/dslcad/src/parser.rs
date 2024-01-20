@@ -748,7 +748,7 @@ impl<R: Reader> Parser<R> {
                 let sb = SpanBuilder::from(lexer);
                 lexer.next();
                 let statements = self.parse_scope(lexer, true)?;
-                Expression::Literal(Literal::Function(statements), sb.to(lexer))
+                Expression::Literal(Literal::Function(statements.into()), sb.to(lexer))
             },
             Token::Map = "map" => {
                 self.parse_map(lexer)?
@@ -780,7 +780,6 @@ pub mod tests {
     use crate::runtime::{RuntimeError, Value};
     use std::io::Error;
     use std::path::{Path, PathBuf};
-    use std::sync::Arc;
 
     macro_rules! parse {
         ($code: literal) => {{}};
@@ -790,8 +789,8 @@ pub mod tests {
     struct TestRes;
 
     impl<R: Reader> ResourceLoader<R> for TestRes {
-        fn load(&self, _: &str, _: &R) -> Result<Arc<dyn Resource>, DocumentParseError> {
-            Ok(Arc::new(self.clone()))
+        fn load(&self, _: &str, _: &R) -> Result<Box<dyn Resource>, DocumentParseError> {
+            Ok(Box::new(self.clone()))
         }
     }
 

@@ -15,7 +15,6 @@ use logos::Span;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::time::Instant;
 
 pub use access::Access;
@@ -33,13 +32,13 @@ const MAX_STACK_SIZE: usize = 255;
 
 pub struct Engine<'a> {
     library: &'a Library,
-    ast: Ast,
+    ast: &'a Ast,
     stack: Stack,
     scope: Scope,
 }
 
 impl<'a> Engine<'a> {
-    pub fn new(library: &'a Library, ast: Ast) -> Self {
+    pub fn new(library: &'a Library, ast: &'a Ast) -> Self {
         Engine {
             library,
             ast,
@@ -69,16 +68,11 @@ impl<'a> Engine<'a> {
     }
 
     fn eval(&mut self, id: DocId) -> Result<ScriptInstance, WithStack<RuntimeError>> {
-        let statements = self
-            .ast
-            .documents
-            .get(&id)
-            .ok_or_else(|| {
-                WithStack::from_err(RuntimeError::UnknownIdentifier(id.to_string()), &self.stack)
-            })?
-            .clone();
+        let statements = self.ast.documents.get(&id).ok_or_else(|| {
+            WithStack::from_err(RuntimeError::UnknownIdentifier(id.to_string()), &self.stack)
+        })?;
 
-        self.eval_statements(id, &statements)
+        self.eval_statements(id, statements)
     }
 
     fn with_scope<T>(&mut self, scope: Scope, f: impl FnOnce(&mut Self) -> T) -> T {
@@ -386,15 +380,15 @@ impl LiteralVisitor for Engine<'_> {
         ))
     }
 
-    fn visit_resource(&mut self, v: &Arc<dyn Resource>) -> Self::Result {
+    fn visit_resource(&mut self, v: &dyn Resource) -> Self::Result {
         v.to_instance()
             .map_err(|e| WithStack::from_err(e, &self.stack))
     }
 
-    fn visit_function(&mut self, v: &[Statement]) -> Self::Result {
+    fn visit_function(&mut self, v: &Rc<Vec<Statement>>) -> Self::Result {
         Ok(Value::Function(Rc::new(Function::Defined {
             clojure: self.scope.clone(),
-            statements: Vec::from(v),
+            statements: v.clone(),
         })))
     }
 }

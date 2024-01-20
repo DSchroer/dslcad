@@ -4,12 +4,11 @@ use crate::runtime::{RuntimeError, ScriptInstance, Value};
 use std::collections::HashMap;
 use std::path::Path;
 use std::rc::Rc;
-use std::sync::Arc;
 
 pub struct IniLoader;
 
 impl<R: Reader> ResourceLoader<R> for IniLoader {
-    fn load(&self, path: &str, reader: &R) -> Result<Arc<dyn Resource>, DocumentParseError> {
+    fn load(&self, path: &str, reader: &R) -> Result<Box<dyn Resource>, DocumentParseError> {
         let data = reader.read(Path::new(path)).unwrap();
 
         let mut values = HashMap::new();
@@ -20,7 +19,7 @@ impl<R: Reader> ResourceLoader<R> for IniLoader {
             }
         }
 
-        Ok(Arc::new(values))
+        Ok(Box::new(values))
     }
 }
 

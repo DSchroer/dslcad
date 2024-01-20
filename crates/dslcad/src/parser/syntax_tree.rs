@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::fmt::{Debug, Display, Formatter};
 use std::path::Path;
-use std::sync::Arc;
+use std::rc::Rc;
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct DocId {
@@ -55,13 +55,13 @@ impl Ast {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Statement {
     Variable(Variable, Span),
     CreatePart(Expression, Span),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Variable {
     pub name: String,
     pub value: Option<Expression>,
@@ -85,13 +85,13 @@ impl Statement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum CallPath {
     Function(Box<Expression>),
     Document(DocId),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Argument {
     Named(String, Box<Expression>),
     Unnamed(Box<Expression>),
@@ -106,7 +106,7 @@ impl Argument {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Expression {
     Literal(Literal, Span),
     Reference(Reference, Span),
@@ -119,37 +119,37 @@ pub enum Expression {
     Scope(NestedScope, Span),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Invocation {
     pub path: CallPath,
     pub arguments: VecDeque<Argument>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Reference {
     pub name: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Property {
     pub target: Box<Expression>,
     pub name: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Index {
     pub target: Box<Expression>,
     pub index: Box<Expression>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Map {
     pub identifier: String,
     pub range: Box<Expression>,
     pub action: Box<Expression>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Reduce {
     pub left: String,
     pub right: String,
@@ -158,14 +158,14 @@ pub struct Reduce {
     pub action: Box<Expression>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct If {
     pub condition: Box<Expression>,
     pub if_true: Box<Expression>,
     pub if_false: Box<Expression>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NestedScope {
     pub statements: Vec<Statement>,
 }
@@ -200,14 +200,14 @@ impl Expression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Literal {
     Number(f64),
     Bool(bool),
     Text(String),
     List(Vec<Expression>),
-    Resource(Arc<dyn Resource>),
-    Function(Vec<Statement>),
+    Resource(Box<dyn Resource>),
+    Function(Rc<Vec<Statement>>),
 }
 
 impl Literal {
@@ -217,7 +217,7 @@ impl Literal {
             Literal::Bool(v) => visitor.visit_bool(v),
             Literal::Text(v) => visitor.visit_text(v),
             Literal::List(v) => visitor.visit_list(v),
-            Literal::Resource(v) => visitor.visit_resource(v),
+            Literal::Resource(v) => visitor.visit_resource(v.as_ref()),
             Literal::Function(v) => visitor.visit_function(v),
         }
     }
