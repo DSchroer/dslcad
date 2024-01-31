@@ -62,7 +62,7 @@ impl Signature {
         let mut to_cover = self.arguments.clone();
 
         for (name, value) in call.named() {
-            if let Some((name, access)) = to_cover.remove_entry(name) {
+            if let Some((name, access)) = to_cover.swap_remove_entry(name) {
                 match access {
                     Access::Required(t) => map.insert(name, value.to_type(t).ok()?),
                     Access::Optional(t) => map.insert(name, value.to_type(t).ok()?),
