@@ -5,6 +5,8 @@ use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContext};
 use std::collections::BTreeMap;
 
+use crate::editor::camera::CameraCommand;
+use bevy_egui::egui::Id;
 use std::str::FromStr;
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
@@ -194,6 +196,7 @@ fn main_ui(
     mut render_events: EventWriter<RenderCommand>,
     mut menu_events: EventWriter<MenuEvent>,
     mut render_state: ResMut<RenderState>,
+    mut camera_events: EventWriter<CameraCommand>,
     mut store: ResMut<Settings>,
     menu: Res<Menu>,
 ) {
@@ -206,6 +209,16 @@ fn main_ui(
                         if ui.button(*action).clicked() {
                             menu_events.send(MenuEvent(action));
                             ui.close_menu();
+                        }
+                    }
+
+                    if *menu == TopLevelMenu::Camera {
+                        let id = Id::new("orthographic");
+                        let mut ortho = ui.memory(|m| m.data.get_temp(id)).unwrap_or_default();
+
+                        if ui.checkbox(&mut ortho, "Orthographic").clicked() {
+                            camera_events.send(CameraCommand::UseOrthographic(ortho));
+                            ui.memory_mut(|m| m.data.insert_temp(id, ortho))
                         }
                     }
 

@@ -1,13 +1,14 @@
 use crate::editor::Blueprint;
 use bevy::input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
+use bevy::render::camera::ScalingMode;
 use bevy::window::PrimaryWindow;
 use bevy_egui::EguiContext;
 use dslcad_storage::protocol::BoundingBox;
 use smooth_bevy_cameras::controllers::orbit::{
     ControlEvent, OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
 };
-use smooth_bevy_cameras::{LookTransform, LookTransformPlugin};
+use smooth_bevy_cameras::{LookTransform, LookTransformPlugin, Smoother};
 
 pub struct CameraPlugin;
 
@@ -20,6 +21,7 @@ impl Plugin for CameraPlugin {
             .add_systems(Startup, camera_system)
             .add_systems(Update, camera_light)
             .add_systems(Update, camera_handler)
+            .add_systems(Update, orthographic_zoom)
             .add_systems(Update, input_map);
     }
 }
@@ -34,6 +36,7 @@ pub enum CameraCommand {
     Refocus(),
     Reset(),
     Focus(BoundingBox),
+    UseOrthographic(bool),
 }
 
 fn camera_light(
@@ -79,6 +82,7 @@ fn camera_system(mut commands: Commands) {
 
 fn camera_handler(
     mut camera_commands: EventReader<CameraCommand>,
+    mut projection: Query<&mut Projection>,
     mut camera: Query<&mut LookTransform, With<OrbitCameraController>>,
     mut state: ResMut<CameraState>,
 ) {
@@ -105,6 +109,32 @@ fn camera_handler(
                 transform.target = Vec3::default();
                 transform.eye = Vec3::splat(100.);
             }
+            CameraCommand::UseOrthographic(orthographic) => {
+                let mut projection = projection.single_mut();
+                if *orthographic {
+                    *projection = Projection::Orthographic(OrthographicProjection::default());
+                } else {
+                    *projection = Projection::Perspective(PerspectiveProjection::default());
+                }
+            }
+        }
+    }
+}
+
+fn orthographic_zoom(
+    mut projections: Query<&mut Projection>,
+    look: Query<&LookTransform>,
+    smoother: Query<&Smoother>,
+) {
+    let transform = look.single();
+    let mut smoother = smoother.single().clone();
+    let transform = smoother.smooth_transform(transform);
+    let d = transform.target.distance(transform.eye);
+    for mut projection in &mut projections {
+        if let Projection::Orthographic(o) = projection.as_mut() {
+            o.far = d + 1000.0;
+            o.scaling_mode = ScalingMode::FixedVertical(d);
+            o.scale = 1.0;
         }
     }
 }
