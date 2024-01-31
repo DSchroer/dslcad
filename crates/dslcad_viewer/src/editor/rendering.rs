@@ -94,7 +94,11 @@ fn mesh_renderer(
                     commands
                         .spawn(PbrBundle {
                             mesh: meshes.add(mesh),
-                            material: materials.add(color.into()),
+                            material: materials.add(StandardMaterial {
+                                base_color: color,
+                                cull_mode: None,
+                                ..Default::default()
+                            }),
                             ..Default::default()
                         })
                         .set_parent(*entity);
