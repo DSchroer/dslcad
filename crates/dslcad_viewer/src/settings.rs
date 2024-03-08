@@ -1,5 +1,6 @@
 use bevy::prelude::Resource;
 use bevy::utils::HashMap;
+use simple_home_dir::home_dir;
 use std::fmt::Write;
 use std::fs;
 use std::path::Path;
@@ -46,7 +47,7 @@ impl Default for FileStore {
 
 impl FileStore {
     fn load_values(&mut self) {
-        let config_file = Path::new(env!("HOME"))
+        let config_file = Path::new(&home_dir().expect("unable to locate home directory"))
             .join(".config")
             .join("dslcad")
             .join("config.ini");

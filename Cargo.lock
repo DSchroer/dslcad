@@ -1697,6 +1697,7 @@ dependencies = [
  "bevy_polyline",
  "dslcad-storage",
  "rand",
+ "simple-home-dir",
  "smooth-bevy-cameras",
  "strum",
  "strum_macros",
@@ -3484,6 +3485,15 @@ name = "simd-adler32"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
+
+[[package]]
+name = "simple-home-dir"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "212b290f80a257d2a20b574ca26040467868675b18d485af78a04acf8c2ce38b"
+dependencies = [
+ "windows-sys 0.52.0",
+]
 
 [[package]]
 name = "slab"
