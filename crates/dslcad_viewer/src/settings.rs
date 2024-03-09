@@ -66,7 +66,9 @@ impl FileStore {
             writeln!(output, "{key}={value}").expect("failed to write value");
         }
 
-        let config_dir = Path::new(env!("HOME")).join(".config").join("dslcad");
+        let config_dir = Path::new(&home_dir().expect("unable to locate home directory"))
+            .join(".config")
+            .join("dslcad");
 
         fs::create_dir_all(&config_dir).expect("failed to create config dir");
         fs::write(config_dir.join("config.ini"), output).expect("failed to save config");
