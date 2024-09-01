@@ -77,6 +77,30 @@ pub fn scale(shape: &Shape, size: f64) -> Result<Value, RuntimeError> {
     Ok(Shape::scale(shape, size)?.into())
 }
 
+pub fn scale_xyz(
+    shape: &Shape,
+    x: Option<f64>,
+    y: Option<f64>,
+    z: Option<f64>,
+) -> Result<Value, RuntimeError> {
+    let transform_matrix = [
+        x.unwrap_or(1.0),
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        y.unwrap_or(1.0),
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        z.unwrap_or(1.0),
+        0.0,
+    ];
+
+    Ok(Shape::transform(shape, &transform_matrix)?.into())
+}
+
 pub fn center(
     shape: &Shape,
     x: Option<bool>,

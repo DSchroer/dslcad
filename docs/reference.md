@@ -90,6 +90,7 @@ to build parts.
 - `translate(shape=shape, x=[number], y=[number], z=[number])` move a shape
 - `rotate(shape=shape, x=[number], y=[number], z=[number])` rotate a shape
 - `scale(shape=shape, scale=number)` scale a shape
+- `scale(shape=shape, x=[number], y=[number], z=[number])` scale a shape
 - `center(shape=shape, x=[bool], y=[bool], z=[bool])` center a shape
 - `slice(left=shape, right=edge)` cut a slice out of a shape
 - `slice(left=shape, right=shape)` cut a slice out of a shape

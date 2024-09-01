@@ -163,6 +163,13 @@ mod tests {
     }
 
     #[test]
+    fn it_has_axis_scaling() {
+        run("cube() -> scale(x=2);");
+        run("cube() -> scale(y=2);");
+        run("cube() -> scale(z=2);");
+    }
+
+    #[test]
     fn it_supports_arguments() {
         let args = parse_arguments(vec!["a=\"5\""].into_iter()).unwrap();
 

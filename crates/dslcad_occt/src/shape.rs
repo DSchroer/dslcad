@@ -6,16 +6,17 @@ use cxx::UniquePtr;
 use log::debug;
 use opencascade_sys::ffi::{
     gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_vec, BRepAlgoAPI_Common, BRepAlgoAPI_Cut,
-    BRepAlgoAPI_Fuse, BRepAlgoAPI_Section, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
-    BRepBuilderAPI_Transform, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor,
-    BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepGProp_VolumeProperties,
-    BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
-    BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
-    BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
-    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt, BRep_Tool_Triangulation,
-    GProp_GProps_CentreOfMass, GProp_GProps_ctor, HandlePoly_Triangulation_Get,
-    Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor,
-    TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_cast_to_face,
+    BRepAlgoAPI_Fuse, BRepAlgoAPI_Section, BRepBuilderAPI_GTransform, BRepBuilderAPI_MakeFace,
+    BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform, BRepFilletAPI_MakeChamfer,
+    BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor,
+    BRepGProp_VolumeProperties, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox,
+    BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor,
+    BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol,
+    BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt,
+    BRep_Tool_Triangulation, GProp_GProps_CentreOfMass, GProp_GProps_ctor,
+    Handle_Poly_Triangulation_Get, Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum,
+    TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
+    TopoDS_cast_to_face,
 };
 use std::f64::consts::PI;
 
@@ -144,7 +145,7 @@ impl Shape {
             let mut location = TopLoc_Location_ctor();
 
             let triangulation_handle = BRep_Tool_Triangulation(face, location.pin_mut());
-            if let Ok(triangulation) = HandlePoly_Triangulation_Get(&triangulation_handle) {
+            if let Ok(triangulation) = Handle_Poly_Triangulation_Get(&triangulation_handle) {
                 let index_offset = mesh.vertices.len();
                 for index in 1..=triangulation.NbNodes() {
                     let node = Poly_Triangulation_Node(triangulation, index);
@@ -258,6 +259,7 @@ shape_builder!(BRepAlgoAPI_Common);
 shape_builder!(BRepAlgoAPI_Section);
 shape_builder!(BRepBuilderAPI_Transform);
 shape_builder!(BRepBuilderAPI_MakeFace);
+shape_builder!(BRepBuilderAPI_GTransform);
 
 #[cfg(test)]
 mod tests {

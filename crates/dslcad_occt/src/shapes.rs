@@ -2,9 +2,10 @@ use crate::command::Builder;
 use crate::compound::Compound;
 use crate::{Axis, Error, Point, Wire};
 use opencascade_sys::ffi::{
-    gp_OX, gp_OY, gp_OZ, new_transform, BRepAlgoAPI_Common_ctor, BRepAlgoAPI_Cut_ctor,
-    BRepAlgoAPI_Fuse_ctor, BRepAlgoAPI_Section_ctor, BRepBuilderAPI_MakeFace_wire,
-    BRepBuilderAPI_Transform_ctor, TopoDS_Shape, TopoDS_cast_to_compound,
+    gp_OX, gp_OY, gp_OZ, new_gp_GTrsf, new_transform, BRepAlgoAPI_Common_ctor,
+    BRepAlgoAPI_Cut_ctor, BRepAlgoAPI_Fuse_ctor, BRepAlgoAPI_Section_ctor,
+    BRepBuilderAPI_GTransform_ctor, BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform_ctor,
+    TopoDS_Shape, TopoDS_cast_to_compound,
 };
 
 pub trait DsShape: for<'a> From<&'a TopoDS_Shape> {
@@ -45,6 +46,26 @@ pub trait DsShape: for<'a> From<&'a TopoDS_Shape> {
             .SetScale(&Point::new(0., 0., 0.).point, scale);
 
         Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
+            self.shape(),
+            &transform,
+            true,
+        ))?
+        .into())
+    }
+
+    fn transform(&self, values: &[f64]) -> Result<Self, Error> {
+        assert_eq!(values.len(), 3 * 4, "transform must be 3 x 4 matrix");
+
+        let mut transform = new_gp_GTrsf();
+        let mut i = 0;
+        for row in 1..=3 {
+            for col in 1..=4 {
+                transform.pin_mut().SetValue(row, col, values[i]);
+                i += 1;
+            }
+        }
+
+        Ok(Builder::try_build(&mut BRepBuilderAPI_GTransform_ctor(
             self.shape(),
             &transform,
             true,
@@ -93,5 +114,25 @@ pub trait DsShape: for<'a> From<&'a TopoDS_Shape> {
         let binding = &mut BRepAlgoAPI_Section_ctor(self.shape(), right.shape());
         let compound_shape: Compound = TopoDS_cast_to_compound(Builder::try_build(binding)?).into();
         compound_shape.try_into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Shape;
+
+    #[test]
+    fn it_can_raw_transform_shapes() {
+        let identity = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0];
+
+        let cube = Shape::cube(1., 1., 1.).unwrap();
+        let shape = cube.transform(&identity).unwrap();
+
+        assert_eq!(
+            shape.points().unwrap(),
+            Shape::cube(1., 1., 1.).unwrap().points().unwrap()
+        );
+        dbg!(shape.points().unwrap());
     }
 }

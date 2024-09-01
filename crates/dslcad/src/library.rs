@@ -242,7 +242,7 @@ impl Display for Category {
 
 impl Library {
     pub fn contains(&self, name: &str) -> bool {
-        self.lookup.get(name).is_some()
+        self.lookup.contains_key(name)
     }
 
     fn from_signatures(signatures: Vec<Signature>) -> Self {
@@ -464,6 +464,7 @@ impl Default for Library {
             bind!(translate, shapes::translate[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "move a shape"),
             bind!(rotate, shapes::rotate[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "rotate a shape"),
             bind!(scale, shapes::scale[shape=shape, scale=number], Category::ThreeD, "scale a shape"),
+            bind!(scale, shapes::scale_xyz[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "scale a shape"),
             bind!(
                 center,
                 shapes::center[shape = shape, x=option_bool, y=option_bool, z=option_bool],
