@@ -7,9 +7,21 @@ use opencascade_sys::ffi::{
     GC_MakeArcOfCircle_point_point_point, GC_MakeSegment_Value, GC_MakeSegment_point_point,
     HandleGeomCurve_Value, TopoDS_Edge, TopoDS_Edge_to_owned,
 };
+use std::fmt::{Debug, Formatter};
 use std::pin::Pin;
 
 pub struct Edge(pub(crate) UniquePtr<TopoDS_Edge>);
+
+impl Debug for Edge {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let (start, end) = self.start_end();
+
+        f.debug_struct("Edge")
+            .field("start", &start)
+            .field("end", &end)
+            .finish()
+    }
+}
 
 impl Edge {
     pub fn new_line(a: &Point, b: &Point) -> Result<Self, Error> {
