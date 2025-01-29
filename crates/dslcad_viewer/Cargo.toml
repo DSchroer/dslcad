@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 strum = "0.25.0"
 strum_macros = "0.25.2"
-bevy = "0.11.1"
 bevy_egui = "0.21.0"
 smooth-bevy-cameras = "0.9.0"
 bevy_polyline = "0.7.0"
@@ -14,3 +13,8 @@ bevy_points = { git = "https://github.com/mattatz/bevy_points/", rev = "240c7640
 dslcad-storage = { path = "../dslcad_storage" }
 rand = "0.8"
 simple-home-dir = "0.3"
+
+[dependencies.bevy]
+version = "0.11.1"
+default-features = false
+features = ["bevy_winit", "x11", "ktx2", "zstd", "tonemapping_luts"]
