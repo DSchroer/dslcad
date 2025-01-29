@@ -2,13 +2,40 @@ name: DSLCAD Release
 
 on:
   workflow_dispatch:
+    inputs:
+      upload_url:
+        description: 'Release artifact upload url'
+        required: true
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
   pack_release:
     name: DSLCAD Release
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: "ubuntu-latest"
+            target: "x86_64-unknown-linux-gnu"
+          - os: "macos-latest"
+            target: "x86_64-apple-darwin"
+          - os: "macos-latest"
+            target: "aarch64-apple-darwin"
+          - os: "windows-latest"
+            target: " x86_64-pc-windows-msvc"
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v2
       - run: rustup update stable && rustup default stable
-      - run: just pack
+      - run: TARGET=${{ matrix.target }} just pack
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ inputs.upload_url }}
+          asset_path: ./${{ matrix.target }}.zip
+          asset_name: ${{ matrix.target }}.zip
+          asset_content_type: application/gzip
