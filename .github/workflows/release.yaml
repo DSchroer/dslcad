@@ -49,7 +49,7 @@ jobs:
       - uses: extractions/setup-just@v2
       - uses: lovasoa/setup-emscripten@master
         with:
-          emscripten-version: 'latest'
+          emscripten-version: '1.38.47'
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
