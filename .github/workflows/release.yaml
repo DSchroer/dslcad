@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v2
       - run: rustup update stable && rustup default stable
-      - run: TARGET=${{ matrix.target }} just pack
+      - run: CMAKE_BUILD_PARALLEL_LEVEL=4 TARGET=${{ matrix.target }} just pack
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}.zip
