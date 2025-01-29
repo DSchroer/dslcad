@@ -8,6 +8,9 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+permissions:
+  contents: write
+
 jobs:
   vscode:
     name: DSLCAD VSCode Extension
@@ -47,8 +50,17 @@ jobs:
       - uses: lovasoa/setup-emscripten@master
         with:
           emscripten-version: 'latest'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
       - run: rustup update stable && rustup default stable && rustup target add wasm32-unknown-emscripten && rustup target add wasm32-unknown-unknown
       - run: just build-docs-editor
+      - run: pip install mkdocs-material
+      - run: mkdocs gh-deploy --force
 
   pack_release:
     name: DSLCAD Release
