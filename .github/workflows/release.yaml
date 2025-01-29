@@ -17,7 +17,7 @@ jobs:
       - uses: extractions/setup-just@v2
       - uses: actions/setup-node@v1
         with:
-          node-version: 14
+          node-version: 23
           registry-url: https://registry.npmjs.org/
       - run: npm i -g vsce
       - run: just build-vscode-extension
@@ -44,11 +44,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v2
+      - uses: lovasoa/setup-emscripten@master
+        with:
+          emscripten-version: '4.0.1'
       - run: rustup update stable && rustup default stable && rustup target add wasm32-unknown-emscripten && rustup target add wasm32-unknown-unknown
       - run: just build-docs-editor
 
   pack_release:
     name: DSLCAD Release
+    continue-on-error: true
     strategy:
       matrix:
         include:
