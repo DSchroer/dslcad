@@ -38,7 +38,7 @@ jobs:
       - run: just build-examples
       - uses: actions/upload-artifact@v4
         with:
-          name: examples.zip
+          name: examples
           path: ./examples/**/*
 
   docs:
@@ -98,5 +98,5 @@ jobs:
       - run: just CMAKE_BUILD_PARALLEL_LEVEL=4 TARGET=${{ matrix.target }} pack
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target }}.zip
+          name: ${{ matrix.target }}
           path: ./target/${{ matrix.target }}/release/*
