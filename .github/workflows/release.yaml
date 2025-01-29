@@ -1,12 +1,9 @@
 name: DSLCAD Release
 
 on:
+  release:
+    types: [ created ]
   workflow_dispatch:
-    inputs:
-      upload_url:
-        description: 'Release artifact upload url'
-        required: true
-        type: string
 
 env:
   CARGO_TERM_COLOR: always
@@ -29,13 +26,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v2
+      - id: latest_release_info
+        uses: jossef/action-latest-release-info@v1.2.2
       - run: rustup update stable && rustup default stable
       - run: TARGET=${{ matrix.target }} just pack
       - uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          upload_url: ${{ inputs.upload_url }}
+          upload_url: ${{ steps.latest_release_info.outputs.upload_url }}
           asset_path: ./${{ matrix.target }}.zip
           asset_name: ${{ matrix.target }}.zip
           asset_content_type: application/gzip
