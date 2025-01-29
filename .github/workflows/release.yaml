@@ -39,7 +39,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: examples.zip
-          path: ./examples.zip
+          path: ./examples/**/*
 
   docs:
     name: Documentation
@@ -99,4 +99,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}.zip
-          path: ./${{ matrix.target }}.zip
+          path: ./target/${{ matrix.target }}/release/*
