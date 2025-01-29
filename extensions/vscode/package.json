@@ -1,0 +1,38 @@
+{
+	"name": "dslcad",
+	"description": "DSLCAD VSCode Extension",
+	"author": "Dominick Schroer",
+	"license": "MIT",
+	"version": "0.0.1",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DSchroer/dslcad/"
+	},
+	"categories": [],
+	"keywords": [
+		"multi-root ready"
+	],
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"activationEvents": [
+		"onLanguage:dslcad"
+	],
+	"main": "./src/extension",
+	"contributes": {
+		"languages": [{
+			"id": "dslcad",
+			"aliases": ["DSLCAD"],
+			"extensions": [".ds"]
+		}],
+		"grammars": [{
+			"language": "dslcad",
+			"scopeName": "source.dslcad",
+			"path": "./syntaxes/dslcad.tmLanguage.json"
+		}]
+	},
+	"scripts": {
+	},
+	"devDependencies": {
+	}
+}

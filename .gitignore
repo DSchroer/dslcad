@@ -13,3 +13,4 @@ site/
 docs/editor
 __pycache__
 occt_prebuilt/
+*.vsix

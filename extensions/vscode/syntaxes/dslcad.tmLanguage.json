@@ -1,0 +1,48 @@
+{
+  "scopeName": "source.dslcad",
+  "patterns": [{ "include": "#expression" }],
+  "repository": {
+    "expression": {
+      "patterns": [
+        { "include": "#operator" },
+        { "include": "#variable" },
+        { "include": "#number" },
+        { "include": "#control" },
+        { "include": "#identifier" },
+        { "include": "#paren-expression" }
+      ]
+    },
+    "identifier": {
+      "match": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "name": "variable"
+    },
+    "number": {
+      "match": "\\d+(\\.\\d*)?",
+      "name": "constant.numeric.decimal.dslcad"
+    },
+    "operator": {
+      "match": "->|=|\\*|/|\\-|\\+|;",
+      "name": "operator"
+    },
+    "variable": {
+      "match": "var",
+      "name": "storage.type"
+    },
+    "control": {
+      "match": "if|map|reduce|as",
+      "name": "keyword.control.dslcad"
+    },
+    "paren-expression": {
+      "begin": "\\(",
+      "end": "\\)",
+      "beginCaptures": {
+        "0": { "name": "meta.brace.round" }
+      },
+      "endCaptures": {
+        "0": { "name": "meta.brace.round" }
+      },
+      "name": "expression.group",
+      "patterns": [{ "include": "#expression" }]
+    }
+  }
+}

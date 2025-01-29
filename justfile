@@ -16,6 +16,13 @@ build *FLAGS:
 
     cargo build --bin dslcad --target {{ TARGET }} $FLAGS {{ FLAGS }}
 
+build-examples:
+    cd examples && zip -r ../examples.zip *
+
+build-vscode-extension:
+    cd extensions/vscode && vsce package
+    mv extensions/vscode/*.vsix .
+
 build-viewer *FLAGS:
     #!/usr/bin/env bash
     set -ex

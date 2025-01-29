@@ -6,6 +6,3 @@ members = [
     "crates/dslcad_storage",
     "crates/dslcad_viewer",
 ]
-exclude = [
-    "tools/opencascade_builder"
-]
