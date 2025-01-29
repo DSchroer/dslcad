@@ -21,7 +21,7 @@ build-examples:
 
 build-vscode-extension:
     cd extensions/vscode && vsce package
-    mv extensions/vscode/*.vsix .
+    mv extensions/vscode/*.vsix dslcad.vsix
 
 build-viewer *FLAGS:
     #!/usr/bin/env bash

@@ -9,6 +9,44 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  vscode:
+    name: DSLCAD VSCode Extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 14
+          registry-url: https://registry.npmjs.org/
+      - run: npm i -g vsce
+      - run: just build-vscode-extension
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dslcad.vsix
+          path: ./dslcad.vsix
+
+  examples:
+    name: DSLCAD Examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
+      - run: just build-examples
+      - uses: actions/upload-artifact@v4
+        with:
+          name: examples.zip
+          path: ./examples.zip
+
+  docs:
+    name: DSLCAD Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
+      - run: rustup update stable && rustup default stable && rustup target add wasm32-unknown-emscripten && rustup target add wasm32-unknown-unknown
+      - run: just build-docs-editor
+
   pack_release:
     name: DSLCAD Release
     strategy:
