@@ -1,0 +1,14 @@
+name: DSLCAD Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  pack_release:
+    name: DSLCAD Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
+      - run: rustup update stable && rustup default stable
+      - run: just pack
