@@ -1,4 +1,4 @@
-name: DSLCAD Release
+name: Generate Release Artifacts
 
 on:
   release:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   vscode:
-    name: DSLCAD VSCode Extension
+    name: VSCode Extension
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
           path: ./dslcad.vsix
 
   examples:
-    name: DSLCAD Examples
+    name: Examples
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
           path: ./examples.zip
 
   docs:
-    name: DSLCAD Docs
+    name: Documentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,12 +59,13 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
       - run: rustup update stable && rustup default stable && rustup target add wasm32-unknown-emscripten && rustup target add wasm32-unknown-unknown
+      - run: cargo install -f wasm-bindgen-cli@0.2.89
       - run: just build-docs-editor
       - run: pip install mkdocs-material
       - run: mkdocs gh-deploy --force
 
   pack_release:
-    name: DSLCAD Release
+    name: Build
     continue-on-error: true
     strategy:
       matrix:
@@ -93,7 +94,7 @@ jobs:
           cmake-version: '3.31.x'
       - run: rustup update stable && rustup default stable && rustup target add ${{ matrix.target }}
       - if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
-        run: cargo install -f wasm-bindgen-cli
+        run: cargo install -f wasm-bindgen-cli@0.2.89
       - run: just CMAKE_BUILD_PARALLEL_LEVEL=4 TARGET=${{ matrix.target }} pack
       - uses: actions/upload-artifact@v4
         with:
