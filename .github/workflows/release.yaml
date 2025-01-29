@@ -47,9 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v2
-      - uses: lovasoa/setup-emscripten@master
-        with:
-          emscripten-version: '1.38.47'
+      - uses: mymindstorm/setup-emsdk@v14
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
