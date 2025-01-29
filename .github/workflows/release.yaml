@@ -46,7 +46,7 @@ jobs:
       - uses: extractions/setup-just@v2
       - uses: lovasoa/setup-emscripten@master
         with:
-          emscripten-version: '4.0.1'
+          emscripten-version: 'latest'
       - run: rustup update stable && rustup default stable && rustup target add wasm32-unknown-emscripten && rustup target add wasm32-unknown-unknown
       - run: just build-docs-editor
 
