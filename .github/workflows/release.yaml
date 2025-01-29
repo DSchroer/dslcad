@@ -21,7 +21,7 @@ jobs:
           - os: "macos-latest"
             target: "aarch64-apple-darwin"
           - os: "windows-latest"
-            target: " x86_64-pc-windows-msvc"
+            target: "x86_64-pc-windows-msvc"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
