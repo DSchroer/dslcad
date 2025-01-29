@@ -48,12 +48,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v2
       - uses: mymindstorm/setup-emsdk@v14
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.x
       - uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.31.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
       - name: Configure Git Credentials
         run: |
           git config user.name github-actions[bot]
@@ -77,11 +77,23 @@ jobs:
             target: "aarch64-apple-darwin"
           - os: "windows-latest"
             target: "x86_64-pc-windows-msvc"
+          - os: "ubuntu-latest"
+            target: "wasm32-unknown-emscripten"
+          - os: "ubuntu-latest"
+            target: "wasm32-unknown-unknown"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v2
+      - if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
+        uses: mymindstorm/setup-emsdk@v14
+      - if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.31.x'
       - run: rustup update stable && rustup default stable && rustup target add ${{ matrix.target }}
+      - if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
+        run: cargo install -f wasm-bindgen-cli
       - run: just CMAKE_BUILD_PARALLEL_LEVEL=4 TARGET=${{ matrix.target }} pack
       - uses: actions/upload-artifact@v4
         with:
