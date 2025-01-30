@@ -14,7 +14,7 @@ use opencascade_sys::ffi::{
     BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol,
     BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt,
     BRep_Tool_Triangulation, GProp_GProps_CentreOfMass, GProp_GProps_ctor,
-    Handle_Poly_Triangulation_Get, Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum,
+    HandlePoly_Triangulation_Get, Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum,
     TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
     TopoDS_cast_to_face,
 };
@@ -145,7 +145,7 @@ impl Shape {
             let mut location = TopLoc_Location_ctor();
 
             let triangulation_handle = BRep_Tool_Triangulation(face, location.pin_mut());
-            if let Ok(triangulation) = Handle_Poly_Triangulation_Get(&triangulation_handle) {
+            if let Ok(triangulation) = HandlePoly_Triangulation_Get(&triangulation_handle) {
                 let index_offset = mesh.vertices.len();
                 for index in 1..=triangulation.NbNodes() {
                     let node = Poly_Triangulation_Node(triangulation, index);
