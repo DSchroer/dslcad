@@ -30,37 +30,30 @@ impl Display for ParseError {
                 source,
             } => {
                 let text = source;
+
+                let (line, col) = error.line_col(text);
+                f.write_fmt(format_args!(
+                    "error: {}[{}:{}-{}]\n",
+                    file, line, col.start, col.end
+                ))?;
+
                 match error {
                     DocumentParseError::UnexpectedEndOfFile() => {
-                        let last = text.split('\n').enumerate().last();
-
-                        f.write_fmt(format_args!("error: {}\n", file))?;
-                        match last {
-                            None => f.write_str("unexpected end of line [0]:")?,
-                            Some((line, text)) => f.write_fmt(format_args!(
-                                "unexpected end of line [{line}]: {text}"
-                            ))?,
-                        }
+                        f.write_fmt(format_args!("unexpected end of file"))?;
                     }
                     DocumentParseError::UndeclaredIdentifier(span) => {
-                        let (line, col) = line_col(text, span);
-                        f.write_fmt(format_args!("error: {}[{}:{}]\n", file, line, col.start))?;
                         f.write_fmt(format_args!(
                             "undeclared identifier {}",
                             text.slice(span.clone()).unwrap()
                         ))?;
                     }
                     DocumentParseError::DuplicateVariableName(span) => {
-                        let (line, col) = line_col(text, span);
-                        f.write_fmt(format_args!("error: {}[{}:{}]\n", file, line, col.start))?;
                         f.write_fmt(format_args!(
                             "duplicate variable name {}",
                             text.slice(span.clone()).unwrap()
                         ))?;
                     }
                     DocumentParseError::Expected(expected, span) => {
-                        let (line, col) = line_col(text, span);
-                        f.write_fmt(format_args!("error: {}[{}:{}]\n", file, line, col.start))?;
                         f.write_fmt(format_args!(
                             "expected {} but found {}",
                             expected,
@@ -68,22 +61,16 @@ impl Display for ParseError {
                         ))?;
                     }
                     DocumentParseError::ExpectedOneOf(expected, span) => {
-                        let (line, col) = line_col(text, span);
-                        f.write_fmt(format_args!("error: {}[{}:{}]\n", file, line, col.start))?;
                         f.write_fmt(format_args!(
                             "expected one of {} but found {}",
                             expected.join(" or "),
                             text.slice(span.clone()).unwrap()
-                        ))?
+                        ))?;
                     }
-                    DocumentParseError::UnknownResourceType(extension, span) => {
-                        let (line, col) = line_col(text, span);
-                        f.write_fmt(format_args!("error: {}[{}:{}]\n", file, line, col.start))?;
-                        f.write_fmt(format_args!("unknown resource extension {}", extension))?
+                    DocumentParseError::UnknownResourceType(extension, _) => {
+                        f.write_fmt(format_args!("unknown resource extension {}", extension))?;
                     }
-                    DocumentParseError::ParametersNotAllowedInScopes(span) => {
-                        let (line, col) = line_col(text, span);
-                        f.write_fmt(format_args!("error: {}[{}:{}]\n", file, line, col.start))?;
+                    DocumentParseError::ParametersNotAllowedInScopes(_) => {
                         f.write_fmt(format_args!("parameters are not allowed in scopes"))?;
                     }
                 }
@@ -106,6 +93,21 @@ pub enum DocumentParseError {
 }
 
 impl DocumentParseError {
+    pub fn line_col(&self, text: &str) -> (usize, Span) {
+        match self {
+            DocumentParseError::UnexpectedEndOfFile() => {
+                let (i, line) = text.split('\n').enumerate().last().unwrap_or_default();
+                (i, line.len()..line.len())
+            }
+            DocumentParseError::UnknownResourceType(_, span)
+            | DocumentParseError::UndeclaredIdentifier(span)
+            | DocumentParseError::DuplicateVariableName(span)
+            | DocumentParseError::ParametersNotAllowedInScopes(span)
+            | DocumentParseError::Expected(_, span)
+            | DocumentParseError::ExpectedOneOf(_, span) => line_col(text, span),
+        }
+    }
+
     pub fn with_source(self, file: DocId, source: String) -> ParseError {
         ParseError::DocumentError {
             error: self,
@@ -150,7 +152,7 @@ pub mod tests {
 
         assert_eq!("v", source[range].to_string());
         assert_eq!(
-            "error: test.txt[3:2]\nexpected foo but found v\n",
+            "error: test.txt[3:2-3]\nexpected foo but found v\n",
             format!("{error}")
         )
     }
