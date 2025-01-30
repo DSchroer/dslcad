@@ -926,12 +926,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "binary-stream"
-version = "3.4.0"
+name = "bincode"
+version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4ef03ef225ea9a0b680a5926a58cb45d8eb56abf23d8a8b5c5dbc61235e2dac"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
 dependencies = [
- "thiserror",
+ "serde",
 ]
 
 [[package]]
@@ -1384,9 +1384,9 @@ dependencies = [
 name = "dslcad-storage"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "quick-xml",
  "serde",
- "serde-binary",
  "zip",
 ]
 
@@ -2840,17 +2840,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02fc4265df13d6fa1d00ecff087228cc0a2b5f3c0e87e258d8b94a156e984c70"
 dependencies = [
  "serde_derive",
-]
-
-[[package]]
-name = "serde-binary"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b550db407b83ed53a4f76f888bfd7441b685abc2c086e20fb47781a286940506"
-dependencies = [
- "binary-stream",
- "serde",
- "thiserror",
 ]
 
 [[package]]

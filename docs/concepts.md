@@ -68,13 +68,13 @@ The `scale` function lets scale an object up or down.
 <div class="tryme">
 
 ```
-// Cube moved up the z axix by 2 units
+// cube moved up the z axix by 2 units
 cube() -> translate(z=2);
 
-// Cube rotated 225 degrees
+// cube rotated 225 degrees
 cube() -> rotate(z=180 + 45);
 
-// Cube doubled in size
+// cube doubled in size
 cube() -> scale(scale=2);
 ```
 
@@ -85,7 +85,7 @@ The `center` function lets you center any object on any axis you want.
 <div class="tryme">
 
 ```
-// Cube centered on the x and y axis.
+// cube centered on the x and y axis but not the z axis
 cube() -> center(z=false);
 ```
 
@@ -101,7 +101,7 @@ You can combine two objects using the `union` function. This joins both object i
 <div class="tryme">
 
 ```
-// Cube combined with a sphere
+// cube combined with a sphere
 cube() -> union(sphere(radius=1));
 ```
 
@@ -112,7 +112,7 @@ You can cut away at an object using the `difference` function. This removes the 
 <div class="tryme">
 
 ```
-// Cube with a sphere cut out
+// cube with a sphere cut out
 cube() -> difference(sphere(radius=1));
 ```
 
@@ -123,7 +123,7 @@ You can get the overlap using the `intersect` function. This leaves the overlapp
 <div class="tryme">
 
 ```
-// Overlap of a cube and sphere
+// overlap of a cube and sphere
 cube() -> intersect(sphere(radius=1));
 ```
 
@@ -136,7 +136,7 @@ cube() -> intersect(sphere(radius=1));
 <div class="tryme">
 
 ```
-// Extrude a square into a rectangular cube
+// extrude a square into a rectangular cube
 square() -> extrude(z=2);
 ```
 
@@ -145,7 +145,7 @@ square() -> extrude(z=2);
 <div class="tryme">
 
 ```
-// Revolve a square around the y axis to make a half moon
+// revolve a square around the y axis to make a half moon
 square() -> revolve(y=180);
 ```
 
@@ -158,7 +158,7 @@ Sometimes you need a 2D outline of a 3D part, use the `slice` function to cut a 
 <div class="tryme">
 
 ```
-// Cut the outline of a complex shape
+// cut the outline of a complex shape
 cube() 
 -> union(sphere() -> translate(y=0.9)) 
 -> center(x=false, y=false)
@@ -167,13 +167,66 @@ cube()
 
 </div>
 
-## Scopes
+## Control Flow
+
+Control flow operations include `if`, `map` and `reduce`.
+These operations are expressions and can be nested anywhere 
+within your parts.
+
+The `if` operator can be used to branch conditionally.
+
+<div class="tryme">
+
+```
+if (1 == 1):
+    cube()
+else:
+    sphere()
+;
+```
+
+</div>
+
+The `range` function can be used with `map` and `reduce` to 
+create simple loops.
+
+<div class="tryme">
+
+```
+// make 10 cubes and space them out
+map range(0, 10) as x:
+    cube() -> translate(x=2 * x);
+```
+
+</div>
+
+The `reduce` operator is similar but allows you to aggregate
+results as needed. The `from` part is optional but is helpful when
+your output is different from your input.
+
+<div class="tryme">
+
+```
+// combine 10 spaced out cubes into one part
+reduce range(1, 10) from cube() as acc, x:
+    acc -> union(
+        cube() -> translate(x, y=0.5 * x)
+    );
+```
+
+</div>
+
+For more advanced control flow you can also use recursion
+in part files or functions.
+
+## Scopes and Functions
 
 For private variables, you can make use of scopes:
 
 <div class="tryme">
 
 ```
+// create a part using nested variables
 var object = {
     var base = 10;
     var height = 10;
@@ -181,6 +234,43 @@ var object = {
 };
 
 object;
+```
+
+</div>
+
+The `func` keyword can be used to turn a scope into a function with arguments.
+
+<div class="tryme">
+
+```
+// use a func as a constructor for custom parts
+var object = func {
+    var base = 10;
+    var height = 10;
+    cube(x=base, y=base, z=height);
+};
+
+object(base=20);
+```
+
+</div>
+
+## Printing Text
+
+There are a few text tools that can be used to print helpful notes 
+about your parts. Text can be treated the same as any part and DSLCAD
+will happily print it out.
+
+The `formatln` function is used to generate text.
+
+<div class="tryme">
+
+```
+var box = cube(x=10);
+
+format("volume (mm^3): {volume}", volume=round(box.volume));
+
+box;
 ```
 
 </div>
@@ -193,8 +283,8 @@ it is often useful to break things into multiple parts.
 You can make multiple parts in the same script. Just separate each part into its
 own statement like so:
 ```
+// two separate parts that can be printed separately
 ./part1();
-
 ./part2();
 ```
 
@@ -202,6 +292,7 @@ If you wanted them to be a single part you can join them with a `union` to form
 a single object.
 
 ```
+// two separate parts that are joined into one
 ./part1() ->left union(right=./part2());
 ```
 

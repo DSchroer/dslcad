@@ -3,27 +3,26 @@ mod aabb;
 use crate::threemf::{ThreeMF, Triangle, Vertex};
 pub use aabb::BoundingBox;
 use serde::{Deserialize, Serialize};
-use serde_binary::binary_stream::Endian;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Render {
     pub parts: Vec<Part>,
     pub stdout: String,
 }
 
 impl TryFrom<&[u8]> for Render {
-    type Error = serde_binary::Error;
+    type Error = bincode::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        serde_binary::from_slice(value, Endian::Big)
+        bincode::deserialize::<Render>(value)
     }
 }
 
 impl TryFrom<Render> for Vec<u8> {
-    type Error = serde_binary::Error;
+    type Error = bincode::Error;
 
     fn try_from(value: Render) -> Result<Self, Self::Error> {
-        serde_binary::to_vec(&value, Endian::Big)
+        bincode::serialize(&value)
     }
 }
 
@@ -65,7 +64,7 @@ impl From<Vec3<f64>> for Vertex {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum Part {
     Empty,
     Planar {
@@ -79,9 +78,42 @@ pub enum Part {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Mesh {
     pub vertices: Vec<Point>,
     pub triangles: Vec<Vec3<usize>>,
     pub normals: Vec<Point>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_serializes_and_deserializes() {
+        let render = Render {
+            parts: vec![
+                Part::Empty,
+                Part::Planar {
+                    points: vec![],
+                    lines: vec![],
+                },
+                Part::Object {
+                    points: vec![Point::from((0.0, 1.0, 2.0))],
+                    lines: vec![],
+                    mesh: Mesh {
+                        vertices: vec![],
+                        triangles: vec![],
+                        normals: vec![],
+                    },
+                },
+            ],
+            stdout: String::from("hello"),
+        };
+
+        let serialized: Vec<u8> = render.clone().try_into().unwrap();
+        let deserialized: Render = serialized.as_slice().try_into().unwrap();
+
+        assert_eq!(render, deserialized);
+    }
 }

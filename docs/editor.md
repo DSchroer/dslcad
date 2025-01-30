@@ -16,19 +16,30 @@
         width: 100%;
         display: flex;
         align-items: end;
-        gap: 1em;
+        flex-direction: column;
     }
     
     .editor textarea {
         width: 100%;
         min-height: 5em;
+        margin-bottom: 0;
+    }
+
+    .editor .actions {
+        display: flex;
+        width: 100%;
+        gap: 0.5em;
+        justify-content: right;
     }
 </style>
 
 <div class="layout">
     <div class="editor">
         <textarea id="input" rows="5">cube();</textarea>
-        <button id="render" class="md-button">Render</button>
+        <div class="actions">
+            <button id="download" class="md-button">Download</button>
+            <button id="render" class="md-button md-button--primary">Render</button>
+        </div>
     </div>
     <div class="display">
         <canvas id="dslcad"></canvas>
@@ -39,7 +50,8 @@
     import preview from "./dslcad-viewer.js";
     import dslcad from "./dslcad.js";
 
-    let btn = document.getElementById("render");
+    let renderBtn = document.getElementById("render");
+    let downloadBtn = document.getElementById("download");
     let editor = document.getElementById("input");
     let module = await preview();
 
@@ -49,7 +61,6 @@
         editor.value = source;
         setTimeout(() => render(editor.value), 100);
     }
-
 
     editor.onchange = (event) => {
         if (history.pushState) {
@@ -73,7 +84,7 @@
         }
     });
 
-    async function render(text) {
+    async function render(text, download) {
         module.show_rendering();
 
         let errorBuffer;
@@ -84,10 +95,20 @@
             cad.callMain(["input.ds", "-o", "raw"]);
 
             const out = cad.FS.readFile("input.bin");
+
+            if (download) {
+                const blob = new Blob([out], {type: "application/bin"});
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = "render.bin";
+                link.click();
+            }
+
             const [ptr, len] = copyBufferTo(module, out);
 
             module.show_render(ptr, len);
         } catch (e) {
+            console.warn(e);
             const encoder = new TextEncoder();
 
             const error = encoder.encode(errorBuffer ?? e.toString());
@@ -98,10 +119,16 @@
     }
 
 
-    btn.onclick = async () => {
-        btn.disabled = true;
-        await render(editor.value);
-        btn.disabled = false;
+    renderBtn.onclick = async () => {
+        renderBtn.disabled = true;
+        await render(editor.value, false);
+        renderBtn.disabled = false;
+    };
+
+    downloadBtn.onclick = async () => {
+        renderBtn.disabled = true;
+        await render(editor.value, true);
+        downloadBtn.disabled = false;
     };
 
     module.main(0, 0);

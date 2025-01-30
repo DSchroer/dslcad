@@ -45,7 +45,7 @@ cube();
 Now render it in DSLCAD:
 
 ```sh
-dslcad ./hello.ds --dslcad_viewer
+dslcad ./hello.ds --preview
 ```
 
 You should see the preview open with a cube:
