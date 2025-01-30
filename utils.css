@@ -1,0 +1,27 @@
+.tryme {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+}
+
+.tryme pre {
+    width: 100%;
+    overflow: scroll;
+    margin-top: 0;
+}
+
+.tryme a {
+    padding: .2em 1em !important;
+    background-color: var(--md-code-bg-color);
+    color: var(--md-typeset-a-color);
+    cursor: pointer;
+    display: inline-block;
+    font-size: 0.75em;
+    font-weight: 700;
+    transition: color 125ms,background-color 125ms,border-color 125ms;
+}
+
+.tryme a:hover {
+    background-color: var(--md-code-fg-color);
+    color: var(--md-code-bg-color);
+}

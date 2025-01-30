@@ -1,0 +1,968 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../editor/">
+      
+      
+        <link rel="next" href="../reference/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.50">
+    
+    
+      
+        <title>Concepts - DSLCAD (Pronounced DieselCAD)</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.a40c8224.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#concepts" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="DSLCAD (Pronounced DieselCAD)" class="md-header__button md-logo" aria-label="DSLCAD (Pronounced DieselCAD)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            DSLCAD (Pronounced DieselCAD)
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Concepts
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/DSchroer/dslcad/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="DSLCAD (Pronounced DieselCAD)" class="md-nav__button md-logo" aria-label="DSLCAD (Pronounced DieselCAD)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    DSLCAD (Pronounced DieselCAD)
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/DSchroer/dslcad/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Web Editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Concepts
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Concepts
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shapes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Shapes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2d-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      2D Shapes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3d-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      3D Shapes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#moving-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      Moving Objects
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#boolean-operations-csg" class="md-nav__link">
+    <span class="md-ellipsis">
+      Boolean Operations (CSG)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2d-to-3d" class="md-nav__link">
+    <span class="md-ellipsis">
+      2D to 3D
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3d-to-2d" class="md-nav__link">
+    <span class="md-ellipsis">
+      3D to 2D
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#control-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Control Flow
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scopes-and-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scopes and Functions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#printing-text" class="md-nav__link">
+    <span class="md-ellipsis">
+      Printing Text
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parts
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Workflow
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Syntax Reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shapes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Shapes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2d-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      2D Shapes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3d-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      3D Shapes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#moving-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      Moving Objects
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#boolean-operations-csg" class="md-nav__link">
+    <span class="md-ellipsis">
+      Boolean Operations (CSG)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2d-to-3d" class="md-nav__link">
+    <span class="md-ellipsis">
+      2D to 3D
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3d-to-2d" class="md-nav__link">
+    <span class="md-ellipsis">
+      3D to 2D
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#control-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Control Flow
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scopes-and-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scopes and Functions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#printing-text" class="md-nav__link">
+    <span class="md-ellipsis">
+      Printing Text
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parts
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Workflow
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="concepts">Concepts</h1>
+<p>DSLCAD has some main concepts to understand when modeling. This page does over them at a high level and explains their intended use.
+For a more detailed list of operations check out the <a href="../reference/">Syntax Reference</a> page.</p>
+<h2 id="shapes">Shapes</h2>
+<p>When building anything in DSLCAD you need to start somewhere. Normally this is done by starting with a 2D or 3D shape. </p>
+<h3 id="2d-shapes">2D Shapes</h3>
+<p>The basic 2D shapes are made using the <code>square</code> and <code>circle</code> functions.</p>
+<div class="tryme">
+
+
+<pre><code>square(x=5, y=7);
+</code></pre>
+
+
+</div>
+
+<div class="tryme">
+
+
+<pre><code>circle(radius=7);
+</code></pre>
+
+
+</div>
+
+<h3 id="3d-shapes">3D Shapes</h3>
+<p>The basic 3D shapes are made using the <code>cube</code>, <code>sphere</code> and <code>cylinder</code> functions.</p>
+<div class="tryme">
+
+
+<pre><code>cube(x=1, y=3, z=5);
+</code></pre>
+
+
+</div>
+
+<div class="tryme">
+
+
+<pre><code>sphere(radius=4);
+</code></pre>
+
+
+</div>
+
+<div class="tryme">
+
+
+<pre><code>cylinder(radius=2, height=4);
+</code></pre>
+
+
+</div>
+
+<h2 id="operations">Operations</h2>
+<h3 id="moving-objects">Moving Objects</h3>
+<p>Often you need to position objects in 3D space. 
+The <code>translate</code> function lets you move an object.
+The <code>rotate</code> function lets you rotate an object around the x, y or z axis.
+The <code>scale</code> function lets scale an object up or down.</p>
+<div class="tryme">
+
+
+<pre><code>// cube moved up the z axix by 2 units
+cube() -&gt; translate(z=2);
+
+// cube rotated 225 degrees
+cube() -&gt; rotate(z=180 + 45);
+
+// cube doubled in size
+cube() -&gt; scale(scale=2);
+</code></pre>
+
+
+</div>
+
+<p>The <code>center</code> function lets you center any object on any axis you want.</p>
+<div class="tryme">
+
+
+<pre><code>// cube centered on the x and y axis but not the z axis
+cube() -&gt; center(z=false);
+</code></pre>
+
+
+</div>
+
+<h3 id="boolean-operations-csg">Boolean Operations (CSG)</h3>
+<p>To manipulate 3D objects DSLCAD uses boolean operations (AKA <a href="https://en.wikipedia.org/wiki/Constructive_solid_geometry">Constructive Solid Geometry</a>).</p>
+<p>You can combine two objects using the <code>union</code> function. This joins both object into a single object.</p>
+<div class="tryme">
+
+
+<pre><code>// cube combined with a sphere
+cube() -&gt; union(sphere(radius=1));
+</code></pre>
+
+
+</div>
+
+<p>You can cut away at an object using the <code>difference</code> function. This removes the second object from the first object.</p>
+<div class="tryme">
+
+
+<pre><code>// cube with a sphere cut out
+cube() -&gt; difference(sphere(radius=1));
+</code></pre>
+
+
+</div>
+
+<p>You can get the overlap using the <code>intersect</code> function. This leaves the overlapping parts of both objects.</p>
+<div class="tryme">
+
+
+<pre><code>// overlap of a cube and sphere
+cube() -&gt; intersect(sphere(radius=1));
+</code></pre>
+
+
+</div>
+
+<h3 id="2d-to-3d">2D to 3D</h3>
+<p>2D objects can be converted to 3D objects using the <code>extrude</code> or <code>revolve</code> functions.</p>
+<div class="tryme">
+
+
+<pre><code>// extrude a square into a rectangular cube
+square() -&gt; extrude(z=2);
+</code></pre>
+
+
+</div>
+
+<div class="tryme">
+
+
+<pre><code>// revolve a square around the y axis to make a half moon
+square() -&gt; revolve(y=180);
+</code></pre>
+
+
+</div>
+
+<h3 id="3d-to-2d">3D to 2D</h3>
+<p>Sometimes you need a 2D outline of a 3D part, use the <code>slice</code> function to cut a cross-section.</p>
+<div class="tryme">
+
+
+<pre><code>// cut the outline of a complex shape
+cube() 
+-&gt; union(sphere() -&gt; translate(y=0.9)) 
+-&gt; center(x=false, y=false)
+-&gt; slice(square(x=10, y=10));
+</code></pre>
+
+
+</div>
+
+<h2 id="control-flow">Control Flow</h2>
+<p>Control flow operations include <code>if</code>, <code>map</code> and <code>reduce</code>.
+These operations are expressions and can be nested anywhere 
+within your parts.</p>
+<p>The <code>if</code> operator can be used to branch conditionally.</p>
+<div class="tryme">
+
+
+<pre><code>if (1 == 1):
+    cube()
+else:
+    sphere()
+;
+</code></pre>
+
+
+</div>
+
+<p>The <code>range</code> function can be used with <code>map</code> and <code>reduce</code> to 
+create simple loops.</p>
+<div class="tryme">
+
+
+<pre><code>// make 10 cubes and space them out
+map range(0, 10) as x:
+    cube() -&gt; translate(x=2 * x);
+</code></pre>
+
+
+</div>
+
+<p>The <code>reduce</code> operator is similar but allows you to aggregate
+results as needed. The <code>from</code> part is optional but is helpful when
+your output is different from your input.</p>
+<div class="tryme">
+
+
+<pre><code>// combine 10 spaced out cubes into one part
+reduce range(1, 10) from cube() as acc, x:
+    acc -&gt; union(
+        cube() -&gt; translate(x, y=0.5 * x)
+    );
+</code></pre>
+
+
+</div>
+
+<p>For more advanced control flow you can also use recursion
+in part files or functions.</p>
+<h2 id="scopes-and-functions">Scopes and Functions</h2>
+<p>For private variables, you can make use of scopes:</p>
+<div class="tryme">
+
+
+<pre><code>// create a part using nested variables
+var object = {
+    var base = 10;
+    var height = 10;
+    cube(x=base, y=base, z=height);
+};
+
+object;
+</code></pre>
+
+
+</div>
+
+<p>The <code>func</code> keyword can be used to turn a scope into a function with arguments.</p>
+<div class="tryme">
+
+
+<pre><code>// use a func as a constructor for custom parts
+var object = func {
+    var base = 10;
+    var height = 10;
+    cube(x=base, y=base, z=height);
+};
+
+object(base=20);
+</code></pre>
+
+
+</div>
+
+<h2 id="printing-text">Printing Text</h2>
+<p>There are a few text tools that can be used to print helpful notes 
+about your parts. Text can be treated the same as any part and DSLCAD
+will happily print it out.</p>
+<p>The <code>formatln</code> function is used to generate text.</p>
+<div class="tryme">
+
+
+<pre><code>var box = cube(x=10);
+
+format(&quot;volume (mm^3): {volume}&quot;, volume=round(box.volume));
+
+box;
+</code></pre>
+
+
+</div>
+
+<h2 id="parts">Parts</h2>
+<p>Simple projects can get away with single 3D models. For more complex projects
+it is often useful to break things into multiple parts.</p>
+<p>You can make multiple parts in the same script. Just separate each part into its
+own statement like so:</p>
+<pre><code>// two separate parts that can be printed separately
+./part1();
+./part2();
+</code></pre>
+<p>If you wanted them to be a single part you can join them with a <code>union</code> to form 
+a single object.</p>
+<pre><code>// two separate parts that are joined into one
+./part1() -&gt;left union(right=./part2());
+</code></pre>
+<h2 id="workflow">Workflow</h2>
+<p>DSLCAD is designed with an opinionated workflow in mind. Following this will 
+help you build high quality parts quickly. </p>
+<p>For every part that you want to build:</p>
+<ol>
+<li>
+<p>Start with 2D sections of it. Currently, the <code>face</code> function is the simplest
+way to create any 2D sketch. </p>
+</li>
+<li>
+<p>Extrude your face into a 3D section using <code>extrude</code> or <code>revolve</code> to bring your
+face into the 3D world. </p>
+</li>
+<li>
+<p>Combine 3D sections using <code>union</code>, <code>difference</code> and <code>intersect</code> to cut out the 
+final dimensions of your part. </p>
+</li>
+<li>
+<p>[OPTIONAL] Use <code>chamfer</code> or <code>fillet</code> to add a polished look to the part. </p>
+</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <script async src="https://eyes.schroer.ca/tracker.js" data-ackee-server="https://eyes.schroer.ca" data-ackee-domain-id="e0b2e9fa-5152-43db-9738-ff54f0bf2703"></script>
+<script async src="/utils.js"></script>
+<link rel="stylesheet" type="text/css" rel="noopener" target="_blank" href="/utils.css">
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.60a45f97.min.js"></script>
+      
+    
+  </body>
+</html>
