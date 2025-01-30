@@ -15,11 +15,17 @@ pub struct DocId {
 
 impl DocId {
     pub fn new(path: String) -> Self {
-        Self { id: path, path: None }
+        Self {
+            id: path,
+            path: None,
+        }
     }
 
     pub fn new_with_path(id: &'static str, path: Option<String>) -> Self {
-        Self { id: id.to_string(), path }
+        Self {
+            id: id.to_string(),
+            path,
+        }
     }
 
     pub fn to_path(&self) -> &Path {
