@@ -46,6 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
       - uses: extractions/setup-just@v2
       - uses: mymindstorm/setup-emsdk@v14
       - uses: actions/setup-python@v5
@@ -82,6 +83,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
       - uses: extractions/setup-just@v2
       - if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
         uses: mymindstorm/setup-emsdk@v14
