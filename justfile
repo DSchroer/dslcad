@@ -47,9 +47,6 @@ build-docs-editor *FLAGS:
     cp target/wasm32-unknown-unknown/release/dslcad-viewer* ./docs/editor/
 
 pack: (build "--release") build-viewer
-    -rm {{ TARGET }}.zip
-    rm target/{{ TARGET }}/release/*.d
-    zip -j {{ TARGET }}.zip target/{{ TARGET }}/release/*
 
 check:
     cargo +nightly fmt --check
