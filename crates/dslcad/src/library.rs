@@ -4,6 +4,7 @@ mod lists;
 mod math;
 mod shapes;
 mod text;
+mod utils;
 
 use crate::runtime::{RuntimeError, Type, Value};
 use indexmap::IndexMap;
@@ -416,6 +417,12 @@ impl Default for Library {
                 description: "format text with newline",
                 variadic: true,
             },
+            bind!(
+                error,
+                utils::error[message = text],
+                Category::Text,
+                "generate an error"
+            ),
             // 2D
             bind!(point, faces::point[x=option_number, y=option_number, z=option_number], Category::TwoD, "create a new 2D point"),
             bind!(line, faces::line[start=point, end=point], Category::TwoD, "create a line between two points"),

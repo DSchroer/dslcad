@@ -3,7 +3,6 @@ mod settings;
 
 use crate::settings::Settings;
 use dslcad_storage::protocol::Render;
-use std::error::Error;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 enum PreviewEvent {
@@ -18,16 +17,16 @@ pub struct PreviewHandle {
 }
 
 impl PreviewHandle {
-    pub fn show_rendering(&self) -> Result<(), Box<dyn Error>> {
-        Ok(self.tx.send(PreviewEvent::Rendering)?)
+    pub fn show_rendering(&self) {
+        self.tx.send(PreviewEvent::Rendering).unwrap()
     }
 
-    pub fn show_render(&self, render: Render) -> Result<(), Box<dyn Error>> {
-        Ok(self.tx.send(PreviewEvent::Render(render))?)
+    pub fn show_render(&self, render: Render) {
+        self.tx.send(PreviewEvent::Render(render)).unwrap()
     }
 
-    pub fn show_error(&self, error: String) -> Result<(), Box<dyn Error>> {
-        Ok(self.tx.send(PreviewEvent::Error(error))?)
+    pub fn show_error(&self, error: String) {
+        self.tx.send(PreviewEvent::Error(error)).unwrap()
     }
 }
 

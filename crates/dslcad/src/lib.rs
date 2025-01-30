@@ -8,17 +8,19 @@ use log::trace;
 use std::collections::HashMap;
 use std::time::Instant;
 
+pub mod error_printer;
 pub mod library;
 pub mod parser;
 pub mod reader;
 mod resources;
 pub mod runtime;
+mod source;
 mod trace;
 
 pub fn parse(source: String) -> Result<Ast, ParseError> {
     let parse_time = Instant::now();
 
-    let parser = parser::Parser::new(FsReader, DocId::new(source)).with_default_loaders();
+    let parser = Parser::new(FsReader, DocId::new(source)).with_default_loaders();
     let ast = parser.parse();
 
     trace!("parse in {}s", parse_time.elapsed().as_secs_f64());
@@ -103,15 +105,19 @@ mod tests {
     fn parse_str(code: &'static str) -> Ast {
         let reader = TestReader(code);
         let root = DocId::new("test".to_string());
-        let parser = crate::parser::Parser::new(reader, root);
+        let parser = Parser::new(reader, root);
         parser.parse().unwrap()
     }
 
-    fn run(code: &'static str) -> Value {
+    fn try_run(code: &'static str) -> Result<Value, WithStack<RuntimeError>> {
         let documents = parse_str(code);
         let lib = Library::default();
         let mut engine = Engine::new(&lib, &documents);
-        engine.eval_root(HashMap::new()).expect("failed to eval")
+        engine.eval_root(HashMap::new())
+    }
+
+    fn run(code: &'static str) -> Value {
+        try_run(code).expect("failed to run")
     }
 
     #[test]

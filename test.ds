@@ -1,0 +1,6 @@
+var f = func {
+    error("test");
+};
+
+
+f();

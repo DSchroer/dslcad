@@ -1,9 +1,22 @@
 use quick_xml::{se, DeError};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use std::io::{Seek, Write};
+use thiserror::Error;
+use zip::result::ZipError;
 use zip::write::{FileOptions, ZipWriter};
 use zip::CompressionMethod;
+
+#[derive(Debug, Error)]
+pub enum ThreeMFError {
+    #[error(transparent)]
+    Zip(#[from] ZipError),
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    #[error(transparent)]
+    Fmt(#[from] std::fmt::Error),
+    #[error(transparent)]
+    De(#[from] DeError),
+}
 
 pub struct ThreeMF {
     content_types: Vec<ContentType>,
@@ -43,7 +56,7 @@ impl ThreeMF {
         self.model.add_object(vertices, triangles);
     }
 
-    pub fn write_to_zip(&self, writer: impl Write + Seek) -> Result<(), Box<dyn Error>> {
+    pub fn write_to_zip(&self, writer: impl Write + Seek) -> Result<(), ThreeMFError> {
         let mut zip = ZipWriter::new(writer);
         let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
 

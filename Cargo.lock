@@ -240,7 +240,7 @@ dependencies = [
  "objc-foundation",
  "objc_id",
  "parking_lot",
- "thiserror",
+ "thiserror 1.0.38",
  "winapi",
  "x11rb",
 ]
@@ -398,7 +398,7 @@ dependencies = [
  "js-sys",
  "parking_lot",
  "serde",
- "thiserror",
+ "thiserror 1.0.38",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -483,7 +483,7 @@ dependencies = [
  "fixedbitset",
  "rustc-hash",
  "serde",
- "thiserror",
+ "thiserror 1.0.38",
  "thread_local",
 ]
 
@@ -567,7 +567,7 @@ dependencies = [
  "bevy_math",
  "bevy_reflect",
  "bevy_utils",
- "thiserror",
+ "thiserror 1.0.38",
 ]
 
 [[package]]
@@ -715,7 +715,7 @@ dependencies = [
  "serde",
  "smallvec",
  "smol_str",
- "thiserror",
+ "thiserror 1.0.38",
 ]
 
 [[package]]
@@ -774,7 +774,7 @@ dependencies = [
  "ruzstd",
  "serde",
  "smallvec",
- "thiserror",
+ "thiserror 1.0.38",
  "thread_local",
  "wasm-bindgen",
  "web-sys",
@@ -812,7 +812,7 @@ dependencies = [
  "bevy_utils",
  "ron",
  "serde",
- "thiserror",
+ "thiserror 1.0.38",
  "uuid",
 ]
 
@@ -841,7 +841,7 @@ dependencies = [
  "bevy_reflect",
  "bevy_utils",
  "crossbeam-channel",
- "thiserror",
+ "thiserror 1.0.38",
 ]
 
 [[package]]
@@ -869,7 +869,7 @@ dependencies = [
  "hashbrown 0.14.0",
  "instant",
  "petgraph",
- "thiserror",
+ "thiserror 1.0.38",
  "tracing",
  "uuid",
 ]
@@ -1367,7 +1367,7 @@ dependencies = [
  "rayon",
  "serde",
  "stl_io",
- "thiserror",
+ "thiserror 1.0.38",
  "walkdir",
 ]
 
@@ -1387,6 +1387,7 @@ dependencies = [
  "bincode",
  "quick-xml",
  "serde",
+ "thiserror 2.0.11",
  "zip",
 ]
 
@@ -1404,6 +1405,7 @@ dependencies = [
  "smooth-bevy-cameras",
  "strum",
  "strum_macros",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
@@ -1450,7 +1452,7 @@ dependencies = [
  "const_panic",
  "encase_derive",
  "glam",
- "thiserror",
+ "thiserror 1.0.38",
 ]
 
 [[package]]
@@ -1742,7 +1744,7 @@ checksum = "ce95f9e2e11c2c6fadfce42b5af60005db06576f231f5c92550fdded43c423e8"
 dependencies = [
  "backtrace",
  "log",
- "thiserror",
+ "thiserror 1.0.38",
  "winapi",
  "windows 0.44.0",
 ]
@@ -1797,7 +1799,7 @@ dependencies = [
  "com-rs",
  "libc",
  "libloading 0.7.4",
- "thiserror",
+ "thiserror 1.0.38",
  "widestring",
  "winapi",
 ]
@@ -1944,7 +1946,7 @@ dependencies = [
  "combine",
  "jni-sys",
  "log",
- "thiserror",
+ "thiserror 1.0.38",
  "walkdir",
  "windows-sys 0.45.0",
 ]
@@ -2191,7 +2193,7 @@ dependencies = [
  "rustc-hash",
  "spirv",
  "termcolor",
- "thiserror",
+ "thiserror 1.0.38",
  "unicode-xid",
 ]
 
@@ -2210,7 +2212,7 @@ dependencies = [
  "regex",
  "regex-syntax 0.6.29",
  "rustc-hash",
- "thiserror",
+ "thiserror 1.0.38",
  "tracing",
  "unicode-ident",
 ]
@@ -2226,7 +2228,7 @@ dependencies = [
  "ndk-sys",
  "num_enum 0.5.11",
  "raw-window-handle",
- "thiserror",
+ "thiserror 1.0.38",
 ]
 
 [[package]]
@@ -3031,7 +3033,16 @@ version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a9cd18aa97d5c45c6603caea1da6628790b37f7a34b6ca89522331c5180fed0"
 dependencies = [
- "thiserror-impl",
+ "thiserror-impl 1.0.38",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d452f284b73e6d76dd36758a0c8684b1d5be31f92b89d07fd5822175732206fc"
+dependencies = [
+ "thiserror-impl 2.0.11",
 ]
 
 [[package]]
@@ -3063,6 +3074,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.103",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26afc1baea8a989337eeb52b6e72a039780ce45c3edfcc9c5b9d112feeb173c2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
 ]
 
 [[package]]
@@ -3452,7 +3474,7 @@ dependencies = [
  "raw-window-handle",
  "rustc-hash",
  "smallvec",
- "thiserror",
+ "thiserror 1.0.38",
  "web-sys",
  "wgpu-hal",
  "wgpu-types",
@@ -3493,7 +3515,7 @@ dependencies = [
  "renderdoc-sys",
  "rustc-hash",
  "smallvec",
- "thiserror",
+ "thiserror 1.0.38",
  "wasm-bindgen",
  "web-sys",
  "wgpu-types",

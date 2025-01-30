@@ -103,3 +103,4 @@ to build parts.
 - `string(item=*)` convert to text
 - `format(message=text, ...)` format text using {my_arg} style formatting
 - `formatln(message=text, ...)` format text with newline
+- `error(message=text)` generate an error

@@ -1,13 +1,19 @@
 use clap::{Parser, ValueEnum};
+use dslcad::error_printer::ErrorPrinter;
 use dslcad::library::Library;
+use dslcad::parser::{DocumentParseError, ParseError};
+use dslcad::reader::FsReader;
+use dslcad::runtime::{RuntimeError, WithStack};
 use dslcad::{eval, parse, parse_arguments, render};
-use dslcad_storage::threemf::ThreeMF;
+use dslcad_storage::protocol::{BincodeError, Render};
+use dslcad_storage::threemf::{ThreeMF, ThreeMFError};
+use dslcad_viewer::PreviewHandle;
 use log::info;
 use std::env;
-use std::error::Error;
 use std::fs::File;
-use std::io::Write;
+use std::io::{stderr, Write};
 use std::path::Path;
+use thiserror::Error;
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -56,6 +62,26 @@ enum Output {
     Raw,
 }
 
+#[derive(Debug, Error)]
+enum CliError {
+    #[error(transparent)]
+    ArgParse(#[from] DocumentParseError),
+    #[error(transparent)]
+    Parse(#[from] ParseError),
+    #[error(transparent)]
+    Runtime(#[from] WithStack<RuntimeError>),
+    #[error(transparent)]
+    Render(#[from] RuntimeError),
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    #[error(transparent)]
+    ThreeMf(#[from] ThreeMFError),
+    #[error(transparent)]
+    Bincode(#[from] BincodeError),
+    #[error(transparent)]
+    Notify(#[from] notify::Error),
+}
+
 fn main() {
     match Args::try_parse() {
         Ok(args) => {
@@ -66,7 +92,7 @@ fn main() {
             #[cfg(feature = "preview")]
             if args.preview {
                 if let Err(e) = render_to_preview(&args.source, args.argument, args.deflection) {
-                    eprintln!("{}", e);
+                    handle_error(e, &mut stderr()).unwrap();
                 }
                 return;
             }
@@ -74,7 +100,7 @@ fn main() {
             if let Err(e) =
                 render_to_file(&args.source, args.argument, args.deflection, args.output)
             {
-                eprintln!("{}", e);
+                handle_error(e, &mut stderr()).unwrap();
             }
         }
         Err(e) => {
@@ -87,12 +113,22 @@ fn main() {
     }
 }
 
+fn handle_error(error: CliError, writer: &mut impl Write) -> Result<(), std::io::Error> {
+    let printer = ErrorPrinter::new(FsReader);
+
+    match error {
+        CliError::Parse(parse_error) => printer.print_parse_error(writer, &parse_error),
+        CliError::Runtime(runtime_error) => printer.print_runtime_error(writer, &runtime_error),
+        _ => printer.print_error(writer, &error),
+    }
+}
+
 fn render_to_file(
     source: &String,
     arguments: Vec<String>,
     deflection: f64,
     output: Output,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), CliError> {
     let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
     let eval_result = eval(parse(source.clone())?, arguments)?;
 
@@ -135,9 +171,9 @@ fn render_to_preview(
     source: &str,
     arguments: Vec<String>,
     deflection: f64,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), CliError> {
     use dslcad::parser::{Ast, DocId};
-    use dslcad_viewer::{Preview, PreviewHandle};
+    use dslcad_viewer::Preview;
     use notify::{recommended_watcher, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
     use std::sync::{Arc, Mutex};
 
@@ -157,22 +193,31 @@ fn render_to_preview(
         source: &str,
         arguments: &[String],
         deflection: f64,
-        handle: PreviewHandle,
         watch: Arc<Mutex<Option<RecommendedWatcher>>>,
-    ) -> Result<(), Box<dyn Error>> {
-        handle.show_rendering()?;
-        match parse(source.to_string()) {
-            Ok(ast) => {
-                add_files_to_watch(watch, &ast);
-                let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
-                match render(eval(ast, arguments)?, deflection) {
-                    Ok(r) => handle.show_render(r)?,
-                    Err(e) => handle.show_error(e.to_string())?,
-                }
+    ) -> Result<Render, CliError> {
+        let ast = parse(source.to_string())?;
+        add_files_to_watch(watch, &ast);
+        let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
+        let render = render(eval(ast, arguments)?, deflection)?;
+        Ok(render)
+    }
+
+    fn render_to_handle(
+        handle: PreviewHandle,
+        source: &str,
+        arguments: &[String],
+        deflection: f64,
+        watch: Arc<Mutex<Option<RecommendedWatcher>>>,
+    ) {
+        handle.show_rendering();
+        match render_with_watcher(source, arguments, deflection, watch) {
+            Ok(render) => handle.show_render(render),
+            Err(err) => {
+                let mut buffer = Vec::new();
+                handle_error(err, &mut buffer).unwrap();
+                handle.show_error(String::from_utf8(buffer).unwrap());
             }
-            Err(e) => handle.show_error(e.to_string())?,
         }
-        Ok(())
     }
 
     let (preview, handle) = Preview::new();
@@ -191,14 +236,13 @@ fn render_to_preview(
                 ..
             }) = event
             {
-                render_with_watcher(
+                render_to_handle(
+                    handle.clone(),
                     &source,
                     &arguments,
                     deflection,
-                    handle.clone(),
                     watch.clone(),
-                )
-                .unwrap()
+                );
             }
         })?
     };
@@ -210,14 +254,7 @@ fn render_to_preview(
 
     let source = source.to_string();
     std::thread::spawn(move || {
-        render_with_watcher(
-            &source,
-            &arguments,
-            deflection,
-            handle.clone(),
-            watch.clone(),
-        )
-        .unwrap();
+        render_to_handle(handle, &source, &arguments, deflection, watch.clone())
     });
 
     preview.open(Library::default().to_string());

@@ -13,6 +13,7 @@ bevy_points = { git = "https://github.com/mattatz/bevy_points/", rev = "240c7640
 dslcad-storage = { path = "../dslcad_storage" }
 rand = "0.8"
 simple-home-dir = "0.3"
+thiserror = "2.0"
 
 [dependencies.bevy]
 version = "0.11.1"

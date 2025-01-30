@@ -1,14 +1,14 @@
 use crate::parser::{DocId, Statement};
 use std::error::Error;
-use std::fmt::{Debug, Display, Formatter, Write};
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::Range;
 
 pub type Stack = Vec<StackFrame>;
 type Span = Range<usize>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StackFrame {
-    document: DocId,
+    pub document: DocId,
     pub span: Span,
 }
 
@@ -23,29 +23,22 @@ impl StackFrame {
 
 #[derive(Debug)]
 pub struct WithStack<T: Error> {
-    error: T,
-    trace: String,
+    pub error: T,
+    pub stack: Vec<StackFrame>,
 }
 
 impl<T: Error> WithStack<T> {
     pub fn from_err(error: T, stack: &Stack) -> Self {
-        let mut trace = String::new();
-
-        for frame in stack.iter().rev() {
-            // let (line, _) = line_col(frame.document.source(), &frame.span);
-            writeln!(trace, "{}[{}]:", frame.document, 0,).unwrap();
+        WithStack {
+            error,
+            stack: stack.clone(),
         }
-
-        WithStack { error, trace }
     }
 }
 
 impl<T: Error> Display for WithStack<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", self.error)?;
-        writeln!(f, "--- STACKTRACE ---")?;
-        write!(f, "{}", self.trace)?;
-        Ok(())
+        Display::fmt(&self.error, f)
     }
 }
 

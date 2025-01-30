@@ -34,7 +34,7 @@ macro_rules! take {
     ($self: ident, $lexer: ident, $token: pat = $name: literal) => {
         match $lexer.next() {
             Some($token) => {},
-            Some(_) => return Err(DocumentParseError::Expected($name, $lexer.span())),
+            Some(_) => return Err(DocumentParseError::Expected($name, $lexer.slice().to_string(), $lexer.span())),
             None => return Err(DocumentParseError::UnexpectedEndOfFile()),
         };
     };
@@ -42,7 +42,7 @@ macro_rules! take {
         match $lexer.next() {
             $(Some($token) => $case,)*
             #[allow(unreachable_patterns)]
-            Some(_) => return Err(DocumentParseError::ExpectedOneOf(vec![$($name,)*], $lexer.span())),
+            Some(_) => return Err(DocumentParseError::ExpectedOneOf(vec![$($name,)*], $lexer.slice().to_string(), $lexer.span())),
             None => return Err(DocumentParseError::UnexpectedEndOfFile()),
         }
     };
@@ -109,11 +109,11 @@ impl<R: Reader> Parser<R> {
             let source = self
                 .reader
                 .read(doc.to_path())
-                .map_err(|_| ParseError::NoSuchFile { file: doc.clone() })?;
+                .map_err(|_| DocumentParseError::NoSuchFile().with_source(doc.clone()))?;
             let mut lexer = Token::lexer(&source);
             let document = self
                 .parse_document(&mut lexer, None, true)
-                .map_err(|e| e.with_source(doc.clone(), source))?;
+                .map_err(|e| e.with_source(doc.clone()))?;
             ast.documents.insert(doc, document);
         }
 
@@ -183,7 +183,10 @@ impl<R: Reader> Parser<R> {
         if !self.variables.contains(name) {
             self.variables.insert(name.to_string());
         } else {
-            return Err(DocumentParseError::DuplicateVariableName(lexer.span()));
+            return Err(DocumentParseError::DuplicateVariableName(
+                name.to_string(),
+                lexer.span(),
+            ));
         }
 
         let expr = take!(self, lexer,
@@ -304,7 +307,10 @@ impl<R: Reader> Parser<R> {
         let sb = SpanBuilder::from(lexer);
 
         if !self.variables.contains(name) && !Library::default().contains(name) {
-            return Err(DocumentParseError::UndeclaredIdentifier(lexer.span()));
+            return Err(DocumentParseError::UndeclaredIdentifier(
+                name.to_string(),
+                lexer.span(),
+            ));
         }
 
         Ok(Expression::Reference(
@@ -623,6 +629,7 @@ impl<R: Reader> Parser<R> {
                     }
                     _ => Err(DocumentParseError::ExpectedOneOf(
                         vec!["function"],
+                        peek.slice().to_string(),
                         sb.to(lexer),
                     )),
                 }

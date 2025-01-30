@@ -15,7 +15,7 @@ pub extern "C" fn allocate(len: usize) -> *mut u8 {
 
 #[no_mangle]
 pub extern "C" fn show_rendering() {
-    HANDLE.get().unwrap().show_rendering().unwrap();
+    HANDLE.get().unwrap().show_rendering();
 }
 
 #[no_mangle]
@@ -25,7 +25,7 @@ pub extern "C" fn show_rendering() {
 pub unsafe extern "C" fn show_error(ptr: *mut u8, len: usize) {
     let data = Vec::from_raw_parts(ptr, len, len);
     let error = String::from_utf8(data).unwrap();
-    HANDLE.get().unwrap().show_error(error).unwrap();
+    HANDLE.get().unwrap().show_error(error);
 }
 
 #[no_mangle]
@@ -35,7 +35,7 @@ pub unsafe extern "C" fn show_error(ptr: *mut u8, len: usize) {
 pub unsafe extern "C" fn show_render(ptr: *mut u8, len: usize) {
     let model = Vec::from_raw_parts(ptr, len, len);
     let render: Render = model.as_slice().try_into().unwrap();
-    HANDLE.get().unwrap().show_render(render).unwrap();
+    HANDLE.get().unwrap().show_render(render);
 }
 
 pub fn main() -> Result<(), Box<dyn Error>> {

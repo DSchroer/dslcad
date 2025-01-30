@@ -2,6 +2,7 @@ mod aabb;
 
 use crate::threemf::{ThreeMF, Triangle, Vertex};
 pub use aabb::BoundingBox;
+pub use bincode::Error as BincodeError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -11,7 +12,7 @@ pub struct Render {
 }
 
 impl TryFrom<&[u8]> for Render {
-    type Error = bincode::Error;
+    type Error = BincodeError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         bincode::deserialize::<Render>(value)
@@ -19,7 +20,7 @@ impl TryFrom<&[u8]> for Render {
 }
 
 impl TryFrom<Render> for Vec<u8> {
-    type Error = bincode::Error;
+    type Error = BincodeError;
 
     fn try_from(value: Render) -> Result<Self, Self::Error> {
         bincode::serialize(&value)
