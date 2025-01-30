@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.0.5]
+
+### Added
+- Added the `error` function to indicate invalid states
+
+### Modified
+- Improved printing of errors
+
 ## [v0.0.4]
 
 ### Added

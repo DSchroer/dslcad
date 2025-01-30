@@ -1352,7 +1352,7 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 
 [[package]]
 name = "dslcad"
-version = "0.0.3"
+version = "0.0.5"
 dependencies = [
  "clap",
  "dslcad-occt",
@@ -1393,7 +1393,7 @@ dependencies = [
 
 [[package]]
 name = "dslcad-viewer"
-version = "0.0.3"
+version = "0.0.5"
 dependencies = [
  "bevy",
  "bevy_egui",
