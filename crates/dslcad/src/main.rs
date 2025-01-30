@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
 use dslcad::library::Library;
-use dslcad::{parse, parse_arguments, render};
+use dslcad::{eval, parse, parse_arguments, render};
 use dslcad_storage::threemf::ThreeMF;
 use log::info;
 use std::env;
@@ -94,10 +94,11 @@ fn render_to_file(
     output: Output,
 ) -> Result<(), Box<dyn Error>> {
     let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
-    let render = render(parse(source.clone())?, arguments, deflection)?;
+    let eval_result = eval(parse(source.clone())?, arguments)?;
 
-    if !render.stdout.is_empty() {
-        println!("{}", &render.stdout);
+    let text_output = eval_result.to_text().unwrap_or_default();
+    if !text_output.is_empty() {
+        println!("{}", &text_output);
     }
 
     let cwd = env::current_dir()?;
@@ -105,6 +106,8 @@ fn render_to_file(
 
     let outfile = match output {
         Output::ThreeMf => {
+            let render = render(eval_result, deflection)?;
+
             let outpath = cwd.join(format!("{}.3mf", file.to_string_lossy()));
             let threemf: ThreeMF = render.into();
             let out = File::create(&outpath)?;
@@ -112,6 +115,8 @@ fn render_to_file(
             outpath
         }
         Output::Raw => {
+            let render = render(eval_result, deflection)?;
+
             let outpath = cwd.join(format!("{}.bin", file.to_string_lossy()));
             let raw: Vec<u8> = render.try_into()?;
             let mut out = File::create(&outpath)?;
@@ -160,7 +165,7 @@ fn render_to_preview(
             Ok(ast) => {
                 add_files_to_watch(watch, &ast);
                 let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
-                match render(ast, arguments, deflection) {
+                match render(eval(ast, arguments)?, deflection) {
                     Ok(r) => handle.show_render(r)?,
                     Err(e) => handle.show_error(e.to_string())?,
                 }

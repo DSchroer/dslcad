@@ -1,4 +1,4 @@
-use dslcad::{parse, render};
+use dslcad::{eval, parse, render};
 use std::collections::HashMap;
 use std::time::Instant;
 use walkdir::WalkDir;
@@ -24,7 +24,8 @@ fn run_example(path: &str) {
 
     println!("\tParsed in {:.4}ms", now.elapsed().as_secs_f64() * 1000.0);
 
-    render(ast, HashMap::new(), 0.1).unwrap_or_else(|e| panic!("failed to render {}\n{e}", &path));
+    render(eval(ast, HashMap::new()).unwrap(), 0.1)
+        .unwrap_or_else(|e| panic!("failed to render {}\n{e}", &path));
 
     println!(
         "\tRendered in {:.4}ms",

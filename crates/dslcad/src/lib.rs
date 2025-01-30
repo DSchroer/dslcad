@@ -41,11 +41,10 @@ pub fn parse_arguments<'a>(
     Ok(arguments)
 }
 
-pub fn render(
+pub fn eval(
     documents: Ast,
     arguments: HashMap<&str, Literal>,
-    deflection: f64,
-) -> Result<Render, WithStack<RuntimeError>> {
+) -> Result<Value, WithStack<RuntimeError>> {
     let lib = Library::default();
 
     let mut engine = Engine::new(&lib, &documents);
@@ -54,17 +53,21 @@ pub fn render(
     let instance = engine.eval_root(arguments)?;
     trace!("eval in {}s", eval_time.elapsed().as_secs_f64());
 
+    Ok(instance)
+}
+
+pub fn render(instance: Value, deflection: f64) -> Result<Render, RuntimeError> {
     let render_time = Instant::now();
 
     let text = instance.to_text().unwrap_or_default();
 
     let parts: Vec<_> = instance.flatten().into_iter().cloned().collect();
-    let output = values_to_output(parts, deflection);
+    let output = values_to_output(parts, deflection)?;
 
     trace!("render in {}s", render_time.elapsed().as_secs_f64());
 
     Ok(Render {
-        parts: output.map_err(|e| WithStack::from_err(e, &vec![]))?,
+        parts: output,
         stdout: text,
     })
 }
@@ -88,6 +91,7 @@ fn values_to_output(values: Vec<Value>, deflection: f64) -> Result<Vec<Part>, Ru
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::library::Library;
     use crate::parser::{Ast, DocId, Reader};
     use crate::runtime::{Engine, Value};
@@ -174,7 +178,7 @@ mod tests {
         let args = parse_arguments(vec!["a=\"5\""].into_iter()).unwrap();
 
         let ast = parse_str("var a; a;");
-        let res = render(ast, args, 0.001).unwrap();
+        let res = render(eval(ast, args).unwrap(), 0.001).unwrap();
 
         assert_eq!("5", &res.stdout);
     }
