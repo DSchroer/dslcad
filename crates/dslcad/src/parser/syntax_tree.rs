@@ -9,20 +9,25 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct DocId {
-    path: String,
+    id: String,
+    path: Option<String>,
 }
 
 impl DocId {
     pub fn new(path: String) -> Self {
-        Self { path }
+        Self { id: path, path: None }
+    }
+
+    pub fn new_with_path(id: &'static str, path: Option<String>) -> Self {
+        Self { id: id.to_string(), path }
     }
 
     pub fn to_path(&self) -> &Path {
-        return Path::new(&self.path);
+        Path::new(self.path.as_ref().unwrap_or(&self.id))
     }
 
     pub fn to_str(&self) -> &str {
-        &self.path
+        &self.id
     }
 }
 

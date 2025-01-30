@@ -35,6 +35,7 @@ pub struct Engine<'a> {
     ast: &'a Ast,
     stack: Stack,
     scope: Scope,
+    current_document: Option<DocId>,
 }
 
 impl<'a> Engine<'a> {
@@ -44,6 +45,7 @@ impl<'a> Engine<'a> {
             ast,
             stack: Stack::new(),
             scope: Scope::default(),
+            current_document: None,
         }
     }
 
@@ -68,6 +70,7 @@ impl<'a> Engine<'a> {
     }
 
     fn eval(&mut self, id: DocId) -> Result<ScriptInstance, WithStack<RuntimeError>> {
+        self.current_document = Some(id.clone());
         let statements = self.ast.documents.get(&id).ok_or_else(|| {
             WithStack::from_err(RuntimeError::UnknownIdentifier(id.to_string()), &self.stack)
         })?;
@@ -236,10 +239,11 @@ impl ExpressionVisitor for Engine<'_> {
                         let named_argument_values = Engine::named_argument_values(argument_values)
                             .map_err(|e| WithStack::from_err(e, &self.stack))?;
 
+                        let document = self.current_document.as_ref().map(|d| d.to_string());
                         let mut scope = clojure.clone();
                         scope.set_arguments(named_argument_values);
                         self.with_scope(scope, |e| {
-                            e.eval_statements(DocId::new("fn".to_string()), statements)
+                            e.eval_statements(DocId::new_with_path("fn", document), statements)
                         })?
                         .into()
                     }
@@ -352,7 +356,8 @@ impl ExpressionVisitor for Engine<'_> {
     }
 
     fn visit_scope(&mut self, l: &NestedScope, _s: &Span) -> Self::Result {
-        let inst = self.eval_statements(DocId::new("scope".to_string()), &l.statements)?;
+        let document = self.current_document.as_ref().map(|d| d.to_string());
+        let inst = self.eval_statements(DocId::new_with_path("scope", document), &l.statements)?;
         Ok(Value::Script(Rc::new(inst)))
     }
 }
