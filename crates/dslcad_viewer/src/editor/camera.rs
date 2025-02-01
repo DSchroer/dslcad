@@ -51,7 +51,7 @@ fn camera_light(
 
 fn camera_system(mut commands: Commands) {
     commands
-        .spawn(Camera3dBundle::default())
+        .spawn(Camera3d::default())
         .insert(OrbitCameraBundle::new(
             OrbitCameraController {
                 mouse_translate_sensitivity: Vec2::splat(0.05),
@@ -63,16 +63,14 @@ fn camera_system(mut commands: Commands) {
             Vec3::new(0., 1., 0.),
         ));
 
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
+    commands.spawn((
+        DirectionalLight {
             illuminance: 100000.0,
             color: Blueprint::white(),
             ..default()
         },
-        transform: Transform::from_translation(Vec3::splat(100.))
-            .looking_at(Vec3::default(), Vec3::Y),
-        ..default()
-    });
+        Transform::from_translation(Vec3::splat(100.)).looking_at(Vec3::default(), Vec3::Y),
+    ));
 
     commands.insert_resource(AmbientLight {
         color: Blueprint::blue(),
@@ -86,7 +84,7 @@ fn camera_handler(
     mut camera: Query<&mut LookTransform, With<OrbitCameraController>>,
     mut state: ResMut<CameraState>,
 ) {
-    for command in camera_commands.iter() {
+    for command in camera_commands.read() {
         match command {
             CameraCommand::Focus(aabb) => {
                 if state.focus.is_none() {
@@ -112,7 +110,7 @@ fn camera_handler(
             CameraCommand::UseOrthographic(orthographic) => {
                 let mut projection = projection.single_mut();
                 if *orthographic {
-                    *projection = Projection::Orthographic(OrthographicProjection::default());
+                    *projection = Projection::Orthographic(OrthographicProjection::default_3d());
                 } else {
                     *projection = Projection::Perspective(PerspectiveProjection::default());
                 }
@@ -127,13 +125,13 @@ fn orthographic_zoom(
     smoother: Query<&Smoother>,
 ) {
     let transform = look.single();
-    let mut smoother = smoother.single().clone();
+    let mut smoother = *smoother.single();
     let transform = smoother.smooth_transform(transform);
     let d = transform.target.distance(transform.eye);
     for mut projection in &mut projections {
         if let Projection::Orthographic(o) = projection.as_mut() {
             o.far = d + 1000.0;
-            o.scaling_mode = ScalingMode::FixedVertical(d);
+            o.scaling_mode = ScalingMode::FixedVertical { viewport_height: d };
             o.scale = 1.0;
         }
     }
@@ -155,8 +153,8 @@ pub fn input_map(
     mut mouse_wheel_reader: EventReader<MouseWheel>,
     mut mouse_motion_events: EventReader<MouseMotion>,
     mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
-    keyboard: Res<Input<KeyCode>>,
-    mouse_buttons: Res<Input<MouseButton>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mouse_buttons: Res<ButtonInput<MouseButton>>,
     controllers: Query<&OrbitCameraController>,
     camera_pos: Query<&Transform, With<OrbitCameraController>>,
 ) {
@@ -182,7 +180,7 @@ pub fn input_map(
     }
 
     let mut cursor_delta = Vec2::ZERO;
-    for event in mouse_motion_events.iter() {
+    for event in mouse_motion_events.read() {
         cursor_delta += event.delta;
     }
 
@@ -198,55 +196,55 @@ pub fn input_map(
         ));
     }
 
+    if keyboard.pressed(KeyCode::Equal) {
+        events.send(ControlEvent::Zoom(0.9));
+    }
     if keyboard.pressed(KeyCode::Minus) {
         events.send(ControlEvent::Zoom(1.1));
     }
-    if keyboard.pressed(KeyCode::Plus) || keyboard.pressed(KeyCode::Equals) {
-        events.send(ControlEvent::Zoom(0.9));
-    }
 
     if keyboard.pressed(KeyCode::ShiftLeft) {
-        if keyboard.pressed(KeyCode::Left) {
+        if keyboard.pressed(KeyCode::ArrowLeft) {
             events.send(ControlEvent::TranslateTarget(Vec2::new(
                 1. * zoom_amount,
                 0.0,
             )));
         }
-        if keyboard.pressed(KeyCode::Right) {
+        if keyboard.pressed(KeyCode::ArrowRight) {
             events.send(ControlEvent::TranslateTarget(Vec2::new(
                 -1. * zoom_amount,
                 0.0,
             )));
         }
-        if keyboard.pressed(KeyCode::Up) {
+        if keyboard.pressed(KeyCode::ArrowUp) {
             events.send(ControlEvent::TranslateTarget(Vec2::new(
                 0.0,
                 1. * zoom_amount,
             )));
         }
-        if keyboard.pressed(KeyCode::Down) {
+        if keyboard.pressed(KeyCode::ArrowDown) {
             events.send(ControlEvent::TranslateTarget(Vec2::new(
                 0.0,
                 -1. * zoom_amount,
             )));
         }
     } else {
-        if keyboard.pressed(KeyCode::Left) {
+        if keyboard.pressed(KeyCode::ArrowLeft) {
             events.send(ControlEvent::Orbit(Vec2::new(1., 0.0)));
         }
-        if keyboard.pressed(KeyCode::Right) {
+        if keyboard.pressed(KeyCode::ArrowRight) {
             events.send(ControlEvent::Orbit(Vec2::new(-1., 0.0)));
         }
-        if keyboard.pressed(KeyCode::Up) {
+        if keyboard.pressed(KeyCode::ArrowUp) {
             events.send(ControlEvent::Orbit(Vec2::new(0., 1.0)));
         }
-        if keyboard.pressed(KeyCode::Down) {
+        if keyboard.pressed(KeyCode::ArrowDown) {
             events.send(ControlEvent::Orbit(Vec2::new(0., -1.0)));
         }
     }
 
     let mut scalar = 1.0;
-    for event in mouse_wheel_reader.iter() {
+    for event in mouse_wheel_reader.read() {
         // scale the event magnitude per pixel or per line
         let scroll_amount = match event.unit {
             MouseScrollUnit::Line => event.y,

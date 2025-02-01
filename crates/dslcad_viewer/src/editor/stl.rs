@@ -1,8 +1,9 @@
+use bevy::asset::RenderAssetUsages;
 use bevy::prelude::Mesh;
 use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 
 pub fn stl_to_triangle_mesh(stl: &dslcad_storage::protocol::Mesh) -> Mesh {
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all());
 
     let vertex_count = stl.triangles.len() * 3;
 
@@ -29,7 +30,7 @@ pub fn stl_to_triangle_mesh(stl: &dslcad_storage::protocol::Mesh) -> Mesh {
         VertexAttributeValues::Float32x3(normals),
     );
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, VertexAttributeValues::Float32x2(uvs));
-    mesh.set_indices(Some(Indices::U32(indices)));
+    mesh.insert_indices(Indices::U32(indices));
 
     mesh
 }

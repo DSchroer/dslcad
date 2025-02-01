@@ -1,7 +1,8 @@
 use crate::editor::Blueprint;
 use bevy::prelude::*;
 use bevy_polyline::material::PolylineMaterial;
-use bevy_polyline::polyline::{Polyline, PolylineBundle};
+use bevy_polyline::polyline::{Polyline, PolylineBundle, PolylineHandle};
+use bevy_polyline::prelude::PolylineMaterialHandle;
 
 pub struct XYZPlugin;
 impl Plugin for XYZPlugin {
@@ -21,39 +22,39 @@ fn xyz_lines(
     let origin = Vec3::new(0.0, 0.0, 0.0);
 
     commands.spawn(PolylineBundle {
-        polyline: polylines.add(Polyline {
+        polyline: PolylineHandle(polylines.add(Polyline {
             vertices: vec![origin, Vec3::new(end, 0.0, 0.0)],
-        }),
-        material: polyline_materials.add(PolylineMaterial {
+        })),
+        material: PolylineMaterialHandle(polyline_materials.add(PolylineMaterial {
             width: 2.0,
-            color,
+            color: color.into(),
             perspective: false,
             depth_bias: bias,
-        }),
+        })),
         ..Default::default()
     });
     commands.spawn(PolylineBundle {
-        polyline: polylines.add(Polyline {
+        polyline: PolylineHandle(polylines.add(Polyline {
             vertices: vec![origin, Vec3::new(0.0, end, 0.0)],
-        }),
-        material: polyline_materials.add(PolylineMaterial {
+        })),
+        material: PolylineMaterialHandle(polyline_materials.add(PolylineMaterial {
             width: 2.0,
-            color,
+            color: color.into(),
             perspective: false,
             depth_bias: bias,
-        }),
+        })),
         ..Default::default()
     });
     commands.spawn(PolylineBundle {
-        polyline: polylines.add(Polyline {
+        polyline: PolylineHandle(polylines.add(Polyline {
             vertices: vec![origin, Vec3::new(0.0, 0.0, end)],
-        }),
-        material: polyline_materials.add(PolylineMaterial {
+        })),
+        material: PolylineMaterialHandle(polyline_materials.add(PolylineMaterial {
             width: 2.0,
-            color,
+            color: color.into(),
             perspective: false,
             depth_bias: bias,
-        }),
+        })),
         ..Default::default()
     });
 }

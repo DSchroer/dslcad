@@ -1,12 +1,12 @@
+use crate::editor::camera::CameraCommand;
 use crate::editor::rendering::{RenderCommand, RenderState};
 use crate::settings::{Settings, Store};
+use bevy::ecs::system::{StaticSystemParam, SystemParam};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+use bevy_egui::egui::Id;
 use bevy_egui::{egui, EguiContext};
 use std::collections::BTreeMap;
-
-use crate::editor::camera::CameraCommand;
-use bevy_egui::egui::Id;
 use std::str::FromStr;
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
@@ -17,18 +17,30 @@ impl Plugin for MenuPlugin {
         app.init_resource::<Menu>()
             .add_event::<MenuEvent>()
             .add_systems(Update, main_ui)
-            .add_persistent_res_loader("points", |value, state: &mut RenderState| {
-                state.show_points = value.unwrap_or("true") == "true";
-            })
-            .add_persistent_res_loader("lines", |value, state: &mut RenderState| {
-                state.show_lines = value.unwrap_or("true") == "true";
-            })
-            .add_persistent_res_loader("mesh", |value, state: &mut RenderState| {
-                state.show_mesh = value.unwrap_or("true") == "true";
-            })
-            .add_persistent_res_loader("colors", |value, state: &mut RenderState| {
-                state.part_colors = value.unwrap_or("false") == "true";
-            });
+            .add_persistent_res_loader::<ResMut<RenderState>>(
+                "points",
+                |value, mut state: ResMut<RenderState>| {
+                    state.show_points = value.unwrap_or("true") == "true";
+                },
+            )
+            .add_persistent_res_loader::<ResMut<RenderState>>(
+                "lines",
+                |value, mut state: ResMut<RenderState>| {
+                    state.show_lines = value.unwrap_or("true") == "true";
+                },
+            )
+            .add_persistent_res_loader::<ResMut<RenderState>>(
+                "mesh",
+                |value, mut state: ResMut<RenderState>| {
+                    state.show_mesh = value.unwrap_or("true") == "true";
+                },
+            )
+            .add_persistent_res_loader::<ResMut<RenderState>>(
+                "colors",
+                |value, mut state: ResMut<RenderState>| {
+                    state.part_colors = value.unwrap_or("false") == "true";
+                },
+            );
     }
 }
 
@@ -45,17 +57,17 @@ pub trait MenuAppExt {
         action: impl Fn(&mut T) + Send + Sync + 'static,
     ) -> &mut App;
 
-    fn add_persistent_res_menu_button<T: Resource>(
+    fn add_persistent_res_menu_button<T: SystemParam + 'static>(
         &mut self,
         path: &'static str,
         key: &'static str,
-        action: impl Fn(&mut T) -> String + Send + Sync + 'static,
+        action: impl for<'w, 's> Fn(T::Item<'w, 's>) -> String + Send + Sync + 'static,
     ) -> &mut App;
 
-    fn add_persistent_res_loader<T: Resource>(
+    fn add_persistent_res_loader<T: SystemParam + 'static>(
         &mut self,
         key: &'static str,
-        action: impl Fn(Option<&str>, &mut T) + Send + Sync + 'static,
+        action: impl for<'w, 's> Fn(Option<&str>, T::Item<'w, 's>) + Send + Sync + 'static,
     ) -> &mut App;
 }
 
@@ -77,7 +89,7 @@ impl MenuAppExt for App {
         self.add_systems(
             Update,
             move |mut events: EventReader<MenuEvent>, mut event: EventWriter<T>| {
-                for click in events.iter() {
+                for click in events.read() {
                     if click.action() == action_name {
                         action(&mut event);
                     }
@@ -104,7 +116,7 @@ impl MenuAppExt for App {
         self.add_systems(
             Update,
             move |mut events: EventReader<MenuEvent>, mut state: ResMut<T>| {
-                for click in events.iter() {
+                for click in events.read() {
                     if click.action() == action_name {
                         action(&mut state);
                     }
@@ -114,11 +126,11 @@ impl MenuAppExt for App {
         self
     }
 
-    fn add_persistent_res_menu_button<T: Resource>(
+    fn add_persistent_res_menu_button<T: SystemParam + 'static>(
         &mut self,
         path: &'static str,
         key: &'static str,
-        action: impl Fn(&mut T) -> String + Send + Sync + 'static,
+        action: impl for<'w, 's> Fn(T::Item<'w, 's>) -> String + Send + Sync + 'static,
     ) -> &mut App {
         let mut path = path.split('/');
         let menu_name = TopLevelMenu::from_str(path.next().expect("menu must have top level"))
@@ -132,11 +144,11 @@ impl MenuAppExt for App {
         self.add_systems(
             Update,
             move |mut events: EventReader<MenuEvent>,
-                  mut state: ResMut<T>,
+                  state: StaticSystemParam<T>,
                   mut store: ResMut<Settings>| {
-                for click in events.iter() {
+                if let Some(click) = events.read().next() {
                     if click.action() == action_name {
-                        let new_value = action(&mut state);
+                        let new_value = action(state.into_inner());
                         store.store(key, &new_value);
                     }
                 }
@@ -145,18 +157,19 @@ impl MenuAppExt for App {
         self
     }
 
-    fn add_persistent_res_loader<T: Resource>(
+    fn add_persistent_res_loader<T: SystemParam + 'static>(
         &mut self,
         key: &'static str,
-        action: impl Fn(Option<&str>, &mut T) + Send + Sync + 'static,
+        action: impl for<'w, 's> Fn(Option<&str>, T::Item<'w, 's>) + Send + Sync + 'static,
     ) -> &mut App {
         self.add_systems(
             Startup,
-            move |mut state: ResMut<T>, store: Res<Settings>| {
+            move |state: StaticSystemParam<T>, store: Res<Settings>| {
                 let value = store.load(key);
-                action(value, &mut state);
+                action(value, state.into_inner());
             },
-        )
+        );
+        self
     }
 }
 

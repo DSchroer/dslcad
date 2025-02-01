@@ -268,13 +268,13 @@ impl Library {
                 return Ok(options.remove(0));
             }
 
-            return Err(RuntimeError::CouldNotFindFunctionSignature {
+            Err(RuntimeError::CouldNotFindFunctionSignature {
                 target: to_call.to_string(),
                 options: indices
                     .iter()
                     .map(|i| self.signatures[*i].to_string())
                     .collect(),
-            });
+            })
         } else {
             Err(RuntimeError::CouldNotFindFunction {
                 name: to_call.name.to_string(),
@@ -576,7 +576,7 @@ impl Display for Library {
     }
 }
 
-impl<'a> Display for CallSignature<'a> {
+impl Display for CallSignature<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}(", self.name)?;
         for (i, arg) in self.arguments.iter().enumerate() {

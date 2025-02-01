@@ -4,8 +4,8 @@ use bevy::prelude::*;
 use bevy_points::material::PointsShaderSettings;
 use bevy_points::prelude::*;
 
-use bevy_polyline::material::PolylineMaterial;
-use bevy_polyline::polyline::{Polyline, PolylineBundle};
+use bevy_polyline::material::{PolylineMaterial, PolylineMaterialHandle};
+use bevy_polyline::polyline::{Polyline, PolylineBundle, PolylineHandle};
 use dslcad_storage::protocol::{Part, Point};
 
 pub struct ModelRenderingPlugin;
@@ -69,7 +69,7 @@ fn mesh_renderer(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         if let RenderEvents::Mesh = event {
             if !render_state.show_mesh {
                 continue;
@@ -92,15 +92,14 @@ fn mesh_renderer(
                     };
 
                     commands
-                        .spawn(PbrBundle {
-                            mesh: meshes.add(mesh),
-                            material: materials.add(StandardMaterial {
+                        .spawn((
+                            Mesh3d(meshes.add(mesh)),
+                            MeshMaterial3d(materials.add(StandardMaterial {
                                 base_color: color,
                                 cull_mode: None,
                                 ..Default::default()
-                            }),
-                            ..Default::default()
-                        })
+                            })),
+                        ))
                         .set_parent(*entity);
                 }
             }
@@ -115,7 +114,7 @@ fn point_renderer(
     mut meshes: ResMut<Assets<Mesh>>,
     mut point_materials: ResMut<Assets<PointsMaterial>>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         if let RenderEvents::Points = event {
             if !render_state.show_points {
                 continue;
@@ -158,27 +157,25 @@ fn render_points(
     parent: Entity,
 ) {
     commands
-        .spawn(MaterialMeshBundle {
-            mesh: meshes.add(
-                PointsMesh::from_iter(
+        .spawn((
+            Mesh3d::from(
+                meshes.add(PointsMesh::from_iter(
                     points
                         .iter()
                         .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32)),
-                )
-                .into(),
+                )),
             ),
-            material: point_materials.add(PointsMaterial {
+            MeshMaterial3d(point_materials.add(PointsMaterial {
                 settings: PointsShaderSettings {
                     point_size: 10.0,
-                    color: Blueprint::black(),
+                    color: Blueprint::black().into(),
                     ..Default::default()
                 },
                 perspective: false,
                 circle: true,
                 ..Default::default()
-            }),
-            ..Default::default()
-        })
+            })),
+        ))
         .set_parent(parent);
 }
 
@@ -189,7 +186,7 @@ fn line_renderer(
     mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
     mut polylines: ResMut<Assets<Polyline>>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         if let RenderEvents::Lines = event {
             if !render_state.show_lines {
                 continue;
@@ -234,18 +231,20 @@ fn render_lines(
     for line in lines {
         commands
             .spawn(PolylineBundle {
-                polyline: polylines.add(Polyline {
-                    vertices: line
-                        .iter()
-                        .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))
-                        .collect(),
-                }),
-                material: polyline_materials.add(PolylineMaterial {
+                polyline: PolylineHandle(
+                    polylines.add(Polyline {
+                        vertices: line
+                            .iter()
+                            .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))
+                            .collect(),
+                    }),
+                ),
+                material: PolylineMaterialHandle(polyline_materials.add(PolylineMaterial {
                     width: 2.0,
-                    color: Blueprint::black(),
+                    color: Blueprint::black().into(),
                     perspective: false,
                     ..Default::default()
-                }),
+                })),
                 ..Default::default()
             })
             .set_parent(parent);
@@ -258,7 +257,7 @@ fn render_controller(
     mut render_state: ResMut<RenderState>,
     mut render_events: EventWriter<RenderEvents>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         match event {
             RenderCommand::Draw(render) => {
                 if let Some((_, id)) = render_state.model {
@@ -266,15 +265,12 @@ fn render_controller(
                     render_state.model = None;
                 }
 
-                let bundle = commands.spawn(SpatialBundle {
-                    transform: Transform::from_rotation(Quat::from_euler(
-                        EulerRot::XYZ,
-                        -std::f32::consts::FRAC_PI_2,
-                        0.0,
-                        -std::f32::consts::FRAC_PI_2,
-                    )),
-                    ..Default::default()
-                });
+                let bundle = commands.spawn((Transform::from_rotation(Quat::from_euler(
+                    EulerRot::XYZ,
+                    -std::f32::consts::FRAC_PI_2,
+                    0.0,
+                    -std::f32::consts::FRAC_PI_2,
+                )),));
                 render_state.model = Some((render.clone(), bundle.id()));
 
                 render_events.send(RenderEvents::Points);
@@ -285,15 +281,12 @@ fn render_controller(
                 if let Some((render, id)) = &render_state.model {
                     commands.entity(*id).despawn_recursive();
 
-                    let bundle = commands.spawn(SpatialBundle {
-                        transform: Transform::from_rotation(Quat::from_euler(
-                            EulerRot::XYZ,
-                            -std::f32::consts::FRAC_PI_2,
-                            0.0,
-                            -std::f32::consts::FRAC_PI_2,
-                        )),
-                        ..Default::default()
-                    });
+                    let bundle = commands.spawn(Transform::from_rotation(Quat::from_euler(
+                        EulerRot::XYZ,
+                        -std::f32::consts::FRAC_PI_2,
+                        0.0,
+                        -std::f32::consts::FRAC_PI_2,
+                    )));
                     render_state.model = Some((render.clone(), bundle.id()));
                 }
 

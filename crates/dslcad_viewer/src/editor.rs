@@ -21,23 +21,23 @@ use std::sync::Mutex;
 struct Blueprint;
 impl Blueprint {
     fn white() -> Color {
-        Color::hex("CED8F7").unwrap()
+        Srgba::hex("CED8F7").unwrap().into()
     }
 
     fn blue() -> Color {
-        Color::hex("3057E1").unwrap()
+        Srgba::hex("3057E1").unwrap().into()
     }
 
     fn black() -> Color {
-        Color::hex("002082").unwrap()
+        Srgba::hex("002082").unwrap().into()
     }
 
     fn part(index: usize) -> Color {
         let mut rng = StdRng::seed_from_u64(index as u64);
 
-        let h = rng.gen_range(0..360) as f32;
-        let s = rng.gen_range(20..50) as f32 / 100.;
-        let l = rng.gen_range(40..90) as f32 / 100.;
+        let h = rng.random_range(0..360) as f32;
+        let s = rng.random_range(20..50) as f32 / 100.;
+        let l = rng.random_range(40..90) as f32 / 100.;
 
         Color::hsl(h, s, l)
     }
@@ -52,7 +52,8 @@ pub(crate) fn main(
 
     let rx = Mutex::new(rx);
 
-    app.insert_resource(Msaa::default())
+    app
+        //.insert_resource(Msaa::default())
         .insert_resource(ClearColor(Blueprint::blue()))
         .insert_resource(store)
         .add_plugins(

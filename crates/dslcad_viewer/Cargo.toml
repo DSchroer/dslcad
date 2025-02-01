@@ -4,18 +4,17 @@ version = "0.0.5"
 edition = "2021"
 
 [dependencies]
-strum = "0.25.0"
-strum_macros = "0.25.2"
-bevy_egui = "0.21.0"
-smooth-bevy-cameras = "0.9.0"
-bevy_polyline = "0.7.0"
-bevy_points = { git = "https://github.com/mattatz/bevy_points/", rev = "240c7640e41397bd35a1a24b43630e569cd27131" }
+strum = "0.26.3"
+strum_macros = "0.26.4"
+bevy_egui = "0.31.1"
+smooth-bevy-cameras = "0.13.0"
+bevy_polyline = "0.11.0"
+bevy_points = "0.7.0"
 dslcad-storage = { path = "../dslcad_storage" }
-rand = "0.8"
-simple-home-dir = "0.3"
-thiserror = "2.0"
+rand = "0.9.0"
+simple-home-dir = "0.4.6"
 
 [dependencies.bevy]
-version = "0.11.1"
+version = "0.15.1"
 default-features = false
 features = ["bevy_winit", "x11", "ktx2", "zstd", "tonemapping_luts", "webgl2"]
