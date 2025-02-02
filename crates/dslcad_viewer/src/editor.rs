@@ -13,8 +13,6 @@ use crate::editor::rendering::RenderCommand;
 use crate::settings::Settings;
 use crate::PreviewEvent;
 use bevy::log::LogPlugin;
-use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
 use std::sync::mpsc::Receiver;
 use std::sync::Mutex;
 
@@ -33,13 +31,7 @@ impl Blueprint {
     }
 
     fn part(index: usize) -> Color {
-        let mut rng = StdRng::seed_from_u64(index as u64);
-
-        let h = rng.random_range(0..360) as f32;
-        let s = rng.random_range(20..50) as f32 / 100.;
-        let l = rng.random_range(40..90) as f32 / 100.;
-
-        Color::hsl(h, s, l)
+        Color::hsl(index as f32 * 60.0 % 360.0, 1.0, 0.5)
     }
 }
 
