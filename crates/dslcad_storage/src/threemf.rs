@@ -1,4 +1,4 @@
-use quick_xml::{se, DeError};
+use quick_xml::{se, DeError, SeError};
 use serde::{Deserialize, Serialize};
 use std::io::{Seek, Write};
 use thiserror::Error;
@@ -15,7 +15,9 @@ pub enum ThreeMFError {
     #[error(transparent)]
     Fmt(#[from] std::fmt::Error),
     #[error(transparent)]
-    De(#[from] DeError),
+    XmlDe(#[from] DeError),
+    #[error(transparent)]
+    XmlSe(#[from] SeError),
 }
 
 pub struct ThreeMF {
@@ -91,11 +93,12 @@ impl ThreeMF {
         Ok(())
     }
 
-    fn write_model(writer: impl std::fmt::Write, model: &Model) -> Result<(), DeError> {
-        se::to_writer_with_root(writer, "model", &model)
+    fn write_model(writer: impl std::fmt::Write, model: &Model) -> Result<(), SeError> {
+        se::to_writer_with_root(writer, "model", &model)?;
+        Ok(())
     }
 
-    fn write_content_types(&self, writer: impl std::fmt::Write) -> Result<(), DeError> {
+    fn write_content_types(&self, writer: impl std::fmt::Write) -> Result<(), SeError> {
         se::to_writer_with_root(
             writer,
             "Types",
@@ -103,10 +106,11 @@ impl ThreeMF {
                 xmlns: "http://schemas.openxmlformats.org/package/2006/content-types",
                 types: self.content_types.clone(),
             },
-        )
+        )?;
+        Ok(())
     }
 
-    fn write_relationships(&self, writer: impl std::fmt::Write) -> Result<(), DeError> {
+    fn write_relationships(&self, writer: impl std::fmt::Write) -> Result<(), SeError> {
         se::to_writer_with_root(
             writer,
             "Relationships",
@@ -114,7 +118,8 @@ impl ThreeMF {
                 xmlns: "http://schemas.openxmlformats.org/package/2006/relationships",
                 relationships: self.relationships.clone(),
             },
-        )
+        )?;
+        Ok(())
     }
 }
 
