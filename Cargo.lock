@@ -1786,7 +1786,7 @@ dependencies = [
  "notify",
  "rayon",
  "serde",
- "stl_io",
+ "stl_io 0.7.0",
  "thiserror 1.0.69",
  "walkdir",
 ]
@@ -1807,6 +1807,7 @@ dependencies = [
  "bincode",
  "quick-xml",
  "serde",
+ "stl_io 0.8.5",
  "thiserror 2.0.11",
  "zip",
 ]
@@ -3857,6 +3858,16 @@ name = "stl_io"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d520eb03e632e666ac32f3c0cf018ac6dcd535ab0be1420937e2d896f44f7cf7"
+dependencies = [
+ "byteorder",
+ "float-cmp",
+]
+
+[[package]]
+name = "stl_io"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cff2e145168af9fef3b518ac0c6f9849c407b3df8a28582ced9f1fda510aa34c"
 dependencies = [
  "byteorder",
  "float-cmp",

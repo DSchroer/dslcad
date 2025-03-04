@@ -14,6 +14,7 @@ use std::fs::File;
 use std::io::{stderr, Write};
 use std::path::Path;
 use thiserror::Error;
+use dslcad_storage::protocol;
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -60,6 +61,7 @@ enum Output {
     #[value(name = "3mf")]
     ThreeMf,
     Raw,
+    Stl
 }
 
 #[derive(Debug, Error)]
@@ -80,6 +82,8 @@ enum CliError {
     Bincode(#[from] BincodeError),
     #[error(transparent)]
     Notify(#[from] notify::Error),
+    #[error(transparent)]
+    Stl(#[from] protocol::StlError)
 }
 
 fn main() {
@@ -157,6 +161,15 @@ fn render_to_file(
             let raw: Vec<u8> = render.try_into()?;
             let mut out = File::create(&outpath)?;
             out.write_all(&raw)?;
+            outpath
+        }
+        Output::Stl => {
+            let compressed = eval_result.to_shape()?.into();
+            let render = render(compressed, deflection)?;
+
+            let outpath = cwd.join(format!("{}.stl", file.to_string_lossy()));
+            let mut out = File::create(&outpath)?;
+            render.to_stl(&mut out)?;
             outpath
         }
     };
