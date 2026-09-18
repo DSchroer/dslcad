@@ -29,6 +29,7 @@ struct Args {
 
     #[cfg(feature = "preview")]
     #[arg(
+        short,
         long,
         num_args = 0..=2,
         value_names = ["ANGLE", "ZOOM"],
