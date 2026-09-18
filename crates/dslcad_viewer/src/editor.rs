@@ -1,5 +1,6 @@
 mod camera;
 mod gui;
+mod lines;
 mod rendering;
 mod stl;
 mod xyz;
@@ -12,7 +13,6 @@ use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, T
 use bevy::render::view::screenshot::{save_to_disk, Screenshot, ScreenshotCaptured};
 use bevy::window::ExitCondition;
 use bevy::winit::WinitPlugin;
-use bevy_polyline::prelude::*;
 use smooth_bevy_cameras::controllers::orbit::OrbitCameraController;
 use smooth_bevy_cameras::{LookTransform, Smoother};
 use std::error::Error;
@@ -116,7 +116,6 @@ fn run(
         .insert_resource(store)
         .add_plugins(default_plugins)
         .add_plugins((
-            PolylinePlugin,
             camera::CameraPlugin,
             xyz::XYZPlugin,
             rendering::ModelRenderingPlugin,

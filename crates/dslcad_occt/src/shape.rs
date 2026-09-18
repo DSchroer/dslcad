@@ -1,5 +1,5 @@
 use crate::command::Builder;
-use crate::explorer::Explorer;
+use crate::explorer::UniqueExplorer;
 use crate::shapes::DsShape;
 use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
@@ -16,7 +16,7 @@ use opencascade_sys::ffi::{
     BRep_Tool_Triangulation, GProp_GProps_CentreOfMass, GProp_GProps_ctor,
     HandlePoly_Triangulation_Get, Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum,
     TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
-    TopoDS_cast_to_face,
+    TopoDS_Vertex, TopoDS_cast_to_face,
 };
 use std::f64::consts::PI;
 
@@ -223,7 +223,7 @@ impl Shape {
     pub fn fillet(target: &Shape, thickness: f64) -> Result<Self, Error> {
         let mut fillet = BRepFilletAPI_MakeFillet_ctor(&target.shape);
 
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(target);
+        let mut edge_explorer: UniqueExplorer<TopoDS_Edge> = UniqueExplorer::new(target);
         while let Some(edge) = edge_explorer.next() {
             fillet.pin_mut().add_edge(thickness, edge);
         }
@@ -234,7 +234,7 @@ impl Shape {
     pub fn chamfer(target: &Shape, thickness: f64) -> Result<Self, Error> {
         let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(&target.shape);
 
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(target);
+        let mut edge_explorer: UniqueExplorer<TopoDS_Edge> = UniqueExplorer::new(target);
         while let Some(edge) = edge_explorer.next() {
             chamfer.pin_mut().add_edge(thickness, edge);
         }
@@ -306,7 +306,7 @@ impl Shape {
         let mut lines = Vec::new();
 
         let mut stats_length = 0;
-        let mut edge_explorer: Explorer<TopoDS_Edge> = Explorer::new(self);
+        let mut edge_explorer: UniqueExplorer<TopoDS_Edge> = UniqueExplorer::new(self);
         while let Some(edge) = edge_explorer.next() {
             if let Some(line) = Wire::extract_line(edge, deflection) {
                 stats_length += line.len();
@@ -325,7 +325,7 @@ impl Shape {
     pub fn points(&self) -> Result<Vec<[f64; 3]>, Error> {
         let mut points = Vec::new();
 
-        let mut vertex_explorer = Explorer::new(self);
+        let mut vertex_explorer: UniqueExplorer<TopoDS_Vertex> = UniqueExplorer::new(self);
 
         while let Some(vertex) = vertex_explorer.next() {
             let point: Point = BRep_Tool_Pnt(vertex).into();
@@ -417,6 +417,14 @@ mod tests {
         );
 
         wire.build().unwrap()
+    }
+
+    #[test]
+    fn it_only_returns_unique_edges_and_vertices() {
+        let shape = Shape::cube(1., 1., 1.).unwrap();
+
+        assert_eq!(8, shape.points().unwrap().len());
+        assert_eq!(12, shape.lines(0.1).unwrap().len());
     }
 
     #[test]

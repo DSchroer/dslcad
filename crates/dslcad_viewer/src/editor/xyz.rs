@@ -1,8 +1,6 @@
+use crate::editor::lines::{lines_to_mesh, LineMaterial};
 use crate::editor::Blueprint;
 use bevy::prelude::*;
-use bevy_polyline::material::PolylineMaterial;
-use bevy_polyline::polyline::{Polyline, PolylineBundle, PolylineHandle};
-use bevy_polyline::prelude::PolylineMaterialHandle;
 
 pub struct XYZPlugin;
 impl Plugin for XYZPlugin {
@@ -13,48 +11,20 @@ impl Plugin for XYZPlugin {
 
 fn xyz_lines(
     mut commands: Commands,
-    mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
-    mut polylines: ResMut<Assets<Polyline>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<LineMaterial>>,
 ) {
     let end = 1_000_000.0;
-    let bias = 0.0001;
-    let color = Blueprint::black();
-    let origin = Vec3::new(0.0, 0.0, 0.0);
+    let lines = vec![
+        vec![[0.0, 0.0, 0.0], [end, 0.0, 0.0]],
+        vec![[0.0, 0.0, 0.0], [0.0, end, 0.0]],
+        vec![[0.0, 0.0, 0.0], [0.0, 0.0, end]],
+    ];
 
-    commands.spawn(PolylineBundle {
-        polyline: PolylineHandle(polylines.add(Polyline {
-            vertices: vec![origin, Vec3::new(end, 0.0, 0.0)],
-        })),
-        material: PolylineMaterialHandle(polyline_materials.add(PolylineMaterial {
-            width: 2.0,
-            color: color.into(),
-            perspective: false,
-            depth_bias: bias,
-        })),
-        ..Default::default()
-    });
-    commands.spawn(PolylineBundle {
-        polyline: PolylineHandle(polylines.add(Polyline {
-            vertices: vec![origin, Vec3::new(0.0, end, 0.0)],
-        })),
-        material: PolylineMaterialHandle(polyline_materials.add(PolylineMaterial {
-            width: 2.0,
-            color: color.into(),
-            perspective: false,
-            depth_bias: bias,
-        })),
-        ..Default::default()
-    });
-    commands.spawn(PolylineBundle {
-        polyline: PolylineHandle(polylines.add(Polyline {
-            vertices: vec![origin, Vec3::new(0.0, 0.0, end)],
-        })),
-        material: PolylineMaterialHandle(polyline_materials.add(PolylineMaterial {
-            width: 2.0,
-            color: color.into(),
-            perspective: false,
-            depth_bias: bias,
-        })),
-        ..Default::default()
-    });
+    commands.spawn((
+        Mesh3d(meshes.add(lines_to_mesh(&lines))),
+        MeshMaterial3d(
+            materials.add(LineMaterial::new(Blueprint::black(), 2.0).with_depth_bias(0.0001)),
+        ),
+    ));
 }

@@ -8,7 +8,6 @@ strum = "0.26.3"
 strum_macros = "0.26.4"
 bevy_egui = "0.31.1"
 smooth-bevy-cameras = "0.13.0"
-bevy_polyline = "0.11.0"
 bevy_points = "0.7.0"
 dslcad-storage = { path = "../dslcad_storage" }
 simple-home-dir = "0.4.6"

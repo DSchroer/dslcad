@@ -851,17 +851,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_polyline"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bbf333dab4a712f63456aa64b8e06268a44afdcbc9be4780e6260a0e8113072"
-dependencies = [
- "bevy",
- "bitflags 2.8.0",
- "bytemuck",
-]
-
-[[package]]
 name = "bevy_ptr"
 version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1836,7 +1825,6 @@ dependencies = [
  "bevy",
  "bevy_egui",
  "bevy_points",
- "bevy_polyline",
  "dslcad-storage",
  "simple-home-dir",
  "smooth-bevy-cameras",

@@ -1,6 +1,6 @@
 use crate::command::{Builder, Command};
 use crate::edge::Edge;
-use crate::explorer::Explorer;
+use crate::explorer::UniqueExplorer;
 use crate::{DsShape, Error, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
@@ -105,7 +105,7 @@ impl Wire {
     }
 
     pub fn contours(&self) -> Vec<Wire> {
-        let mut explorer: Explorer<TopoDS_Wire> = Explorer::new(self);
+        let mut explorer: UniqueExplorer<TopoDS_Wire> = UniqueExplorer::new(self);
         let mut contours = Vec::new();
         while let Some(contour) = explorer.next() {
             contours.push(Wire::from(cast_wire_to_shape(contour)));
@@ -171,11 +171,9 @@ impl Wire {
     pub fn edges(&self) -> Vec<Edge> {
         let mut edges = Vec::new();
 
-        let mut edge_explorer = TopExp_Explorer_ctor(&self.0, TopAbs_ShapeEnum::TopAbs_EDGE);
-        while edge_explorer.More() {
-            let edge = TopoDS_cast_to_edge(edge_explorer.Current());
+        let mut edge_explorer: UniqueExplorer<TopoDS_Edge> = UniqueExplorer::new(self);
+        while let Some(edge) = edge_explorer.next() {
             edges.push(TopoDS_Edge_to_owned(edge).into());
-            edge_explorer.pin_mut().Next();
         }
 
         edges
@@ -184,12 +182,9 @@ impl Wire {
     pub fn points(&self, deflection: f64) -> Result<Vec<Vec<[f64; 3]>>, Error> {
         let mut lines = Vec::new();
 
-        let mut edge_explorer = TopExp_Explorer_ctor(&self.0, TopAbs_ShapeEnum::TopAbs_EDGE);
-        while edge_explorer.More() {
-            let edge = TopoDS_cast_to_edge(edge_explorer.Current());
-
+        let mut edge_explorer: UniqueExplorer<TopoDS_Edge> = UniqueExplorer::new(self);
+        while let Some(edge) = edge_explorer.next() {
             lines.push(Self::extract_line(edge, deflection).unwrap());
-            edge_explorer.pin_mut().Next();
         }
 
         Ok(lines)

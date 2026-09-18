@@ -1,18 +1,17 @@
+use crate::editor::lines::{lines_to_mesh, LineMaterial, LineMaterialPlugin};
 use crate::editor::stl::stl_to_triangle_mesh;
 use crate::editor::Blueprint;
 use bevy::prelude::*;
 use bevy_points::material::PointsShaderSettings;
 use bevy_points::prelude::*;
 
-use bevy_polyline::material::{PolylineMaterial, PolylineMaterialHandle};
-use bevy_polyline::polyline::{Polyline, PolylineBundle, PolylineHandle};
 use dslcad_storage::protocol::{Part, Point};
 
 pub struct ModelRenderingPlugin;
 
 impl Plugin for ModelRenderingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(PointsPlugin)
+        app.add_plugins((PointsPlugin, LineMaterialPlugin))
             .add_event::<RenderCommand>()
             .add_event::<RenderEvents>()
             .insert_resource(RenderState::default())
@@ -183,8 +182,8 @@ fn line_renderer(
     mut commands: Commands,
     render_state: Res<RenderState>,
     mut events: EventReader<RenderEvents>,
-    mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
-    mut polylines: ResMut<Assets<Polyline>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<LineMaterial>>,
 ) {
     for event in events.read() {
         if let RenderEvents::Lines = event {
@@ -201,20 +200,12 @@ fn line_renderer(
             for part in parts {
                 match part {
                     Part::Empty => {}
-                    Part::Planar { lines, .. } => render_lines(
-                        &mut commands,
-                        &mut polylines,
-                        &mut polyline_materials,
-                        lines,
-                        *entity,
-                    ),
-                    Part::Object { lines, .. } => render_lines(
-                        &mut commands,
-                        &mut polylines,
-                        &mut polyline_materials,
-                        lines,
-                        *entity,
-                    ),
+                    Part::Planar { lines, .. } => {
+                        render_lines(&mut commands, &mut meshes, &mut materials, lines, *entity)
+                    }
+                    Part::Object { lines, .. } => {
+                        render_lines(&mut commands, &mut meshes, &mut materials, lines, *entity)
+                    }
                 }
             }
         }
@@ -223,32 +214,21 @@ fn line_renderer(
 
 fn render_lines(
     commands: &mut Commands,
-    polylines: &mut ResMut<Assets<Polyline>>,
-    polyline_materials: &mut ResMut<Assets<PolylineMaterial>>,
-    lines: &Vec<Vec<Point>>,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<LineMaterial>>,
+    lines: &[Vec<Point>],
     parent: Entity,
 ) {
-    for line in lines {
-        commands
-            .spawn(PolylineBundle {
-                polyline: PolylineHandle(
-                    polylines.add(Polyline {
-                        vertices: line
-                            .iter()
-                            .map(|p| Vec3::new(p[0] as f32, p[1] as f32, p[2] as f32))
-                            .collect(),
-                    }),
-                ),
-                material: PolylineMaterialHandle(polyline_materials.add(PolylineMaterial {
-                    width: 2.0,
-                    color: Blueprint::black().into(),
-                    perspective: false,
-                    ..Default::default()
-                })),
-                ..Default::default()
-            })
-            .set_parent(parent);
+    if lines.is_empty() {
+        return;
     }
+
+    commands
+        .spawn((
+            Mesh3d(meshes.add(lines_to_mesh(lines))),
+            MeshMaterial3d(materials.add(LineMaterial::new(Blueprint::black(), 2.0))),
+        ))
+        .set_parent(parent);
 }
 
 fn render_controller(

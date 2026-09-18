@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Import from `svg` file
 - `--screenshot` parameter to render a single view to a png file with optional axis angles (`x90y45`)
 
+### Modified
+- Render all of the lines of a part in a single draw call
+- Only report unique edges and vertices for shapes
+
+### Fixed
+- Slow preview and screenshot rendering for parts with many edges
+
 ## [v0.0.5]
 
 ### Added
