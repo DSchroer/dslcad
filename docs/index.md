@@ -52,4 +52,19 @@ You should see the preview open with a cube:
 
 ![hello](./hello.png){: style="height:250px;aspect-ratio:auto"}
 
+To render a single view to a png file instead of opening the preview window:
+
+```sh
+dslcad ./hello.ds --screenshot
+```
+
+An optional angle and zoom (magnification, larger moves the camera closer) can
+be provided. The angle is a sequence of axis rotations, where `x` tilts from
+the top (`x0` is a top view), `y` rotates around the vertical axis and `z`
+rolls the camera. A bare number is shorthand for `y`:
+
+```sh
+dslcad ./hello.ds --screenshot x90y45 2
+```
+
 To learn more, check out the [concepts](concepts.md) page.

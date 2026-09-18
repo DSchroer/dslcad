@@ -2437,6 +2437,7 @@ dependencies = [
  "bytemuck",
  "byteorder-lite",
  "num-traits",
+ "png",
 ]
 
 [[package]]

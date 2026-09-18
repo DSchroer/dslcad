@@ -16,4 +16,4 @@ simple-home-dir = "0.4.6"
 [dependencies.bevy]
 version = "0.15.1"
 default-features = false
-features = ["bevy_winit", "x11", "ktx2", "zstd", "tonemapping_luts", "webgl2"]
+features = ["bevy_winit", "x11", "ktx2", "png", "zstd", "tonemapping_luts", "webgl2"]

@@ -27,6 +27,20 @@ struct Args {
     /// Display dslcad_viewer window for editing
     preview: bool,
 
+    #[cfg(feature = "preview")]
+    #[arg(
+        long,
+        num_args = 0..=2,
+        value_names = ["ANGLE", "ZOOM"],
+        allow_negative_numbers = true,
+        conflicts_with = "preview"
+    )]
+    /// Render a single view of the part to a png file. Angle is a sequence of
+    /// axis rotations like `x90y45`, where x tilts from the top, y rotates
+    /// around the vertical axis and z rolls the camera. Zoom is a
+    /// magnification factor (defaults to 1)
+    screenshot: Option<Vec<String>>,
+
     #[arg(short, long)]
     /// Arguments for the script (examples: "foo=5", "name=\"bob\"")
     argument: Vec<String>,
@@ -84,6 +98,10 @@ enum CliError {
     Notify(#[from] notify::Error),
     #[error(transparent)]
     Stl(#[from] protocol::StlError),
+    #[error("invalid screenshot argument: {0}")]
+    InvalidScreenshot(String),
+    #[error("screenshot failed: {0}")]
+    Screenshot(String),
 }
 
 fn main() {
@@ -91,6 +109,26 @@ fn main() {
         Ok(args) => {
             if let Some(log) = &args.log {
                 env_logger::builder().parse_filters(log).init();
+            }
+
+            #[cfg(feature = "preview")]
+            if let Some(values) = &args.screenshot {
+                let result = parse_screenshot_arguments(values);
+                match result {
+                    Ok((angle, zoom)) => {
+                        if let Err(e) = render_to_screenshot(
+                            &args.source,
+                            args.argument,
+                            args.deflection,
+                            angle,
+                            zoom,
+                        ) {
+                            handle_error(e, &mut stderr()).unwrap();
+                        }
+                    }
+                    Err(e) => handle_error(e, &mut stderr()).unwrap(),
+                }
+                return;
             }
 
             #[cfg(feature = "preview")]
@@ -175,6 +213,74 @@ fn render_to_file(
     };
 
     info!("output written to {}", outfile.to_string_lossy());
+
+    Ok(())
+}
+
+#[cfg(feature = "preview")]
+fn parse_screenshot_arguments(
+    values: &[String],
+) -> Result<(dslcad_viewer::AxisAngles, Option<f64>), CliError> {
+    let angle = match values.first() {
+        Some(angle) => angle
+            .parse::<dslcad_viewer::AxisAngles>()
+            .map_err(CliError::InvalidScreenshot)?,
+        None => dslcad_viewer::AxisAngles::default(),
+    };
+
+    let zoom = match values.get(1) {
+        Some(zoom) => {
+            let zoom: f64 = zoom
+                .parse()
+                .map_err(|_| CliError::InvalidScreenshot(format!("invalid zoom '{}'", zoom)))?;
+            if zoom <= 0.0 {
+                return Err(CliError::InvalidScreenshot(
+                    "zoom must be greater than zero".to_string(),
+                ));
+            }
+            Some(zoom)
+        }
+        None => None,
+    };
+
+    Ok((angle, zoom))
+}
+
+#[cfg(feature = "preview")]
+fn render_to_screenshot(
+    source: &str,
+    arguments: Vec<String>,
+    deflection: f64,
+    angle: dslcad_viewer::AxisAngles,
+    zoom: Option<f64>,
+) -> Result<(), CliError> {
+    use dslcad_viewer::{Preview, ScreenshotOptions};
+
+    let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
+    let render = render(eval(parse(source.to_string())?, arguments)?, deflection)?;
+
+    if !render.stdout.is_empty() {
+        print!("{}", render.stdout);
+    }
+
+    let stem = Path::new(source)
+        .file_stem()
+        .map(|stem| stem.to_string_lossy().to_string())
+        .unwrap_or_else(|| "screenshot".to_string());
+    let path = env::current_dir()?.join(format!("{}.png", stem));
+    let _ = std::fs::remove_file(&path);
+
+    let (preview, handle) = Preview::new();
+    handle.show_render(render);
+    preview
+        .screenshot(ScreenshotOptions {
+            path: path.clone(),
+            angle,
+            zoom: zoom.map(|zoom| zoom as f32),
+        })
+        .map_err(|e| CliError::Screenshot(e.to_string()))?;
+
+    info!("screenshot written to {}", path.to_string_lossy());
 
     Ok(())
 }

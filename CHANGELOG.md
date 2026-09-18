@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Import from `svg` file
+- `--screenshot` parameter to render a single view to a png file with optional axis angles (`x90y45`)
 
 ## [v0.0.5]
 

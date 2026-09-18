@@ -49,7 +49,7 @@ fn camera_light(
     }
 }
 
-fn camera_system(mut commands: Commands) {
+pub(crate) fn camera_system(mut commands: Commands) {
     commands
         .spawn(Camera3d::default())
         .insert(OrbitCameraBundle::new(
@@ -171,7 +171,9 @@ pub fn input_map(
         ..
     } = *controller;
 
-    let mut binding = egui_ctx.single_mut();
+    let Ok(mut binding) = egui_ctx.get_single_mut() else {
+        return;
+    };
     let ctx = binding.get_mut();
     if ctx.is_using_pointer() || ctx.is_pointer_over_area() {
         mouse_wheel_reader.clear();
