@@ -1800,6 +1800,7 @@ dependencies = [
  "log",
  "logos",
  "notify",
+ "quick-xml",
  "rayon",
  "serde",
  "stl_io 0.7.0",

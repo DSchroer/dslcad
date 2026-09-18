@@ -4,8 +4,8 @@ mod stl;
 use crate::threemf::{ThreeMF, Triangle, Vertex};
 pub use aabb::BoundingBox;
 pub use bincode::Error as BincodeError;
-pub use stl::StlError;
 use serde::{Deserialize, Serialize};
+pub use stl::StlError;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Render {

@@ -103,6 +103,10 @@ pub trait DsShape: for<'a> From<&'a TopoDS_Shape> {
     }
 
     fn section_2d(&self, right: &Wire) -> Result<Wire, Error> {
+        if right.is_compound() {
+            return Err("can not slice with multiple contours".into());
+        }
+
         let mut face_builder = BRepBuilderAPI_MakeFace_wire(right.wire(), false);
         let face = Builder::try_build(&mut face_builder)?;
         let binding = &mut BRepAlgoAPI_Section_ctor(self.shape(), face);

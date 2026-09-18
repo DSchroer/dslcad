@@ -23,6 +23,8 @@ impl Error for ParseError {}
 pub enum DocumentParseError {
     #[error("file not found")]
     NoSuchFile(),
+    #[error("failed to parse resource: {0}")]
+    InvalidResource(String),
     #[error("unexpected end of file")]
     UnexpectedEndOfFile(),
     #[error("unknown resource extension {0}")]
@@ -47,6 +49,7 @@ impl DocumentParseError {
     pub fn line_col(&self, text: &str) -> (usize, Span) {
         match self {
             DocumentParseError::NoSuchFile() => (0, 0..0),
+            DocumentParseError::InvalidResource(_) => (0, 0..0),
             DocumentParseError::UnexpectedEndOfFile() => {
                 let (i, line) = text.split('\n').enumerate().last().unwrap_or_default();
                 (i, line.len()..line.len())

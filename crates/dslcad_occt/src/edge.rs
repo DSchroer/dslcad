@@ -2,10 +2,12 @@ use crate::command::{Builder, Command};
 use crate::{Error, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
+    new_HandleGeomCurve_from_HandleGeom_BezierCurve,
     new_HandleGeomCurve_from_HandleGeom_TrimmedCurve, BRepBuilderAPI_MakeEdge,
     BRepBuilderAPI_MakeEdge_HandleGeomCurve, BRep_Tool_Curve, GC_MakeArcOfCircle_Value,
     GC_MakeArcOfCircle_point_point_point, GC_MakeSegment_Value, GC_MakeSegment_point_point,
-    HandleGeomCurve_Value, TopoDS_Edge, TopoDS_Edge_to_owned,
+    Geom_BezierCurve_ctor_points, Geom_BezierCurve_to_handle, HandleGeomCurve_Value,
+    TColgp_HArray1OfPnt_ctor, TopoDS_Edge, TopoDS_Edge_to_owned,
 };
 use std::fmt::{Debug, Formatter};
 use std::pin::Pin;
@@ -38,6 +40,20 @@ impl Edge {
             &new_HandleGeomCurve_from_HandleGeom_TrimmedCurve(&GC_MakeArcOfCircle_Value(&segment)),
         );
         Ok(Edge(TopoDS_Edge_to_owned(Builder::try_build(&mut edge_1)?)))
+    }
+
+    pub fn new_bezier(points: &[Point]) -> Result<Self, Error> {
+        let mut poles = TColgp_HArray1OfPnt_ctor(1, points.len() as i32);
+        for (index, point) in points.iter().enumerate() {
+            poles.pin_mut().SetValue(index as i32 + 1, &point.point);
+        }
+
+        let curve = new_HandleGeomCurve_from_HandleGeom_BezierCurve(&Geom_BezierCurve_to_handle(
+            Geom_BezierCurve_ctor_points(&poles),
+        ));
+
+        let mut edge = BRepBuilderAPI_MakeEdge_HandleGeomCurve(&curve);
+        Ok(Edge(TopoDS_Edge_to_owned(Builder::try_build(&mut edge)?)))
     }
 
     pub fn start_end(&self) -> (Point, Point) {
@@ -75,5 +91,25 @@ impl Command for BRepBuilderAPI_MakeEdge {
 impl Builder<TopoDS_Edge> for BRepBuilderAPI_MakeEdge {
     unsafe fn value(self: Pin<&mut Self>) -> &TopoDS_Edge {
         self.Edge()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_can_create_bezier_edges() {
+        let edge = Edge::new_bezier(&[
+            Point::new(0., 0., 0.),
+            Point::new(1., 2., 0.),
+            Point::new(3., 2., 0.),
+            Point::new(4., 0., 0.),
+        ])
+        .unwrap();
+
+        let (start, end) = edge.start_end();
+        assert_eq!(0., start.x());
+        assert_eq!(4., end.x());
     }
 }

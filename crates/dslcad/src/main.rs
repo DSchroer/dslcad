@@ -5,6 +5,7 @@ use dslcad::parser::{DocumentParseError, ParseError};
 use dslcad::reader::FsReader;
 use dslcad::runtime::{RuntimeError, WithStack};
 use dslcad::{eval, parse, parse_arguments, render};
+use dslcad_storage::protocol;
 use dslcad_storage::protocol::{BincodeError, Render};
 use dslcad_storage::threemf::{ThreeMF, ThreeMFError};
 use dslcad_viewer::PreviewHandle;
@@ -14,7 +15,6 @@ use std::fs::File;
 use std::io::{stderr, Write};
 use std::path::Path;
 use thiserror::Error;
-use dslcad_storage::protocol;
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -61,7 +61,7 @@ enum Output {
     #[value(name = "3mf")]
     ThreeMf,
     Raw,
-    Stl
+    Stl,
 }
 
 #[derive(Debug, Error)]
@@ -83,7 +83,7 @@ enum CliError {
     #[error(transparent)]
     Notify(#[from] notify::Error),
     #[error(transparent)]
-    Stl(#[from] protocol::StlError)
+    Stl(#[from] protocol::StlError),
 }
 
 fn main() {

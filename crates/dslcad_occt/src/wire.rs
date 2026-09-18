@@ -1,13 +1,16 @@
 use crate::command::{Builder, Command};
 use crate::edge::Edge;
+use crate::explorer::Explorer;
 use crate::{DsShape, Error, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
-    BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor, BRepGProp_LinearProperties,
-    BRepOffsetAPI_MakeOffset, BRepOffsetAPI_MakeOffset_wire_ctor, BRep_Tool_Curve,
+    cast_wire_to_shape, BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeWire_ctor,
+    BRepGProp_LinearProperties, BRepOffsetAPI_MakeOffset, BRepOffsetAPI_MakeOffset_wire_ctor,
+    BRep_Builder_ctor, BRep_Builder_upcast_to_topods_builder, BRep_Tool_Curve,
     GProp_GProps_CentreOfMass, GProp_GProps_ctor, GeomAbs_JoinType, HandleGeomCurve,
-    HandleGeomCurve_Value, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Edge, TopoDS_Shape,
-    TopoDS_Shape_to_owned, TopoDS_Wire, TopoDS_cast_to_edge, TopoDS_cast_to_wire,
+    HandleGeomCurve_Value, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Compound_as_shape,
+    TopoDS_Compound_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Wire,
+    TopoDS_cast_to_edge, TopoDS_cast_to_wire,
 };
 use std::pin::Pin;
 
@@ -27,7 +30,13 @@ impl WireFactory {
     }
 
     pub fn add_wire(&mut self, wire: &Wire) {
-        self.make_wire.pin_mut().add_wire(wire.wire())
+        if wire.is_compound() {
+            for contour in wire.contours() {
+                self.make_wire.pin_mut().add_wire(contour.wire());
+            }
+        } else {
+            self.make_wire.pin_mut().add_wire(wire.wire());
+        }
     }
 
     pub fn build(mut self) -> Result<Wire, Error> {
@@ -51,9 +60,57 @@ impl DsShape for Wire {
     }
 }
 
+impl AsRef<TopoDS_Shape> for Wire {
+    fn as_ref(&self) -> &TopoDS_Shape {
+        &self.0
+    }
+}
+
+impl Clone for Wire {
+    fn clone(&self) -> Self {
+        Wire(TopoDS_Shape_to_owned(&self.0))
+    }
+}
+
 impl Wire {
     pub(crate) fn wire(&self) -> &TopoDS_Wire {
         TopoDS_cast_to_wire(&self.0)
+    }
+
+    fn as_wire(&self) -> Result<&TopoDS_Wire, Error> {
+        if self.is_compound() {
+            Err("wire contains multiple contours".into())
+        } else {
+            Ok(self.wire())
+        }
+    }
+
+    pub fn compound(contours: &[Wire]) -> Result<Self, Error> {
+        let mut compound = TopoDS_Compound_ctor();
+        let builder = BRep_Builder_ctor();
+        let topods_builder = BRep_Builder_upcast_to_topods_builder(&builder);
+
+        topods_builder.MakeCompound(compound.pin_mut());
+
+        let mut shape = TopoDS_Compound_as_shape(compound);
+        for contour in contours {
+            topods_builder.Add(shape.pin_mut(), contour.shape());
+        }
+
+        Ok(Wire(TopoDS_Shape_to_owned(&shape)))
+    }
+
+    pub fn is_compound(&self) -> bool {
+        matches!(self.0.ShapeType(), TopAbs_ShapeEnum::TopAbs_COMPOUND)
+    }
+
+    pub fn contours(&self) -> Vec<Wire> {
+        let mut explorer: Explorer<TopoDS_Wire> = Explorer::new(self);
+        let mut contours = Vec::new();
+        while let Some(contour) = explorer.next() {
+            contours.push(Wire::from(cast_wire_to_shape(contour)));
+        }
+        contours
     }
 
     pub fn from_edge(left: &Edge) -> Result<Self, Error> {
@@ -66,7 +123,7 @@ impl Wire {
 
     pub fn add_edge(&self, left: &Edge) -> Result<Self, Error> {
         let mut wire_builder = BRepBuilderAPI_MakeWire_ctor();
-        wire_builder.pin_mut().add_wire(self.wire());
+        wire_builder.pin_mut().add_wire(self.as_wire()?);
         wire_builder.pin_mut().add_edge(&left.0);
         Ok(Wire(TopoDS_Shape_to_owned(Builder::try_build(
             &mut wire_builder,
@@ -75,8 +132,8 @@ impl Wire {
 
     pub fn join(&mut self, wire: &Wire) -> Result<Self, Error> {
         let mut wire_builder = BRepBuilderAPI_MakeWire_ctor();
-        wire_builder.pin_mut().add_wire(self.wire());
-        wire_builder.pin_mut().add_wire(wire.wire());
+        wire_builder.pin_mut().add_wire(self.as_wire()?);
+        wire_builder.pin_mut().add_wire(wire.as_wire()?);
         Ok(Wire(TopoDS_Shape_to_owned(Builder::try_build(
             &mut wire_builder,
         )?)))
@@ -106,7 +163,7 @@ impl Wire {
 
     pub fn offset(&self, distance: f64) -> Result<Self, Error> {
         let mut offset =
-            BRepOffsetAPI_MakeOffset_wire_ctor(self.wire(), GeomAbs_JoinType::GeomAbs_Arc);
+            BRepOffsetAPI_MakeOffset_wire_ctor(self.as_wire()?, GeomAbs_JoinType::GeomAbs_Arc);
         offset.pin_mut().Perform(distance, 0.0);
         Ok(Builder::try_build(&mut offset)?.into())
     }
@@ -231,6 +288,12 @@ impl Builder<TopoDS_Shape> for BRepBuilderAPI_MakeWire {
 mod tests {
     use super::*;
 
+    fn line(from: Point, to: Point) -> Wire {
+        let mut wire = WireFactory::new();
+        wire.add_edge(&Edge::new_line(&from, &to).unwrap());
+        wire.build().unwrap()
+    }
+
     #[test]
     fn it_can_find_points() {
         let mut wire = WireFactory::new();
@@ -238,5 +301,32 @@ mod tests {
         let wire = wire.build().unwrap();
 
         assert!(!wire.points(0.1).unwrap().is_empty());
+    }
+
+    #[test]
+    fn it_can_build_compounds() {
+        let compound = Wire::compound(&[
+            line(Point::new(0., 0., 0.), Point::new(0., 10., 0.)),
+            line(Point::new(10., 0., 0.), Point::new(10., 10., 0.)),
+        ])
+        .unwrap();
+
+        assert!(compound.is_compound());
+        assert_eq!(2, compound.contours().len());
+        assert_eq!(2, compound.points(0.1).unwrap().len());
+    }
+
+    #[test]
+    fn it_rejects_operations_on_compounds() {
+        let compound = Wire::compound(&[
+            line(Point::new(0., 0., 0.), Point::new(0., 10., 0.)),
+            line(Point::new(10., 0., 0.), Point::new(10., 10., 0.)),
+        ])
+        .unwrap();
+
+        assert!(compound.offset(1.).is_err());
+        assert!(compound
+            .add_edge(&Edge::new_line(&Point::new(0., 0., 0.), &Point::new(1., 1., 0.)).unwrap())
+            .is_err());
     }
 }

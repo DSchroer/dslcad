@@ -13,6 +13,7 @@ dslcad-occt = { path = "../dslcad_occt" }
 dslcad-storage = { path = "../dslcad_storage" }
 indexmap = "2.0.0"
 stl_io = "0.7.0"
+quick-xml = "0.37.2"
 log = "0.4.20"
 env_logger = "0.10.0"
 

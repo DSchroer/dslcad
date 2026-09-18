@@ -30,6 +30,7 @@ impl AsRef<TopoDS_Shape> for Shape {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum Axis {
     X,
     Y,
@@ -63,6 +64,131 @@ impl Shape {
     }
 
     pub fn extrude(wire: &Wire, x: f64, y: f64, z: f64) -> Result<Self, Error> {
+        Self::from_contours(wire, |contour| Self::extrude_contour(contour, x, y, z))
+    }
+
+    pub fn extrude_rotate(wire: &Wire, axis: Axis, degrees: f64) -> Result<Self, Error> {
+        Self::from_contours(wire, |contour| {
+            Self::revolve_contour(contour, axis, degrees)
+        })
+    }
+
+    fn from_contours(
+        wire: &Wire,
+        build: impl Fn(&Wire) -> Result<Self, Error>,
+    ) -> Result<Self, Error> {
+        if !wire.is_compound() {
+            return build(wire);
+        }
+
+        let contours = wire.contours();
+        let polygons: Vec<Vec<[f64; 3]>> = contours.iter().map(Self::contour_polygon).collect();
+
+        if polygons.iter().any(|polygon| polygon.is_empty()) {
+            return Err("could not read contour geometry".into());
+        }
+
+        let mut parents = vec![None; contours.len()];
+        for (index, polygon) in polygons.iter().enumerate() {
+            parents[index] = (0..polygons.len())
+                .filter(|other| {
+                    *other != index && Self::polygon_contains(&polygons[*other], polygon[0])
+                })
+                .min_by(|left, right| {
+                    Self::polygon_area(&polygons[*left])
+                        .total_cmp(&Self::polygon_area(&polygons[*right]))
+                });
+        }
+
+        let mut levels: Vec<Vec<usize>> = Vec::new();
+        for index in 0..contours.len() {
+            let mut depth = 0;
+            let mut current = parents[index];
+            while let Some(parent) = current {
+                depth += 1;
+                current = parents[parent];
+            }
+
+            if levels.len() <= depth {
+                levels.resize(depth + 1, Vec::new());
+            }
+            levels[depth].push(index);
+        }
+
+        if levels[0].is_empty() {
+            return Err("no outer contours to extrude".into());
+        }
+
+        let mut result: Option<Self> = None;
+        for (depth, level) in levels.iter().enumerate() {
+            if level.is_empty() {
+                continue;
+            }
+
+            let mut region: Option<Self> = None;
+            for index in level {
+                let solid = build(&contours[*index])?;
+                region = Some(match region {
+                    Some(current) => current.fuse(&solid)?,
+                    None => solid,
+                });
+            }
+
+            let region = region.ok_or_else(|| "could not build contour".to_string())?;
+            result = Some(match result {
+                None => region,
+                Some(current) if depth % 2 == 0 => current.fuse(&region)?,
+                Some(current) => current.cut(&region)?,
+            });
+        }
+
+        result.ok_or_else(|| "no contours to extrude".into())
+    }
+
+    fn contour_polygon(contour: &Wire) -> Vec<[f64; 3]> {
+        contour
+            .points(0.01)
+            .unwrap_or_default()
+            .into_iter()
+            .flatten()
+            .collect()
+    }
+
+    fn polygon_area(polygon: &[[f64; 3]]) -> f64 {
+        let mut area = 0.0;
+        for index in 0..polygon.len() {
+            let previous = if index == 0 {
+                polygon.len() - 1
+            } else {
+                index - 1
+            };
+            area +=
+                polygon[previous][0] * polygon[index][1] - polygon[index][0] * polygon[previous][1];
+        }
+        area.abs() / 2.0
+    }
+
+    fn polygon_contains(polygon: &[[f64; 3]], point: [f64; 3]) -> bool {
+        let mut inside = false;
+        let mut previous = polygon.len() - 1;
+
+        for current in 0..polygon.len() {
+            let (x1, y1) = (polygon[current][0], polygon[current][1]);
+            let (x2, y2) = (polygon[previous][0], polygon[previous][1]);
+
+            if (y1 > point[1]) != (y2 > point[1])
+                && point[0] < (x2 - x1) * (point[1] - y1) / (y2 - y1) + x1
+            {
+                inside = !inside;
+            }
+
+            previous = current;
+        }
+
+        inside
+    }
+
+    fn extrude_contour(wire: &Wire, x: f64, y: f64, z: f64) -> Result<Self, Error> {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.wire(), false);
         let prism_vec = new_vec(x, y, z);
 
@@ -75,7 +201,7 @@ impl Shape {
         Ok(Builder::try_build(&mut body)?.into())
     }
 
-    pub fn extrude_rotate(wire: &Wire, axis: Axis, degrees: f64) -> Result<Self, Error> {
+    fn revolve_contour(wire: &Wire, axis: Axis, degrees: f64) -> Result<Self, Error> {
         let mut face_profile = BRepBuilderAPI_MakeFace_wire(wire.wire(), false);
 
         let radians = degrees * (std::f64::consts::PI / 180.);
@@ -264,6 +390,68 @@ shape_builder!(BRepBuilderAPI_GTransform);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{Edge, WireFactory};
+
+    fn square(x: f64, y: f64, size: f64) -> Wire {
+        let mut wire = WireFactory::new();
+
+        wire.add_edge(
+            &Edge::new_line(&Point::new(x, y, 0.), &Point::new(x + size, y, 0.)).unwrap(),
+        );
+        wire.add_edge(
+            &Edge::new_line(
+                &Point::new(x + size, y, 0.),
+                &Point::new(x + size, y + size, 0.),
+            )
+            .unwrap(),
+        );
+        wire.add_edge(
+            &Edge::new_line(
+                &Point::new(x + size, y + size, 0.),
+                &Point::new(x, y + size, 0.),
+            )
+            .unwrap(),
+        );
+        wire.add_edge(
+            &Edge::new_line(&Point::new(x, y + size, 0.), &Point::new(x, y, 0.)).unwrap(),
+        );
+
+        wire.build().unwrap()
+    }
+
+    #[test]
+    fn it_can_extrude_contours_with_holes() {
+        let outer = square(0., 0., 10.);
+        let inner = square(3., 3., 4.);
+        let compound = Wire::compound(&[outer, inner]).unwrap();
+
+        let shape = Shape::extrude(&compound, 0., 0., 1.).unwrap();
+
+        assert!((shape.volume() - 84.).abs() < 0.01);
+    }
+
+    #[test]
+    fn it_can_extrude_islands_inside_holes() {
+        let outer = square(0., 0., 10.);
+        let hole = square(1., 1., 8.);
+        let island = square(3., 3., 4.);
+        let compound = Wire::compound(&[outer, hole, island]).unwrap();
+
+        let shape = Shape::extrude(&compound, 0., 0., 1.).unwrap();
+
+        assert!((shape.volume() - 52.).abs() < 0.01);
+    }
+
+    #[test]
+    fn it_can_extrude_separate_contours() {
+        let left = square(0., 0., 4.);
+        let right = square(10., 0., 4.);
+        let compound = Wire::compound(&[left, right]).unwrap();
+
+        let shape = Shape::extrude(&compound, 0., 0., 2.).unwrap();
+
+        assert!((shape.volume() - 64.).abs() < 0.01);
+    }
 
     #[test]
     fn it_can_write_box_stl() {

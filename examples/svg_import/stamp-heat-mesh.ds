@@ -1,0 +1,3 @@
+var stamp = ./stamp-heat-mesh.svg();
+
+stamp -> center() -> extrude(z=2);
