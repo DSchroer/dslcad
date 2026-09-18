@@ -67,6 +67,7 @@ impl Signature {
                 match access {
                     Access::Required(t) => map.insert(name, value.to_type(t).ok()?),
                     Access::Optional(t) => map.insert(name, value.to_type(t).ok()?),
+                    Access::Required2d() => map.insert(name, value.to_2d().ok()?),
                     Access::RequiredAny() => map.insert(name, value.clone()),
                 };
             } else if self.variadic {
@@ -81,6 +82,7 @@ impl Signature {
             match access {
                 Access::Required(t) => map.insert(name, value.to_type(t).ok()?),
                 Access::Optional(t) => map.insert(name, value.to_type(t).ok()?),
+                Access::Required2d() => map.insert(name, value.to_2d().ok()?),
                 Access::RequiredAny() => map.insert(name, value.clone()),
             };
         }
@@ -97,6 +99,7 @@ impl Signature {
 enum Access {
     Required(Type),
     Optional(Type),
+    Required2d(),
     RequiredAny(),
 }
 
@@ -105,6 +108,7 @@ impl Access {
         match self {
             Access::Required(_) => true,
             Access::Optional(_) => false,
+            Access::Required2d() => true,
             Access::RequiredAny() => true,
         }
     }
@@ -131,7 +135,8 @@ macro_rules! arguments {
     (text) => {Access::Required(Type::Text)};
     (any) => {Access::RequiredAny()};
     (point) => {Access::Required(Type::Point)};
-    (edge) => {Access::Required(Type::Edge)};
+    (plane) => {Access::Required(Type::Plane)};
+    (shape2d) => {Access::Required2d()};
     (shape) => {Access::Required(Type::Shape)};
     (list) => {Access::Required(Type::List)};
     ($($name: ident=$value: ident), *) => {vec![$((stringify!($name),arguments!($value))), *]};
@@ -191,12 +196,16 @@ macro_rules! invoke {
         &value
             .to_shape()?
     }};
-    ($map: ident, $name: ident=edge) => {{
+    ($map: ident, $name: ident=plane) => {{
         let value = $map
             .get(stringify!($name))
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
-        &value
-            .to_line()?
+        &value.to_plane()?
+    }};
+    ($map: ident, $name: ident=shape2d) => {{
+        $map.get(stringify!($name))
+            .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?
+            .clone()
     }};
     ($map: ident, $name: ident=list) => {{
         let value = $map
@@ -434,27 +443,27 @@ impl Default for Library {
                 "create a circle"
             ),
             bind!(arc, faces::arc[start=point, center=point, end=point], Category::TwoD, "create an arcing line between three points"),
-            bind!(union, faces::union_edge[left=edge, right=edge], Category::TwoD, "combine two edges"),
+            bind!(union, faces::union_edge[left=shape2d, right=shape2d], Category::TwoD, "combine two 2D shapes"),
             bind!(
                 face,
                 faces::face[parts = list],
                 Category::TwoD,
                 "make a closed face from a list of points, lines and arcs"
             ),
-            bind!(translate, faces::translate[shape=edge, x=option_number, y=option_number, z=option_number], Category::TwoD, "move an edge"),
-            bind!(rotate, faces::rotate[shape=edge, angle=option_number], Category::TwoD, "rotate an edge"),
-            bind!(rotate, faces::rotate_3d[shape=edge, x=option_number, y=option_number, z=option_number], Category::TwoD, "rotate an edge"),
-            bind!(scale, faces::scale[shape=edge, scale=number], Category::TwoD, "scale an edge"),
+            bind!(translate, faces::translate[shape=shape2d, x=option_number, y=option_number, z=option_number], Category::TwoD, "move a 2D shape"),
+            bind!(rotate, faces::rotate[shape=shape2d, angle=option_number], Category::TwoD, "rotate a 2D shape"),
+            bind!(rotate, faces::rotate_3d[shape=shape2d, x=option_number, y=option_number, z=option_number], Category::TwoD, "rotate a 2D shape"),
+            bind!(scale, faces::scale[shape=shape2d, scale=number], Category::TwoD, "scale a 2D shape"),
             bind!(
                 center,
-                faces::center[shape = edge, x=option_bool, y=option_bool, z=option_bool],
+                faces::center[shape = shape2d, x=option_bool, y=option_bool, z=option_bool],
                 Category::TwoD,
-                "center an edge"
+                "center a 2D shape"
             ),
-            bind!(offset, faces::offset[shape=edge, distance=number], Category::TwoD, "offset an edge"),
+            bind!(offset, faces::offset[shape=shape2d, distance=number], Category::TwoD, "offset a 2D shape"),
             // 3D
-            bind!(extrude, faces::extrude[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
-            bind!(revolve, faces::revolve[shape=edge, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),
+            bind!(extrude, faces::extrude[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
+            bind!(revolve, faces::revolve[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),
             bind!(cube, shapes::cube[x=option_number, y=option_number, z=option_number], Category::ThreeD, "create a cube"),
             bind!(
                 sphere,
@@ -480,7 +489,7 @@ impl Default for Library {
             ),
             bind!(
                 slice,
-                shapes::slice_2d[left = shape, right = edge],
+                shapes::slice_2d[left = shape, right = shape2d],
                 Category::ThreeD,
                 "cut a slice out of a shape"
             ),
@@ -600,6 +609,7 @@ impl Display for Signature {
             write!(f, "{name}=")?;
             match access {
                 Access::Required(t) => write!(f, "{t}")?,
+                Access::Required2d() => write!(f, "line|plane")?,
                 Access::RequiredAny() => write!(f, "*")?,
                 Access::Optional(t) => write!(f, "[{t}]")?,
             }

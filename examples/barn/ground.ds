@@ -3,9 +3,11 @@ var x = 476;
 
 // build on its side until extrude can be used on any axis
 // this will be simpler in later versions
-var base = line(start=point(), end=point(x=x))
-->left union(right=line(start=point(), end=point(y=-20)))
-->left union(right=line(start=point(y=-20), end=point(x=x)))
+var base = face(parts=[
+    line(start=point(), end=point(x=x)),
+    line(start=point(x=x), end=point(y=-20)),
+    line(start=point(y=-20), end=point())
+])
 ->shape extrude(z=278+195)
 ->shape rotate(x=-90)
 ;

@@ -1,6 +1,7 @@
 use crate::runtime::{RuntimeError, Value};
 
-use dslcad_occt::{Axis, DsShape, Point, Shape, Wire};
+use dslcad_occt::{Axis, DsShape, Point, Shape};
+use std::rc::Rc;
 
 pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
     let x = x.unwrap_or(1.0);
@@ -114,10 +115,12 @@ pub fn center(
     translate(shape, Some(x), Some(y), Some(z))
 }
 
-pub fn slice_2d(left: &Shape, right: &Wire) -> Result<Value, RuntimeError> {
-    Ok(left.section_2d(right)?.into())
+pub fn slice_2d(left: &Shape, right: Value) -> Result<Value, RuntimeError> {
+    let wire = right.to_wire()?;
+
+    Ok(Value::Plane(Rc::new(left.section_2d(&wire)?)))
 }
 
 pub fn slice(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
-    Ok(left.section(right)?.into())
+    Ok(Value::Plane(Rc::new(left.section(right)?)))
 }

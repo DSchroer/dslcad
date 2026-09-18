@@ -46,7 +46,7 @@ impl Resource for Svg {
             contours => Wire::compound(contours)?,
         };
 
-        Ok(Value::Line(Rc::new(wire)))
+        Ok(Value::Plane(Rc::new(wire)))
     }
 }
 
@@ -1152,8 +1152,8 @@ mod tests {
         let value = svg.to_instance().unwrap();
 
         match value {
-            Value::Line(line) => assert!(!line.is_compound()),
-            _ => panic!("expected a line"),
+            Value::Plane(line) => assert!(!line.is_compound()),
+            _ => panic!("expected a plane"),
         }
     }
 
@@ -1180,7 +1180,7 @@ mod tests {
         let value = resource.to_instance().unwrap();
 
         match value {
-            Value::Line(line) => {
+            Value::Plane(line) => {
                 let contours = line.contours();
                 assert_eq!(5, contours.len());
 
@@ -1215,7 +1215,7 @@ mod tests {
                 assert!(shape.volume() > 0.);
                 assert!((shape.volume() - area).abs() / area < 0.01);
             }
-            _ => panic!("expected a line"),
+            _ => panic!("expected a plane"),
         }
     }
 
@@ -1227,7 +1227,7 @@ mod tests {
         let value = resource.to_instance().unwrap();
 
         match value {
-            Value::Line(line) => {
+            Value::Plane(line) => {
                 let translated = line.translate(&Point::new(1., 2., 3.)).unwrap();
                 assert!(translated.points(0.1).is_ok());
 
@@ -1240,7 +1240,7 @@ mod tests {
                 let center = line.center_of_mass();
                 assert!(center.x() > 0.);
             }
-            _ => panic!("expected a line"),
+            _ => panic!("expected a plane"),
         }
     }
 

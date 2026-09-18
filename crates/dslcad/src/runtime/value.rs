@@ -20,6 +20,7 @@ pub enum Value {
 
     Point(Rc<Point>),
     Line(Rc<Wire>),
+    Plane(Rc<Wire>),
     Shape(Rc<Shape>),
 
     List(Vec<Value>),
@@ -45,12 +46,6 @@ unsafe impl Send for Value {}
 impl From<Point> for Value {
     fn from(value: Point) -> Self {
         Value::Point(Rc::new(value))
-    }
-}
-
-impl From<Wire> for Value {
-    fn from(value: Wire) -> Self {
-        Value::Line(Rc::new(value))
     }
 }
 
@@ -90,12 +85,6 @@ impl From<Rc<Point>> for Value {
     }
 }
 
-impl From<Rc<Wire>> for Value {
-    fn from(value: Rc<Wire>) -> Self {
-        Value::Line(value)
-    }
-}
-
 impl From<Rc<Shape>> for Value {
     fn from(value: Rc<Shape>) -> Self {
         Value::Shape(value)
@@ -130,6 +119,7 @@ impl Debug for Value {
                 .field("z", &p.x())
                 .finish(),
             Value::Line(_) => f.debug_tuple("Line").finish(),
+            Value::Plane(_) => f.debug_tuple("Plane").finish(),
             Value::Function(_) => f.debug_tuple("Func").finish(),
         }
     }
@@ -143,6 +133,7 @@ impl Value {
             Value::Text(_) => vec![self],
             Value::Point(_) => vec![self],
             Value::Line(_) => vec![self],
+            Value::Plane(_) => vec![self],
             Value::Shape(_) => vec![self],
             Value::List(list) => list.iter().flat_map(|l| l.flatten()).collect(),
             Value::Script(s) => s.value().flatten(),
@@ -155,6 +146,7 @@ impl Value {
             Value::Number(_) | Value::Bool(_) | Value::Text(_) => Ok(Part::Empty),
             Value::Point(p) => Ok(p.into_part(deflection)?),
             Value::Line(l) => Ok(l.into_part(deflection)?),
+            Value::Plane(p) => Ok(p.into_part(deflection)?),
             Value::Shape(s) => Ok(s.into_part(deflection)?),
             _ => {
                 panic!("can not be turned into Part directly, use `flatten` first")
@@ -197,6 +189,7 @@ impl Value {
         match self {
             Value::Script(i) => Ok(i.as_ref()),
             Value::Line(w) => Ok(w.as_ref()),
+            Value::Plane(w) => Ok(w.as_ref()),
             Value::Shape(s) => Ok(s.as_ref()),
             Value::Point(p) => Ok(p.as_ref()),
             _ => Err(RuntimeError::UnexpectedType()),
@@ -221,6 +214,48 @@ impl Value {
                 Self::fuse_list(&lines)
             }
             _ => Err(RuntimeError::UnexpectedType()),
+        }
+    }
+
+    pub fn to_plane(&self) -> Result<Rc<Wire>> {
+        match self {
+            Value::Plane(s) => Ok(s.clone()),
+            Value::Script(i) => i.value().to_plane(),
+            Value::List(values) => {
+                let planes: Vec<_> = values.iter().filter_map(|v| v.to_plane().ok()).collect();
+                Self::fuse_list(&planes)
+            }
+            _ => Err(RuntimeError::UnexpectedType()),
+        }
+    }
+
+    pub fn to_wire(&self) -> Result<Rc<Wire>> {
+        match self {
+            Value::Line(s) | Value::Plane(s) => Ok(s.clone()),
+            Value::Script(i) => i.value().to_wire(),
+            Value::List(values) => {
+                let wires: Vec<_> = values.iter().filter_map(|v| v.to_wire().ok()).collect();
+                Self::fuse_list(&wires)
+            }
+            _ => Err(RuntimeError::UnexpectedType()),
+        }
+    }
+
+    pub fn to_2d(&self) -> Result<Value> {
+        let wire = self.to_wire()?;
+        if self.is_plane() {
+            Ok(Value::Plane(wire))
+        } else {
+            Ok(Value::Line(wire))
+        }
+    }
+
+    pub fn is_plane(&self) -> bool {
+        match self {
+            Value::Plane(_) => true,
+            Value::Script(i) => i.value().is_plane(),
+            Value::List(values) => values.iter().any(Value::is_plane),
+            _ => false,
         }
     }
 
@@ -259,7 +294,8 @@ impl Value {
             Type::Text => self.to_text().is_ok(),
             Type::List => self.to_list().is_ok(),
             Type::Point => self.to_point().is_ok(),
-            Type::Edge => self.to_line().is_ok(),
+            Type::Line => self.to_line().is_ok(),
+            Type::Plane => self.to_plane().is_ok(),
             Type::Shape => self.to_shape().is_ok(),
             Type::Function => self.to_function().is_ok(),
         }
@@ -272,7 +308,8 @@ impl Value {
             Type::Text => Ok(self.to_text()?.into()),
             Type::List => Ok(self.to_list()?.into()),
             Type::Point => Ok(self.to_point()?.into()),
-            Type::Edge => Ok(self.to_line()?.into()),
+            Type::Line => Ok(Value::Line(self.to_line()?)),
+            Type::Plane => Ok(Value::Plane(self.to_plane()?)),
             Type::Shape => Ok(self.to_shape()?.into()),
             Type::Function => Ok(self.to_function()?.into()),
         }

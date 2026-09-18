@@ -7,7 +7,8 @@ pub enum Type {
     Text,
     List,
     Point,
-    Edge,
+    Line,
+    Plane,
     Shape,
     Function,
 }
@@ -20,7 +21,8 @@ impl Display for Type {
             Type::Text => f.write_str("text"),
             Type::List => f.write_str("list"),
             Type::Point => f.write_str("point"),
-            Type::Edge => f.write_str("edge"),
+            Type::Line => f.write_str("line"),
+            Type::Plane => f.write_str("plane"),
             Type::Shape => f.write_str("shape"),
             Type::Function => f.write_str("function"),
         }

@@ -67,18 +67,18 @@ to build parts.
 - `square(x=[number], y=[number])` create a square
 - `circle(radius=[number])` create a circle
 - `arc(start=point, center=point, end=point)` create an arcing line between three points
-- `union(left=edge, right=edge)` combine two edges
+- `union(left=line|plane, right=line|plane)` combine two 2D shapes
 - `face(parts=list)` make a closed face from a list of points, lines and arcs
-- `translate(shape=edge, x=[number], y=[number], z=[number])` move an edge
-- `rotate(shape=edge, angle=[number])` rotate an edge
-- `rotate(shape=edge, x=[number], y=[number], z=[number])` rotate an edge
-- `scale(shape=edge, scale=number)` scale an edge
-- `center(shape=edge, x=[bool], y=[bool], z=[bool])` center an edge
-- `offset(shape=edge, distance=number)` offset an edge
+- `translate(shape=line|plane, x=[number], y=[number], z=[number])` move a 2D shape
+- `rotate(shape=line|plane, angle=[number])` rotate a 2D shape
+- `rotate(shape=line|plane, x=[number], y=[number], z=[number])` rotate a 2D shape
+- `scale(shape=line|plane, scale=number)` scale a 2D shape
+- `center(shape=line|plane, x=[bool], y=[bool], z=[bool])` center a 2D shape
+- `offset(shape=line|plane, distance=number)` offset a 2D shape
 
 ## 3D
-- `extrude(shape=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
-- `revolve(shape=edge, x=[number], y=[number], z=[number])` extrude a face into a 3D shape around an axis
+- `extrude(shape=plane, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
+- `revolve(shape=plane, x=[number], y=[number], z=[number])` extrude a face into a 3D shape around an axis
 - `cube(x=[number], y=[number], z=[number])` create a cube
 - `sphere(radius=[number])` create a sphere
 - `cylinder(radius=[number], height=[number])` create a cylinder
@@ -92,7 +92,7 @@ to build parts.
 - `scale(shape=shape, scale=number)` scale a shape
 - `scale(shape=shape, x=[number], y=[number], z=[number])` scale a shape
 - `center(shape=shape, x=[bool], y=[bool], z=[bool])` center a shape
-- `slice(left=shape, right=edge)` cut a slice out of a shape
+- `slice(left=shape, right=line|plane)` cut a slice out of a shape
 - `slice(left=shape, right=shape)` cut a slice out of a shape
 
 ## Lists

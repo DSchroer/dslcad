@@ -173,6 +173,54 @@ mod tests {
     }
 
     #[test]
+    fn it_distinguishes_lines_and_planes() {
+        let line = run("line(start=point(x=0,y=0), end=point(x=1,y=1));");
+        assert!(line.to_line().is_ok());
+        assert!(line.to_plane().is_err());
+
+        let arc = run("arc(start=point(x=0,y=0),center=point(x=1,y=0), end=point(x=0,y=1));");
+        assert!(arc.to_line().is_ok());
+        assert!(arc.to_plane().is_err());
+
+        let square = run("square();");
+        assert!(square.to_plane().is_ok());
+        assert!(square.to_line().is_err());
+
+        let circle = run("circle();");
+        assert!(circle.to_plane().is_ok());
+        assert!(circle.to_line().is_err());
+
+        let joined = run(r"line(start=point(x=0,y=0), end=point(x=1,y=1))
+                ->left union(right=line(start=point(x=1,y=1), end=point(x=2,y=2)));");
+        assert!(joined.to_line().is_ok());
+        assert!(joined.to_plane().is_err());
+
+        let translated_line =
+            run("line(start=point(x=0,y=0), end=point(x=1,y=1)) -> translate(x=1);");
+        assert!(translated_line.to_line().is_ok());
+        assert!(translated_line.to_plane().is_err());
+
+        let translated_plane = run("square() -> translate(x=1);");
+        assert!(translated_plane.to_plane().is_ok());
+        assert!(translated_plane.to_line().is_err());
+    }
+
+    #[test]
+    fn it_only_extrudes_and_revolves_planes() {
+        run("square() -> extrude(z=1);");
+        run("circle() -> revolve(y=360);");
+        run(r"face(parts=[point(x=0,y=0), point(x=1,y=0), point(x=0,y=1)]) -> extrude(z=1);");
+
+        assert!(
+            try_run("line(start=point(x=0,y=0), end=point(x=1,y=1)) -> extrude(z=1);").is_err()
+        );
+        assert!(try_run(
+            "arc(start=point(x=0,y=0),center=point(x=1,y=0), end=point(x=0,y=1)) -> revolve(x=360);"
+        )
+        .is_err());
+    }
+
+    #[test]
     fn it_has_axis_scaling() {
         run("cube() -> scale(x=2);");
         run("cube() -> scale(y=2);");

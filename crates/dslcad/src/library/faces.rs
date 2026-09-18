@@ -42,7 +42,7 @@ pub fn square(x: Option<f64>, y: Option<f64>) -> Result<Value, RuntimeError> {
     edge.add_edge(&Edge::new_line(&c, &d)?);
     edge.add_edge(&Edge::new_line(&d, &a)?);
 
-    Ok(Value::Line(Rc::new(edge.build()?)))
+    Ok(Value::Plane(Rc::new(edge.build()?)))
 }
 
 pub fn circle(radius: Option<f64>) -> Result<Value, RuntimeError> {
@@ -61,7 +61,7 @@ pub fn circle(radius: Option<f64>) -> Result<Value, RuntimeError> {
     edge.add_edge(&Edge::new_arc(&a, &b, &c)?);
     edge.add_edge(&Edge::new_arc(&c, &d, &a)?);
 
-    Ok(Value::Line(Rc::new(edge.build()?)))
+    Ok(Value::Plane(Rc::new(edge.build()?)))
 }
 
 pub fn extrude(
@@ -99,11 +99,20 @@ pub fn revolve(
     )?)))
 }
 
-pub fn union_edge(left: &Wire, right: &Wire) -> Result<Value, RuntimeError> {
+pub fn union_edge(left: Value, right: Value) -> Result<Value, RuntimeError> {
+    let left_wire = left.to_wire()?;
+    let right_wire = right.to_wire()?;
+
     let mut edge = WireFactory::new();
-    edge.add_wire(left);
-    edge.add_wire(right);
-    Ok(Value::Line(Rc::new(edge.build()?)))
+    edge.add_wire(&left_wire);
+    edge.add_wire(&right_wire);
+
+    let result = edge.build()?;
+    if left.is_plane() || right.is_plane() {
+        Ok(Value::Plane(Rc::new(result)))
+    } else {
+        Ok(Value::Line(Rc::new(result)))
+    }
 }
 
 pub fn face(parts: &[Value]) -> Result<Value, RuntimeError> {
@@ -130,18 +139,18 @@ pub fn face(parts: &[Value]) -> Result<Value, RuntimeError> {
             edge.add_edge(&Edge::new_line(&last_end, &current_start)?);
         }
 
-        if let Ok(line) = point.to_line() {
+        if let Ok(line) = point.to_wire() {
             edge.add_wire(&line);
         }
     }
 
-    Ok(Value::Line(Rc::new(edge.build()?)))
+    Ok(Value::Plane(Rc::new(edge.build()?)))
 }
 
 fn start_point(value: &Value) -> Result<Rc<Point>, RuntimeError> {
     if let Ok(point) = value.to_point() {
         Ok(point.clone())
-    } else if let Ok(edge) = value.to_line() {
+    } else if let Ok(edge) = value.to_wire() {
         Ok(Rc::new(edge.start()?.unwrap()))
     } else {
         Err(RuntimeError::UnexpectedType())
@@ -151,61 +160,80 @@ fn start_point(value: &Value) -> Result<Rc<Point>, RuntimeError> {
 fn end_point(value: &Value) -> Result<Rc<Point>, RuntimeError> {
     if let Ok(point) = value.to_point() {
         Ok(point.clone())
-    } else if let Ok(edge) = value.to_line() {
+    } else if let Ok(edge) = value.to_wire() {
         Ok(Rc::new(edge.end()?.unwrap()))
     } else {
         Err(RuntimeError::UnexpectedType())
     }
 }
 
+fn same_type(shape: &Value, wire: Wire) -> Value {
+    if shape.is_plane() {
+        Value::Plane(Rc::new(wire))
+    } else {
+        Value::Line(Rc::new(wire))
+    }
+}
+
 pub fn translate(
-    shape: &Wire,
+    shape: Value,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
-    Ok(Value::Line(Rc::new(Wire::translate(
-        shape,
+    let wire = shape.to_wire()?;
+    let result = Wire::translate(
+        &wire,
         &Point::new(x.unwrap_or(0.0), y.unwrap_or(0.0), z.unwrap_or(0.0)),
-    )?)))
+    )?;
+
+    Ok(same_type(&shape, result))
 }
 
-pub fn rotate(shape: &Wire, angle: Option<f64>) -> Result<Value, RuntimeError> {
-    let shape = Wire::rotate(shape, Axis::Z, angle.unwrap_or(0.0))?;
+pub fn rotate(shape: Value, angle: Option<f64>) -> Result<Value, RuntimeError> {
+    let wire = shape.to_wire()?;
+    let result = Wire::rotate(&wire, Axis::Z, angle.unwrap_or(0.0))?;
 
-    Ok(Value::Line(Rc::new(shape)))
+    Ok(same_type(&shape, result))
 }
 
 pub fn rotate_3d(
-    shape: &Wire,
+    shape: Value,
     x: Option<f64>,
     y: Option<f64>,
     z: Option<f64>,
 ) -> Result<Value, RuntimeError> {
-    let shape = Wire::rotate(shape, Axis::X, x.unwrap_or(0.0))?;
-    let shape = Wire::rotate(&shape, Axis::Y, y.unwrap_or(0.0))?;
-    let shape = Wire::rotate(&shape, Axis::Z, z.unwrap_or(0.0))?;
+    let wire = shape.to_wire()?;
+    let result = Wire::rotate(&wire, Axis::X, x.unwrap_or(0.0))?;
+    let result = Wire::rotate(&result, Axis::Y, y.unwrap_or(0.0))?;
+    let result = Wire::rotate(&result, Axis::Z, z.unwrap_or(0.0))?;
 
-    Ok(Value::Line(Rc::new(shape)))
+    Ok(same_type(&shape, result))
 }
 
-pub fn scale(shape: &Wire, size: f64) -> Result<Value, RuntimeError> {
-    Ok(Value::Line(Rc::new(Wire::scale(shape, size)?)))
+pub fn scale(shape: Value, size: f64) -> Result<Value, RuntimeError> {
+    let wire = shape.to_wire()?;
+    let result = Wire::scale(&wire, size)?;
+
+    Ok(same_type(&shape, result))
 }
 
 pub fn center(
-    shape: &Wire,
+    shape: Value,
     x: Option<bool>,
     y: Option<bool>,
     z: Option<bool>,
 ) -> Result<Value, RuntimeError> {
-    let center = shape.center_of_mass();
+    let center = shape.to_wire()?.center_of_mass();
     let x = if x.unwrap_or(true) { -center.x() } else { 0.0 };
     let y = if y.unwrap_or(true) { -center.y() } else { 0.0 };
     let z = if z.unwrap_or(true) { -center.z() } else { 0.0 };
     translate(shape, Some(x), Some(y), Some(z))
 }
 
-pub fn offset(shape: &Wire, distance: f64) -> Result<Value, RuntimeError> {
-    Ok(shape.offset(distance)?.into())
+pub fn offset(shape: Value, distance: f64) -> Result<Value, RuntimeError> {
+    let wire = shape.to_wire()?;
+    let result = wire.offset(distance)?;
+
+    Ok(same_type(&shape, result))
 }
