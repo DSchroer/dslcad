@@ -231,9 +231,72 @@ pub fn center(
     translate(shape, Some(x), Some(y), Some(z))
 }
 
-pub fn offset(shape: Value, distance: f64) -> Result<Value, RuntimeError> {
-    let wire = shape.to_wire()?;
-    let result = wire.offset(distance)?;
+pub fn offset(shape: &Wire, distance: f64) -> Result<Value, RuntimeError> {
+    Ok(Value::Plane(Rc::new(shape.offset(distance)?)))
+}
 
-    Ok(same_type(&shape, result))
+pub fn thicken(
+    shape: &Wire,
+    distance: Option<f64>,
+    x: Option<f64>,
+    y: Option<f64>,
+    z: Option<f64>,
+) -> Result<Value, RuntimeError> {
+    if distance.is_none() && x.is_none() && y.is_none() && z.is_none() {
+        return Err(RuntimeError::UnsetParameter(String::from(
+            "distance, x, y or z",
+        )));
+    }
+
+    let mut vector = Point::new(0.0, 0.0, 0.0);
+
+    if let Some(distance) = distance {
+        let normal = line_normal(shape)?;
+        vector = vector
+            + Point::new(
+                normal.x() * distance,
+                normal.y() * distance,
+                normal.z() * distance,
+            );
+    }
+
+    if x.is_some() || y.is_some() || z.is_some() {
+        vector = vector + Point::new(x.unwrap_or(0.0), y.unwrap_or(0.0), z.unwrap_or(0.0));
+    }
+
+    let offset = shape.translate(&vector)?;
+
+    Ok(Value::Plane(Rc::new(face_from_offset(shape, &offset)?)))
+}
+
+fn line_normal(shape: &Wire) -> Result<Point, RuntimeError> {
+    let start = shape.start()?.ok_or(RuntimeError::UnexpectedType())?;
+    let end = shape.end()?.ok_or(RuntimeError::UnexpectedType())?;
+    let direction = end - start;
+
+    if direction.length() < f64::EPSILON {
+        return Err(RuntimeError::UnexpectedType());
+    }
+
+    let normal = Point::new(-direction.y(), direction.x(), 0.0);
+    let length = normal.length();
+
+    Ok(normal / length)
+}
+
+fn face_from_offset(shape: &Wire, offset: &Wire) -> Result<Wire, dslcad_occt::Error> {
+    let start = shape.start()?.ok_or("shape has no start point")?;
+    let end = shape.end()?.ok_or("shape has no end point")?;
+    let offset_start = offset.start()?.ok_or("offset has no start point")?;
+    let offset_end = offset.end()?.ok_or("offset has no end point")?;
+
+    let mut factory = WireFactory::new();
+    factory.add_wire(shape);
+    factory.add_edge(&Edge::new_line(&end, &offset_end)?);
+    for edge in offset.edges().iter().rev() {
+        factory.add_edge(edge);
+    }
+    factory.add_edge(&Edge::new_line(&offset_start, &start)?);
+
+    factory.build()
 }

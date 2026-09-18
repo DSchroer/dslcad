@@ -1,2 +1,4 @@
 ./trace.svg()
+-> thicken(y=50)
+-> extrude(z=10)
 ;

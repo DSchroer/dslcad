@@ -9,8 +9,8 @@ use opencascade_sys::ffi::{
     BRep_Builder_ctor, BRep_Builder_upcast_to_topods_builder, BRep_Tool_Curve,
     GProp_GProps_CentreOfMass, GProp_GProps_ctor, GeomAbs_JoinType, HandleGeomCurve,
     HandleGeomCurve_Value, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopoDS_Compound_as_shape,
-    TopoDS_Compound_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Wire,
-    TopoDS_cast_to_edge, TopoDS_cast_to_wire,
+    TopoDS_Compound_ctor, TopoDS_Edge, TopoDS_Edge_to_owned, TopoDS_Shape, TopoDS_Shape_to_owned,
+    TopoDS_Wire, TopoDS_cast_to_edge, TopoDS_cast_to_wire,
 };
 use std::pin::Pin;
 
@@ -166,6 +166,19 @@ impl Wire {
             BRepOffsetAPI_MakeOffset_wire_ctor(self.as_wire()?, GeomAbs_JoinType::GeomAbs_Arc);
         offset.pin_mut().Perform(distance, 0.0);
         Ok(Builder::try_build(&mut offset)?.into())
+    }
+
+    pub fn edges(&self) -> Vec<Edge> {
+        let mut edges = Vec::new();
+
+        let mut edge_explorer = TopExp_Explorer_ctor(&self.0, TopAbs_ShapeEnum::TopAbs_EDGE);
+        while edge_explorer.More() {
+            let edge = TopoDS_cast_to_edge(edge_explorer.Current());
+            edges.push(TopoDS_Edge_to_owned(edge).into());
+            edge_explorer.pin_mut().Next();
+        }
+
+        edges
     }
 
     pub fn points(&self, deflection: f64) -> Result<Vec<Vec<[f64; 3]>>, Error> {

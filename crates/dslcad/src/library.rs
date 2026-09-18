@@ -135,6 +135,7 @@ macro_rules! arguments {
     (text) => {Access::Required(Type::Text)};
     (any) => {Access::RequiredAny()};
     (point) => {Access::Required(Type::Point)};
+    (line) => {Access::Required(Type::Line)};
     (plane) => {Access::Required(Type::Plane)};
     (shape2d) => {Access::Required2d()};
     (shape) => {Access::Required(Type::Shape)};
@@ -195,6 +196,12 @@ macro_rules! invoke {
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         &value
             .to_shape()?
+    }};
+    ($map: ident, $name: ident=line) => {{
+        let value = $map
+            .get(stringify!($name))
+            .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
+        &value.to_line()?
     }};
     ($map: ident, $name: ident=plane) => {{
         let value = $map
@@ -460,7 +467,8 @@ impl Default for Library {
                 Category::TwoD,
                 "center a 2D shape"
             ),
-            bind!(offset, faces::offset[shape=shape2d, distance=number], Category::TwoD, "offset a 2D shape"),
+            bind!(offset, faces::offset[shape=plane, distance=number], Category::TwoD, "offset a plane"),
+            bind!(thicken, faces::thicken[shape=line, distance=option_number, x=option_number, y=option_number, z=option_number], Category::TwoD, "turn a line into a face"),
             // 3D
             bind!(extrude, faces::extrude[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),

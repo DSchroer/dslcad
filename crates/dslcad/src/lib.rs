@@ -221,6 +221,30 @@ mod tests {
     }
 
     #[test]
+    fn it_can_thicken_a_line_into_a_plane() {
+        let perpendicular =
+            run("line(start=point(x=0,y=0), end=point(x=10,y=0)) -> thicken(1) -> extrude(z=1);");
+        assert!((perpendicular.to_shape().unwrap().volume() - 10.).abs() < 0.01);
+
+        let horizontal =
+            run("line(start=point(x=0,y=0), end=point(x=10,y=0)) -> thicken(y=1) -> extrude(z=1);");
+        assert!((horizontal.to_shape().unwrap().volume() - 10.).abs() < 0.01);
+
+        let vertical =
+            run("line(start=point(x=0,y=0), end=point(x=0,y=10)) -> thicken(x=1) -> extrude(z=1);");
+        assert!((vertical.to_shape().unwrap().volume() - 10.).abs() < 0.01);
+
+        assert!(try_run("line(start=point(x=0,y=0), end=point(x=1,y=1)) -> offset(1);").is_err());
+    }
+
+    #[test]
+    fn it_only_offsets_planes() {
+        assert!(run("square() -> offset(1);").to_plane().is_ok());
+
+        assert!(try_run("square() -> thicken(1);").is_err());
+    }
+
+    #[test]
     fn it_has_axis_scaling() {
         run("cube() -> scale(x=2);");
         run("cube() -> scale(y=2);");

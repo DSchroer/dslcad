@@ -6,6 +6,7 @@ use quick_xml::events::{BytesStart, Event};
 use quick_xml::Reader as XmlReader;
 use std::f64::consts::PI;
 use std::fmt::{Debug, Formatter};
+use std::ops::Deref;
 use std::path::Path;
 use std::rc::Rc;
 
@@ -26,7 +27,20 @@ impl<R: Reader> ResourceLoader<R> for SvgLoader {
 }
 
 pub struct Svg {
-    contours: Vec<Wire>,
+    contours: Vec<Contour>,
+}
+
+struct Contour {
+    wire: Wire,
+    closed: bool,
+}
+
+impl Deref for Contour {
+    type Target = Wire;
+
+    fn deref(&self) -> &Self::Target {
+        &self.wire
+    }
 }
 
 unsafe impl Sync for Svg {}
@@ -41,12 +55,21 @@ impl Debug for Svg {
 
 impl Resource for Svg {
     fn to_instance(&self) -> Result<Value, RuntimeError> {
-        let wire = match self.contours.as_slice() {
+        let wires: Vec<Wire> = self
+            .contours
+            .iter()
+            .map(|contour| contour.wire.clone())
+            .collect();
+        let wire = match wires.as_slice() {
             [contour] => contour.clone(),
             contours => Wire::compound(contours)?,
         };
 
-        Ok(Value::Plane(Rc::new(wire)))
+        if self.contours.iter().any(|contour| contour.closed) {
+            Ok(Value::Plane(Rc::new(wire)))
+        } else {
+            Ok(Value::Line(Rc::new(wire)))
+        }
     }
 }
 
@@ -90,7 +113,7 @@ impl Svg {
 fn parse_element(
     element: &BytesStart,
     transform: &Transform,
-    contours: &mut Vec<Wire>,
+    contours: &mut Vec<Contour>,
 ) -> Result<(), String> {
     match element.name().as_ref() {
         b"path" => {
@@ -113,7 +136,7 @@ fn parse_element(
 fn parse_rect(
     element: &BytesStart,
     transform: &Transform,
-    contours: &mut Vec<Wire>,
+    contours: &mut Vec<Contour>,
 ) -> Result<(), String> {
     let x = number_attribute(element, b"x").unwrap_or(0.0);
     let y = number_attribute(element, b"y").unwrap_or(0.0);
@@ -174,7 +197,7 @@ fn parse_rect(
 fn parse_circle(
     element: &BytesStart,
     transform: &Transform,
-    contours: &mut Vec<Wire>,
+    contours: &mut Vec<Contour>,
 ) -> Result<(), String> {
     let cx = number_attribute(element, b"cx").unwrap_or(0.0);
     let cy = number_attribute(element, b"cy").unwrap_or(0.0);
@@ -205,7 +228,7 @@ fn parse_circle(
 fn parse_ellipse(
     element: &BytesStart,
     transform: &Transform,
-    contours: &mut Vec<Wire>,
+    contours: &mut Vec<Contour>,
 ) -> Result<(), String> {
     let cx = number_attribute(element, b"cx").unwrap_or(0.0);
     let cy = number_attribute(element, b"cy").unwrap_or(0.0);
@@ -237,7 +260,7 @@ fn parse_ellipse(
 fn parse_line(
     element: &BytesStart,
     transform: &Transform,
-    contours: &mut Vec<Wire>,
+    contours: &mut Vec<Contour>,
 ) -> Result<(), String> {
     let x1 = number_attribute(element, b"x1").unwrap_or(0.0);
     let y1 = number_attribute(element, b"y1").unwrap_or(0.0);
@@ -253,7 +276,7 @@ fn parse_line(
 fn parse_polygon(
     element: &BytesStart,
     transform: &Transform,
-    contours: &mut Vec<Wire>,
+    contours: &mut Vec<Contour>,
     close: bool,
 ) -> Result<(), String> {
     let Some(points) = attribute(element, b"points") else {
@@ -280,7 +303,7 @@ fn parse_polygon(
     Ok(())
 }
 
-fn parse_path(data: &str, transform: &Transform) -> Result<Vec<Wire>, String> {
+fn parse_path(data: &str, transform: &Transform) -> Result<Vec<Contour>, String> {
     PathParser::new(data.as_bytes()).parse(transform)
 }
 
@@ -305,7 +328,7 @@ impl<'a> PathParser<'a> {
         }
     }
 
-    fn parse(mut self, transform: &Transform) -> Result<Vec<Wire>, String> {
+    fn parse(mut self, transform: &Transform) -> Result<Vec<Contour>, String> {
         let mut contours = Vec::new();
         let mut edges = Vec::new();
         let mut previous: Option<u8> = None;
@@ -540,7 +563,7 @@ impl<'a> PathParser<'a> {
     fn finish(
         &mut self,
         edges: &mut Vec<Edge>,
-        contours: &mut Vec<Wire>,
+        contours: &mut Vec<Contour>,
         transform: &Transform,
         close: bool,
     ) -> Result<(), String> {
@@ -553,16 +576,18 @@ impl<'a> PathParser<'a> {
             factory.add_edge(&edge);
         }
 
-        if close {
-            let start = transform.point(self.start);
-            let end = transform.point(self.current);
+        let start = transform.point(self.start);
+        let end = transform.point(self.current);
+        let closed = close || start.distance(&end) <= EPSILON;
 
-            if start.distance(&end) > EPSILON {
-                factory.add_edge(&Edge::new_line(&end, &start).map_err(|error| error.to_string())?);
-            }
+        if close && start.distance(&end) > EPSILON {
+            factory.add_edge(&Edge::new_line(&end, &start).map_err(|error| error.to_string())?);
         }
 
-        contours.push(factory.build().map_err(|error| error.to_string())?);
+        contours.push(Contour {
+            wire: factory.build().map_err(|error| error.to_string())?,
+            closed,
+        });
         Ok(())
     }
 
@@ -1155,6 +1180,37 @@ mod tests {
             Value::Plane(line) => assert!(!line.is_compound()),
             _ => panic!("expected a plane"),
         }
+    }
+
+    #[test]
+    fn it_imports_open_contours_as_lines() {
+        let svg = Svg::parse(r#"<svg><path d="M 0 0 L 1 0 L 1 1"/></svg>"#).unwrap();
+        assert!(matches!(svg.to_instance().unwrap(), Value::Line(_)));
+
+        let svg = Svg::parse(r#"<svg><path d="M 0 0 L 1 0 L 1 1 L 0 0"/></svg>"#).unwrap();
+        assert!(matches!(svg.to_instance().unwrap(), Value::Plane(_)));
+
+        let svg = Svg::parse(r#"<svg><line x1="0" y1="0" x2="1" y2="1"/></svg>"#).unwrap();
+        assert!(matches!(svg.to_instance().unwrap(), Value::Line(_)));
+
+        let svg = Svg::parse(r#"<svg><polyline points="0,0 1,0 1,1"/></svg>"#).unwrap();
+        assert!(matches!(svg.to_instance().unwrap(), Value::Line(_)));
+
+        let svg = Svg::parse(r#"<svg><polygon points="0,0 1,0 1,1"/></svg>"#).unwrap();
+        assert!(matches!(svg.to_instance().unwrap(), Value::Plane(_)));
+
+        let svg = Svg::parse(r#"<svg><circle cx="0" cy="0" r="1"/></svg>"#).unwrap();
+        assert!(matches!(svg.to_instance().unwrap(), Value::Plane(_)));
+    }
+
+    #[test]
+    fn it_imports_the_trace_ring_example_as_a_line() {
+        let resource = SvgLoader
+            .load("../../examples/svg_ring/trace.svg", &FsReader)
+            .unwrap();
+        let value = resource.to_instance().unwrap();
+
+        assert!(matches!(value, Value::Line(_)));
     }
 
     #[test]

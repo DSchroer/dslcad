@@ -74,7 +74,8 @@ to build parts.
 - `rotate(shape=line|plane, x=[number], y=[number], z=[number])` rotate a 2D shape
 - `scale(shape=line|plane, scale=number)` scale a 2D shape
 - `center(shape=line|plane, x=[bool], y=[bool], z=[bool])` center a 2D shape
-- `offset(shape=line|plane, distance=number)` offset a 2D shape
+- `offset(shape=plane, distance=number)` offset a plane
+- `thicken(shape=line, distance=[number], x=[number], y=[number], z=[number])` turn a line into a face
 
 ## 3D
 - `extrude(shape=plane, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
