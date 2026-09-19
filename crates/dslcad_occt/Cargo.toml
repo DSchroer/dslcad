@@ -9,3 +9,7 @@ edition = "2021"
 cxx = "1"
 opencascade-sys = { git = "https://github.com/bschwind/opencascade-rs", rev="cd3519c", features = [ "builtin" ] }
 log = "0.4"
+
+[build-dependencies]
+cc = "1"
+occt-sys = "0.6"

@@ -472,6 +472,7 @@ impl Default for Library {
             // 3D
             bind!(extrude, faces::extrude[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),
+            bind!(bend, shapes::bend[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "bend a shape around an axis"),
             bind!(cube, shapes::cube[x=option_number, y=option_number, z=option_number], Category::ThreeD, "create a cube"),
             bind!(
                 sphere,

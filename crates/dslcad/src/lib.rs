@@ -245,6 +245,16 @@ mod tests {
     }
 
     #[test]
+    fn it_can_bend_shapes() {
+        let bent = run("cube(x=10, y=1, z=1) ->shape bend(y=90);");
+        let volume = bent.to_shape().unwrap().volume();
+        assert!((volume - 10.0).abs() < 0.1, "unexpected volume {volume}");
+
+        let unbent = run("cube(x=10, y=1, z=1) ->shape bend();");
+        assert!((unbent.to_shape().unwrap().volume() - 10.0).abs() < 1e-9);
+    }
+
+    #[test]
     fn it_has_axis_scaling() {
         run("cube() -> scale(x=2);");
         run("cube() -> scale(y=2);");

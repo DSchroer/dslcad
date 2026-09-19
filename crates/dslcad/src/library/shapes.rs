@@ -78,6 +78,19 @@ pub fn scale(shape: &Shape, size: f64) -> Result<Value, RuntimeError> {
     Ok(Shape::scale(shape, size)?.into())
 }
 
+pub fn bend(
+    shape: &Shape,
+    x: Option<f64>,
+    y: Option<f64>,
+    z: Option<f64>,
+) -> Result<Value, RuntimeError> {
+    let shape = Shape::bend(shape, Axis::X, x.unwrap_or(0.0))?;
+    let shape = Shape::bend(&shape, Axis::Y, y.unwrap_or(0.0))?;
+    let shape = Shape::bend(&shape, Axis::Z, z.unwrap_or(0.0))?;
+
+    Ok(shape.into())
+}
+
 pub fn scale_xyz(
     shape: &Shape,
     x: Option<f64>,

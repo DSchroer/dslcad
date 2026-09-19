@@ -80,6 +80,7 @@ to build parts.
 ## 3D
 - `extrude(shape=plane, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
 - `revolve(shape=plane, x=[number], y=[number], z=[number])` extrude a face into a 3D shape around an axis
+- `bend(shape=shape, x=[number], y=[number], z=[number])` bend a shape around an axis
 - `cube(x=[number], y=[number], z=[number])` create a cube
 - `sphere(radius=[number])` create a sphere
 - `cylinder(radius=[number], height=[number])` create a cylinder

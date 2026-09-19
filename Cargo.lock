@@ -1801,8 +1801,10 @@ dependencies = [
 name = "dslcad-occt"
 version = "0.1.0"
 dependencies = [
+ "cc",
  "cxx",
  "log",
+ "occt-sys",
  "opencascade-sys",
 ]
 

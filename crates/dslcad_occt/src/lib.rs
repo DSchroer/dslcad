@@ -1,3 +1,4 @@
+mod bend;
 mod command;
 mod compound;
 mod edge;
