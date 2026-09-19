@@ -1,4 +1,4 @@
-use crate::editor::Blueprint;
+use crate::editor::Palette;
 use bevy::input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
@@ -46,6 +46,9 @@ fn camera_light(
     let gxf = query.single();
     for mut transform in light.iter_mut() {
         transform.clone_from(gxf);
+        // Tilt the light off the view direction so faces shade differently
+        transform.rotate_local_x(-0.35);
+        transform.rotate_local_y(0.25);
     }
 }
 
@@ -65,16 +68,16 @@ pub(crate) fn camera_system(mut commands: Commands) {
 
     commands.spawn((
         DirectionalLight {
-            illuminance: 100000.0,
-            color: Blueprint::white(),
+            illuminance: 30000.0,
+            color: Palette::light(),
             ..default()
         },
         Transform::from_translation(Vec3::splat(100.)).looking_at(Vec3::default(), Vec3::Y),
     ));
 
     commands.insert_resource(AmbientLight {
-        color: Blueprint::blue(),
-        brightness: 0.2,
+        color: Palette::ambient(),
+        brightness: 0.35,
     });
 }
 

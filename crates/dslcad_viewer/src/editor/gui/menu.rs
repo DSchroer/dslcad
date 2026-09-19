@@ -36,6 +36,12 @@ impl Plugin for MenuPlugin {
                 },
             )
             .add_persistent_res_loader::<ResMut<RenderState>>(
+                "grid",
+                |value, mut state: ResMut<RenderState>| {
+                    state.show_grid = value.unwrap_or("true") == "true";
+                },
+            )
+            .add_persistent_res_loader::<ResMut<RenderState>>(
                 "colors",
                 |value, mut state: ResMut<RenderState>| {
                     state.part_colors = value.unwrap_or("false") == "true";
@@ -249,6 +255,10 @@ fn main_ui(
                         }
                         if ui.checkbox(&mut render_state.show_mesh, "Mesh").clicked() {
                             store.store("mesh", &render_state.show_mesh.to_string());
+                            render_events.send(RenderCommand::Redraw);
+                        }
+                        if ui.checkbox(&mut render_state.show_grid, "Grid").clicked() {
+                            store.store("grid", &render_state.show_grid.to_string());
                             render_events.send(RenderCommand::Redraw);
                         }
                         if ui

@@ -18,6 +18,29 @@ impl Default for BoundingBox {
 }
 
 impl BoundingBox {
+    /// Computes the bounds around all points of the given parts. Returns `None`
+    /// if the parts contain no points.
+    pub fn from_parts<'a>(parts: impl IntoIterator<Item = &'a Part>) -> Option<Self> {
+        let mut aabb = BoundingBox::default();
+
+        for part in parts {
+            match part {
+                Part::Empty => {}
+                Part::Planar { points, lines } => {
+                    aabb.update_from_points(points.iter());
+                    aabb.update_from_points(lines.iter().flatten());
+                }
+                Part::Object { mesh, .. } => aabb.update_from_points(mesh.vertices.iter()),
+            }
+        }
+
+        if aabb == Default::default() {
+            None
+        } else {
+            Some(aabb)
+        }
+    }
+
     pub fn center(&self) -> Point {
         [
             (self.x_range.0 + self.x_range.1) / 2.,
@@ -62,23 +85,29 @@ impl BoundingBox {
 
 impl Render {
     pub fn aabb(&self) -> Option<BoundingBox> {
-        let mut aabb = BoundingBox::default();
+        BoundingBox::from_parts(&self.parts)
+    }
+}
 
-        for part in &self.parts {
-            match part {
-                Part::Empty => {}
-                Part::Planar { points, lines } => {
-                    aabb.update_from_points(points.iter());
-                    aabb.update_from_points(lines.iter().flatten());
-                }
-                Part::Object { mesh, .. } => aabb.update_from_points(mesh.vertices.iter()),
-            }
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        if aabb == Default::default() {
-            None
-        } else {
-            Some(aabb)
-        }
+    #[test]
+    fn empty_parts_have_no_bounds() {
+        assert_eq!(None, BoundingBox::from_parts([&Part::Empty]));
+        assert_eq!(None, BoundingBox::from_parts([] as [&Part; 0]));
+    }
+
+    #[test]
+    fn bounds_include_points_and_lines() {
+        let part = Part::Planar {
+            points: vec![[1., 2., 3.]],
+            lines: vec![vec![[-1., 0., 0.], [0., 0., 4.]]],
+        };
+
+        let aabb = BoundingBox::from_parts([&part]).unwrap();
+        assert_eq!([0., 1., 2.], aabb.center());
+        assert_eq!(4.0, aabb.max_len());
     }
 }

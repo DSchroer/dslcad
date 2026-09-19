@@ -6,6 +6,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use crate::editor::camera::CameraCommand;
+use crate::editor::gizmo::AxisGizmoPlugin;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 
 use crate::editor::gui::help::HelpPlugin;
@@ -29,6 +30,7 @@ impl Plugin for GuiPlugin {
         })
         .insert_resource(Console { text: None })
         .add_plugins(EguiPlugin)
+        .add_plugins(AxisGizmoPlugin)
         .add_plugins(MenuPlugin)
         .add_plugins(ViewMenuPlugin)
         .add_event_menu_button("Camera/Focus", |c: &mut EventWriter<CameraCommand>| {
@@ -38,7 +40,15 @@ impl Plugin for GuiPlugin {
             c.send(CameraCommand::Reset());
         })
         .add_plugins(HelpPlugin::default())
+        .add_systems(Startup, dark_theme)
         .add_systems(Update, console_panel);
+    }
+}
+
+/// Matches the egui panels to the dark CAD viewport.
+fn dark_theme(mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>) {
+    if let Ok(mut context) = egui_ctx.get_single_mut() {
+        context.get_mut().set_visuals(egui::Visuals::dark());
     }
 }
 

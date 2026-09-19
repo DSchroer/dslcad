@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Modified
 - Render all of the lines of a part in a single draw call
 - Only report unique edges and vertices for shapes
+- Preview uses a CAD style viewport with a ground grid, color coded axes (x red, y green, z blue) and a corner axis gizmo
+- Lines and points use a bright wireframe color when drawn on the viewport background, such as for 2D parts or hidden meshes
+- `Grid` toggle in the `View` menu
 
 ### Fixed
 - Slow preview and screenshot rendering for parts with many edges

@@ -1,11 +1,11 @@
 use crate::editor::lines::{lines_to_mesh, LineMaterial, LineMaterialPlugin};
 use crate::editor::stl::stl_to_triangle_mesh;
-use crate::editor::Blueprint;
+use crate::editor::{model_rotation, Palette};
 use bevy::prelude::*;
 use bevy_points::material::PointsShaderSettings;
 use bevy_points::prelude::*;
 
-use dslcad_storage::protocol::{Part, Point};
+use dslcad_storage::protocol::{BoundingBox, Part, Point};
 
 pub struct ModelRenderingPlugin;
 
@@ -39,7 +39,16 @@ pub struct RenderState {
     pub show_points: bool,
     pub show_lines: bool,
     pub show_mesh: bool,
+    pub show_grid: bool,
     pub part_colors: bool,
+}
+
+impl RenderState {
+    /// The bounds of the currently rendered model, if any.
+    pub fn aabb(&self) -> Option<BoundingBox> {
+        let (parts, _) = self.model.as_ref()?;
+        BoundingBox::from_parts(parts)
+    }
 }
 
 impl Default for RenderState {
@@ -48,6 +57,7 @@ impl Default for RenderState {
             show_points: true,
             show_lines: true,
             show_mesh: true,
+            show_grid: true,
             part_colors: false,
             model: None,
         }
@@ -85,9 +95,9 @@ fn mesh_renderer(
                     let mesh = stl_to_triangle_mesh(mesh);
 
                     let color = if render_state.part_colors {
-                        Blueprint::part(i)
+                        Palette::part_color(i)
                     } else {
-                        Blueprint::white()
+                        Palette::part()
                     };
 
                     commands
@@ -126,6 +136,7 @@ fn point_renderer(
             };
 
             for part in parts {
+                let color = feature_color(&render_state, part);
                 match part {
                     Part::Empty => {}
                     Part::Planar { points, .. } => render_points(
@@ -134,6 +145,7 @@ fn point_renderer(
                         &mut point_materials,
                         points,
                         *entity,
+                        color,
                     ),
                     Part::Object { points, .. } => render_points(
                         &mut commands,
@@ -141,10 +153,21 @@ fn point_renderer(
                         &mut point_materials,
                         points,
                         *entity,
+                        color,
                     ),
                 }
             }
         }
+    }
+}
+
+/// Lines and points are drawn dark on top of a part's mesh, but bright when
+/// they are drawn directly on the viewport background, such as for 2D parts or
+/// when meshes are hidden.
+fn feature_color(render_state: &RenderState, part: &Part) -> Color {
+    match part {
+        Part::Object { .. } if render_state.show_mesh => Palette::edge(),
+        _ => Palette::wireframe(),
     }
 }
 
@@ -154,6 +177,7 @@ fn render_points(
     point_materials: &mut ResMut<Assets<PointsMaterial>>,
     points: &[Point],
     parent: Entity,
+    color: Color,
 ) {
     commands
         .spawn((
@@ -167,7 +191,7 @@ fn render_points(
             MeshMaterial3d(point_materials.add(PointsMaterial {
                 settings: PointsShaderSettings {
                     point_size: 10.0,
-                    color: Blueprint::black().into(),
+                    color: color.into(),
                     ..Default::default()
                 },
                 perspective: false,
@@ -198,14 +222,25 @@ fn line_renderer(
             };
 
             for part in parts {
+                let color = feature_color(&render_state, part);
                 match part {
                     Part::Empty => {}
-                    Part::Planar { lines, .. } => {
-                        render_lines(&mut commands, &mut meshes, &mut materials, lines, *entity)
-                    }
-                    Part::Object { lines, .. } => {
-                        render_lines(&mut commands, &mut meshes, &mut materials, lines, *entity)
-                    }
+                    Part::Planar { lines, .. } => render_lines(
+                        &mut commands,
+                        &mut meshes,
+                        &mut materials,
+                        lines,
+                        *entity,
+                        color,
+                    ),
+                    Part::Object { lines, .. } => render_lines(
+                        &mut commands,
+                        &mut meshes,
+                        &mut materials,
+                        lines,
+                        *entity,
+                        color,
+                    ),
                 }
             }
         }
@@ -218,6 +253,7 @@ fn render_lines(
     materials: &mut ResMut<Assets<LineMaterial>>,
     lines: &[Vec<Point>],
     parent: Entity,
+    color: Color,
 ) {
     if lines.is_empty() {
         return;
@@ -226,7 +262,7 @@ fn render_lines(
     commands
         .spawn((
             Mesh3d(meshes.add(lines_to_mesh(lines))),
-            MeshMaterial3d(materials.add(LineMaterial::new(Blueprint::black(), 2.0))),
+            MeshMaterial3d(materials.add(LineMaterial::new(color, 2.0))),
         ))
         .set_parent(parent);
 }
@@ -245,12 +281,7 @@ fn render_controller(
                     render_state.model = None;
                 }
 
-                let bundle = commands.spawn((Transform::from_rotation(Quat::from_euler(
-                    EulerRot::XYZ,
-                    -std::f32::consts::FRAC_PI_2,
-                    0.0,
-                    -std::f32::consts::FRAC_PI_2,
-                )),));
+                let bundle = commands.spawn(Transform::from_rotation(model_rotation()));
                 render_state.model = Some((render.clone(), bundle.id()));
 
                 render_events.send(RenderEvents::Points);
@@ -261,12 +292,7 @@ fn render_controller(
                 if let Some((render, id)) = &render_state.model {
                     commands.entity(*id).despawn_recursive();
 
-                    let bundle = commands.spawn(Transform::from_rotation(Quat::from_euler(
-                        EulerRot::XYZ,
-                        -std::f32::consts::FRAC_PI_2,
-                        0.0,
-                        -std::f32::consts::FRAC_PI_2,
-                    )));
+                    let bundle = commands.spawn(Transform::from_rotation(model_rotation()));
                     render_state.model = Some((render.clone(), bundle.id()));
                 }
 
@@ -275,5 +301,48 @@ fn render_controller(
                 render_events.send(RenderEvents::Mesh);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dslcad_storage::protocol::Mesh;
+
+    fn object() -> Part {
+        Part::Object {
+            points: vec![],
+            lines: vec![],
+            mesh: Mesh {
+                vertices: vec![],
+                triangles: vec![],
+                normals: vec![],
+            },
+        }
+    }
+
+    #[test]
+    fn feature_colors_follow_the_background() {
+        let planar = Part::Planar {
+            points: vec![],
+            lines: vec![],
+        };
+
+        // Edges of a mesh stay dark on the light part
+        assert_eq!(
+            Palette::edge(),
+            feature_color(&RenderState::default(), &object())
+        );
+
+        // Without a mesh and for 2D parts the features sit on the background
+        let wireframe = RenderState {
+            show_mesh: false,
+            ..Default::default()
+        };
+        assert_eq!(Palette::wireframe(), feature_color(&wireframe, &object()));
+        assert_eq!(
+            Palette::wireframe(),
+            feature_color(&RenderState::default(), &planar)
+        );
     }
 }

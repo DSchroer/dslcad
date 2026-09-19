@@ -1,4 +1,5 @@
 mod camera;
+mod gizmo;
 mod gui;
 mod lines;
 mod rendering;
@@ -32,23 +33,118 @@ const SCREENSHOT_WARMUP_FRAMES: u32 = 10;
 const DEFAULT_SCREENSHOT_TILT: f32 = 54.736;
 const DEFAULT_SCREENSHOT_AZIMUTH: f32 = 45.0;
 
-struct Blueprint;
-impl Blueprint {
-    fn white() -> Color {
+/// Colors used to render the preview. The palette is designed for a dark
+/// viewport, similar to a CAD application.
+struct Palette;
+
+impl Palette {
+    /// The viewport background.
+    fn background() -> Color {
+        Srgba::hex("434B57").unwrap().into()
+    }
+
+    /// The default color of a rendered part.
+    fn part() -> Color {
         Srgba::hex("CED8F7").unwrap().into()
     }
 
-    fn blue() -> Color {
-        Srgba::hex("3057E1").unwrap().into()
+    /// A distinct color for each part when part colors are enabled.
+    fn part_color(index: usize) -> Color {
+        Color::hsl(index as f32 * 60.0 % 360.0, 0.8, 0.55)
     }
 
-    fn black() -> Color {
-        Srgba::hex("002082").unwrap().into()
+    /// Edges and vertices drawn on top of a part's mesh.
+    fn edge() -> Color {
+        Srgba::hex("141A23").unwrap().into()
     }
 
-    fn part(index: usize) -> Color {
-        Color::hsl(index as f32 * 60.0 % 360.0, 1.0, 0.5)
+    /// Lines and points drawn directly on the viewport background.
+    fn wireframe() -> Color {
+        Srgba::hex("E8EDF5").unwrap().into()
     }
+
+    /// Minor grid lines.
+    fn grid_minor() -> Color {
+        Srgba::hex("4C5563").unwrap().into()
+    }
+
+    /// Major grid lines.
+    fn grid_major() -> Color {
+        Srgba::hex("5A6575").unwrap().into()
+    }
+
+    /// The color of a positive coordinate axis.
+    fn axis(axis: Axis) -> Color {
+        match axis {
+            Axis::X => Srgba::hex("E5484D").unwrap().into(),
+            Axis::Y => Srgba::hex("46A758").unwrap().into(),
+            Axis::Z => Srgba::hex("3E8BFF").unwrap().into(),
+        }
+    }
+
+    /// The color of a negative coordinate axis.
+    fn negative_axis(axis: Axis) -> Color {
+        match axis {
+            Axis::X => Srgba::hex("8A4A4E").unwrap().into(),
+            Axis::Y => Srgba::hex("416B4C").unwrap().into(),
+            Axis::Z => Srgba::hex("40618C").unwrap().into(),
+        }
+    }
+
+    /// The color of the directional light.
+    fn light() -> Color {
+        Color::WHITE
+    }
+
+    /// The color of the ambient light.
+    fn ambient() -> Color {
+        Srgba::hex("3A4A63").unwrap().into()
+    }
+}
+
+/// A coordinate axis of a part.
+///
+/// Parts are modeled in a z-up space while the renderer is y-up, so every axis
+/// points in a different direction once the model is rotated by
+/// [`model_rotation`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Axis {
+    X,
+    Y,
+    Z,
+}
+
+impl Axis {
+    const ALL: [Axis; 3] = [Axis::X, Axis::Y, Axis::Z];
+
+    /// The direction of the axis in the renderer's y-up space.
+    fn direction(self) -> Vec3 {
+        model_rotation()
+            * match self {
+                Axis::X => Vec3::X,
+                Axis::Y => Vec3::Y,
+                Axis::Z => Vec3::Z,
+            }
+    }
+
+    /// The label shown for the axis.
+    fn label(self) -> &'static str {
+        match self {
+            Axis::X => "X",
+            Axis::Y => "Y",
+            Axis::Z => "Z",
+        }
+    }
+}
+
+/// The rotation that maps the z-up part space onto the y-up renderer.
+fn model_rotation() -> Quat {
+    Quat::from_euler(
+        EulerRot::XYZ,
+        -std::f32::consts::FRAC_PI_2,
+        0.0,
+        -std::f32::consts::FRAC_PI_2,
+    )
 }
 
 pub(crate) fn main(
@@ -112,7 +208,7 @@ fn run(
         default_plugins = default_plugins.disable::<WinitPlugin>();
     }
 
-    app.insert_resource(ClearColor(Blueprint::blue()))
+    app.insert_resource(ClearColor(Palette::background()))
         .insert_resource(store)
         .add_plugins(default_plugins)
         .add_plugins((
@@ -328,6 +424,14 @@ mod tests {
         assert_eq!(target, Vec3::splat(0.5));
         // Preview focuses at `Vec3::splat(max_len * 2)` from the target
         assert!((eye - target - Vec3::splat(2.0)).length() < 1e-4);
+    }
+
+    #[test]
+    fn axis_directions_match_the_rendered_model() {
+        // Part x points along renderer z, part y along renderer x and part z up
+        assert!((Axis::X.direction() - Vec3::Z).length() < 1e-6);
+        assert!((Axis::Y.direction() - Vec3::X).length() < 1e-6);
+        assert!((Axis::Z.direction() - Vec3::Y).length() < 1e-6);
     }
 
     #[test]
