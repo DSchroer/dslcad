@@ -30,6 +30,15 @@ fn it_can_extrude_svg_files() {
     }
 }
 
+#[test]
+fn it_can_bend_a_small_traced_svg() {
+    let ast = parse("../../examples/svg_ring/trace_ring.ds".to_string()).expect("failed to parse");
+    let value = eval(ast, HashMap::new()).expect("failed to evaluate");
+    let output = render(value, 0.1).expect("failed to render");
+
+    assert_eq!(1, output.parts.len());
+}
+
 fn mesh_volume(mesh: &Mesh) -> f64 {
     let mut volume = 0.0;
 

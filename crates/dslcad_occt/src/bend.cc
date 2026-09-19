@@ -14,6 +14,7 @@
 #include <BRepTools_Modifier.hxx>
 #include <BRep_Builder.hxx>
 #include <BRep_Tool.hxx>
+#include <Geom2dAPI_Interpolate.hxx>
 #include <Geom2dAPI_PointsToBSpline.hxx>
 #include <Geom2d_BezierCurve.hxx>
 #include <Geom2d_BSplineCurve.hxx>
@@ -32,6 +33,7 @@
 #include <Standard_Failure.hxx>
 #include <TColgp_Array1OfPnt.hxx>
 #include <TColgp_Array1OfPnt2d.hxx>
+#include <TColgp_HArray1OfPnt2d.hxx>
 #include <TColgp_Array2OfPnt.hxx>
 #include <TopAbs_Orientation.hxx>
 #include <TopExp.hxx>
@@ -279,17 +281,54 @@ public:
             points.SetValue(i + 1, uv);
         }
 
-        Geom2dAPI_PointsToBSpline fit;
-        // The fitted surface is normalized to [0, 1] in both directions, so the
-        // 3D tolerance must be divided by the size of the shape to get the
+        // The fitted surface is normalized to [0, 1] in both directions, so a
+        // 3D tolerance is divided by the size of the shape to get the
         // equivalent tolerance in parameter space.
-        fit.Init(points, 3, 8, GeomAbs_C2, myBend.tolerance / myBend.scale);
-        if (!fit.IsDone()) {
-            myFailed = true;
-            return Standard_False;
-        }
+        Handle(Geom2d_Curve) result;
+        Handle(Geom_Surface) original_surface = BRep_Tool::Surface(face);
+        const bool closed =
+            (!original_surface.IsNull() &&
+             (original_surface->IsUClosed() || original_surface->IsVClosed())) ||
+            BRep_Tool::IsClosed(edge);
 
-        Handle(Geom2d_Curve) result = fit.Curve();
+        if (closed) {
+            // Closed surfaces and closed edges contain seams, so keep using an
+            // approximation that stays within a single period.
+            Geom2dAPI_PointsToBSpline fit;
+            fit.Init(points, 3, 8, GeomAbs_C2, myBend.tolerance / myBend.scale);
+            if (!fit.IsDone()) {
+                myFailed = true;
+                return Standard_False;
+            }
+            result = fit.Curve();
+        } else {
+            // Interpolating the projected points keeps short pcurves simple.
+            // Approximating them with the tight tolerance above can instead
+            // oscillate between samples with an overshoot far larger than the
+            // pcurve itself, which leaves the shape invalid.
+            Handle(TColgp_HArray1OfPnt2d) interpolated =
+                new TColgp_HArray1OfPnt2d(1, CURVE_SAMPLES);
+            for (int i = 1; i <= CURVE_SAMPLES; ++i) {
+                interpolated->SetValue(i, points.Value(i));
+            }
+
+            Geom2dAPI_Interpolate interpolate(interpolated, Standard_False,
+                                              myBend.tolerance / myBend.scale);
+            interpolate.Perform();
+            if (interpolate.IsDone()) {
+                result = interpolate.Curve();
+            } else {
+                // Interpolation fails when the samples collapse, so fall back
+                // to an approximation that may deviate by the 3D tolerance.
+                Geom2dAPI_PointsToBSpline fit;
+                fit.Init(points, 3, 8, GeomAbs_C2, myBend.tolerance);
+                if (!fit.IsDone()) {
+                    myFailed = true;
+                    return Standard_False;
+                }
+                result = fit.Curve();
+            }
+        }
 
         // Both occurrences of a seam edge need a pcurve on opposite sides of
         // the seam, otherwise the face collapses to a line in parameter space.
