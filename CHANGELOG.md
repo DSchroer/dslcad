@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Slow preview and screenshot rendering for parts with many edges
+- Slow `bend` on shapes with many faces by projecting pcurves locally and repairing them with `SameParameter` instead of a full `ShapeFix`
 
 ## [v0.0.5]
 

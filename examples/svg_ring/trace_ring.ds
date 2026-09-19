@@ -2,5 +2,5 @@
 -> thicken(y=50)
 -> extrude(z=10)
 -> center()
--> bend(y=360)
+-> bend(y=180)
 ;

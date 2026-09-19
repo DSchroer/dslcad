@@ -8,6 +8,7 @@
 #include <Bnd_Box.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepCheck_Analyzer.hxx>
+#include <BRepLib.hxx>
 #include <BRepTools.hxx>
 #include <BRepTools_Modification.hxx>
 #include <BRepTools_Modifier.hxx>
@@ -57,6 +58,9 @@ struct Bend {
     double radius;
     double sign;
     double tolerance;
+    // Size of the shape, used to convert the 3D tolerance into the normalized
+    // parameter space of the fitted surfaces.
+    double scale;
 };
 
 gp_Pnt bend_point(const Bend& bend, const gp_Pnt& point) {
@@ -240,7 +244,15 @@ public:
             const Standard_Real t = first + (last - first) * i / (CURVE_SAMPLES - 1);
             const gp_Pnt point = curve3d->Value(t).Transformed(edge_location.Transformation());
 
-            gp_Pnt2d uv = analysis.ValueOfUV(point, myBend.tolerance);
+            // Consecutive points are close together, so the previous parameter
+            // is a good starting point for a local projection. This is much
+            // faster than a full projection on the fitted surface, but fall
+            // back to one when the local solution drifts too far from the point.
+            gp_Pnt2d uv =
+                i == 0
+                    ? analysis.ValueOfUV(point, myBend.tolerance)
+                    : analysis.NextValueOfUV(previous, point, myBend.tolerance,
+                                             myBend.tolerance * 10.0);
 
             // Unwrap periodic parameters so the fitted pcurve does not jump
             // across the seam of the surface.
@@ -268,7 +280,10 @@ public:
         }
 
         Geom2dAPI_PointsToBSpline fit;
-        fit.Init(points, 3, 8, GeomAbs_C2, myBend.tolerance);
+        // The fitted surface is normalized to [0, 1] in both directions, so the
+        // 3D tolerance must be divided by the size of the shape to get the
+        // equivalent tolerance in parameter space.
+        fit.Init(points, 3, 8, GeomAbs_C2, myBend.tolerance / myBend.scale);
         if (!fit.IsDone()) {
             myFailed = true;
             return Standard_False;
@@ -387,6 +402,7 @@ extern "C" void* dslcad_bend_shape(const void* shape, int axis, double degrees) 
             (xmax - xmin) * (xmax - xmin) + (ymax - ymin) * (ymax - ymin) +
             (zmax - zmin) * (zmax - zmin));
         bend.tolerance = std::max(diagonal * 1e-6, 1e-9);
+        bend.scale = std::max(diagonal, 1e-9);
 
         Handle(BendModification) modification = new BendModification(bend);
         BRepTools_Modifier modifier(input, modification);
@@ -399,10 +415,15 @@ extern "C" void* dslcad_bend_shape(const void* shape, int axis, double degrees) 
             return nullptr;
         }
 
-        // Fitting surfaces and curves can leave small inconsistencies, let OCCT
-        // heal them and refuse results that stay invalid.
-        BRepCheck_Analyzer analyzer(result);
-        if (!analyzer.IsValid()) {
+        // Fitting surfaces and curves leaves the pcurves of some edges with a
+        // parameterization that no longer matches their 3D curve. Recomputing
+        // those pcurves is much cheaper than a full ShapeFix pass, so only fall
+        // back to ShapeFix when the shape stays invalid.
+        if (!BRepCheck_Analyzer(result).IsValid()) {
+            BRepLib::SameParameter(result, bend.tolerance, Standard_True);
+        }
+
+        if (!BRepCheck_Analyzer(result).IsValid()) {
             Handle(ShapeFix_Shape) fixer = new ShapeFix_Shape(result);
             fixer->Perform();
             result = fixer->Shape();
