@@ -1,5 +1,6 @@
 use quick_xml::{se, DeError, SeError};
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 use std::io::{Seek, Write};
 use thiserror::Error;
 use zip::result::ZipError;
@@ -149,6 +150,7 @@ impl Default for Model {
 
 impl Model {
     pub fn add_object(&mut self, vertices: Vec<Vertex>, triangles: Vec<Triangle>) {
+        let (vertices, triangles) = weld_mesh(vertices, triangles);
         let id = self.resources.objects.len() + 1;
         self.resources.objects.push(Object {
             id,
@@ -160,6 +162,84 @@ impl Model {
         });
         self.build.items.push(BuildItem { object_id: id });
     }
+}
+
+fn weld_mesh(vertices: Vec<Vertex>, triangles: Vec<Triangle>) -> (Vec<Vertex>, Vec<Triangle>) {
+    fn canonical(value: f64) -> u64 {
+        if value == 0.0 {
+            0
+        } else {
+            value.to_bits()
+        }
+    }
+
+    let mut lookup: HashMap<[u64; 3], usize> = HashMap::with_capacity(vertices.len());
+    let mut unique: Vec<Vertex> = Vec::with_capacity(vertices.len());
+    let mut remap: Vec<usize> = Vec::with_capacity(vertices.len());
+
+    for vertex in vertices {
+        let key = [
+            canonical(vertex.x),
+            canonical(vertex.y),
+            canonical(vertex.z),
+        ];
+        let index = match lookup.get(&key) {
+            Some(index) => *index,
+            None => {
+                let index = unique.len();
+                unique.push(Vertex {
+                    x: vertex.x,
+                    y: vertex.y,
+                    z: vertex.z,
+                });
+                lookup.insert(key, index);
+                index
+            }
+        };
+        remap.push(index);
+    }
+
+    let mut seen: HashSet<[usize; 3]> = HashSet::with_capacity(triangles.len());
+    let mut cleaned: Vec<Triangle> = Vec::with_capacity(triangles.len());
+    for triangle in triangles {
+        let indices = [remap[triangle.v1], remap[triangle.v2], remap[triangle.v3]];
+        if indices[0] == indices[1] || indices[1] == indices[2] || indices[0] == indices[2] {
+            continue;
+        }
+        let mut key = indices;
+        key.sort_unstable();
+        if !seen.insert(key) {
+            continue;
+        }
+        cleaned.push(Triangle {
+            v1: indices[0],
+            v2: indices[1],
+            v3: indices[2],
+        });
+    }
+
+    let mut used = vec![false; unique.len()];
+    for triangle in &cleaned {
+        used[triangle.v1] = true;
+        used[triangle.v2] = true;
+        used[triangle.v3] = true;
+    }
+
+    let mut compact: Vec<usize> = vec![usize::MAX; unique.len()];
+    let mut compacted: Vec<Vertex> = Vec::with_capacity(unique.len());
+    for (index, vertex) in unique.into_iter().enumerate() {
+        if used[index] {
+            compact[index] = compacted.len();
+            compacted.push(vertex);
+        }
+    }
+    for triangle in &mut cleaned {
+        triangle.v1 = compact[triangle.v1];
+        triangle.v2 = compact[triangle.v2];
+        triangle.v3 = compact[triangle.v3];
+    }
+
+    (compacted, cleaned)
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -305,15 +385,27 @@ mod tests {
     fn it_writes_models() {
         let mut model = Model::default();
         model.add_object(
-            vec![Vertex {
-                x: 0.0,
-                y: 0.0,
-                z: 0.0,
-            }],
+            vec![
+                Vertex {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                Vertex {
+                    x: 1.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                Vertex {
+                    x: 0.0,
+                    y: 1.0,
+                    z: 0.0,
+                },
+            ],
             vec![Triangle {
                 v1: 0,
-                v2: 0,
-                v3: 0,
+                v2: 1,
+                v3: 2,
             }],
         );
 
@@ -322,5 +414,76 @@ mod tests {
 
         assert!(buf.contains("<vertices>"));
         assert!(buf.contains("<triangles>"));
+    }
+
+    fn vertex(x: f64, y: f64, z: f64) -> Vertex {
+        Vertex { x, y, z }
+    }
+
+    fn triangle(v1: usize, v2: usize, v3: usize) -> Triangle {
+        Triangle { v1, v2, v3 }
+    }
+
+    fn edge_multiplicities(model: &Model) -> std::collections::HashMap<(usize, usize), usize> {
+        let mut edges = std::collections::HashMap::new();
+        for triangle in &model.resources.objects[0].mesh.triangles.triangles {
+            for edge in [
+                (triangle.v1, triangle.v2),
+                (triangle.v2, triangle.v3),
+                (triangle.v3, triangle.v1),
+            ] {
+                let edge = if edge.0 < edge.1 {
+                    edge
+                } else {
+                    (edge.1, edge.0)
+                };
+                *edges.entry(edge).or_insert(0) += 1;
+            }
+        }
+        edges
+    }
+
+    #[test]
+    fn it_welds_duplicate_vertices() {
+        let mut model = Model::default();
+        model.add_object(
+            vec![
+                vertex(0.0, 0.0, 0.0),
+                vertex(0.0, 1.0, 0.0),
+                vertex(1.0, 0.0, 0.0),
+                vertex(0.0, 0.0, 0.0),
+                vertex(1.0, 0.0, 0.0),
+                vertex(1.0, 1.0, 0.0),
+            ],
+            vec![triangle(0, 1, 2), triangle(3, 4, 5)],
+        );
+
+        assert_eq!(4, model.resources.objects[0].mesh.vertices.vertices.len());
+
+        let edges = edge_multiplicities(&model);
+        assert_eq!(5, edges.len());
+        assert_eq!(2, edges[&(0, 2)]);
+    }
+
+    #[test]
+    fn it_removes_degenerate_and_duplicate_triangles() {
+        let mut model = Model::default();
+        model.add_object(
+            vec![
+                vertex(0.0, 0.0, 0.0),
+                vertex(1.0, 0.0, 0.0),
+                vertex(0.0, 1.0, 0.0),
+                vertex(9.0, 9.0, 9.0),
+            ],
+            vec![
+                triangle(0, 1, 2),
+                triangle(0, 1, 2),
+                triangle(0, 1, 1),
+                triangle(3, 3, 3),
+            ],
+        );
+
+        assert_eq!(1, model.resources.objects[0].mesh.triangles.triangles.len());
+        assert_eq!(3, model.resources.objects[0].mesh.vertices.vertices.len());
     }
 }
