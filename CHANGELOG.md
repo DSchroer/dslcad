@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `normalize` operator to uniformly scale a line, plane or shape so the largest side of its bounding box is 1 unit long
 
 ### Modified
+- Semicolons are now optional: statements can end at a newline, like JavaScript automatic semicolon insertion
 - Render all of the lines of a part in a single draw call
 - Only report unique edges and vertices for shapes
 - Preview uses a CAD style viewport with a ground grid, color coded axes (x red, y green, z blue) and a corner axis gizmo

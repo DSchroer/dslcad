@@ -48,6 +48,25 @@ macro_rules! take {
     };
 }
 
+/// Skips any newlines so the next token starts the current expression.
+fn skip_newlines(lexer: &mut Lexer) {
+    while matches!(lexer.clone().next(), Some(Token::Newline)) {
+        lexer.next();
+    }
+}
+
+/// Peeks at the next token ignoring newlines, used to decide whether an
+/// expression continues on the following line (JavaScript style).
+fn next_significant(lexer: &Lexer) -> Option<Token> {
+    let mut peek = lexer.clone();
+    loop {
+        match peek.next() {
+            Some(Token::Newline) => continue,
+            token => return token,
+        }
+    }
+}
+
 impl<T> Parser<T> {
     pub fn new(reader: T, root: DocId) -> Self {
         Parser {
@@ -137,8 +156,12 @@ impl<R: Reader> Parser<R> {
     ) -> Result<Vec<Statement>, DocumentParseError> {
         let mut statements = Vec::new();
         while let Some(n) = lexer.clone().next() {
-            if Some(n) == terminal {
+            if Some(&n) == terminal.as_ref() {
                 break;
+            }
+            if n == Token::Newline {
+                lexer.next();
+                continue;
             }
 
             let statement = self.parse_statement(lexer, allow_parameters)?;
@@ -153,6 +176,7 @@ impl<R: Reader> Parser<R> {
         lexer: &mut Lexer,
         allow_parameters: bool,
     ) -> Result<Statement, DocumentParseError> {
+        skip_newlines(lexer);
         let mut peek = lexer.clone();
         match peek.next() {
             Some(Token::Var) => self.parse_variable_statement(lexer, allow_parameters),
@@ -167,8 +191,37 @@ impl<R: Reader> Parser<R> {
     ) -> Result<Statement, DocumentParseError> {
         let sb = SpanBuilder::from(lexer);
         let expr = self.parse_expression(lexer)?;
-        take!(self, lexer, Token::Semicolon = "semicolon");
+        self.take_statement_end(lexer)?;
         Ok(Statement::CreatePart(expr, sb.to(lexer)))
+    }
+
+    /// Consumes a statement terminator, which can either be an explicit
+    /// semicolon or a newline (JavaScript style automatic semicolon insertion).
+    fn take_statement_end(&mut self, lexer: &mut Lexer) -> Result<(), DocumentParseError> {
+        match lexer.clone().next() {
+            Some(Token::Newline) => {
+                skip_newlines(lexer);
+                if let Some(Token::Semicolon) = lexer.clone().next() {
+                    lexer.next();
+                    skip_newlines(lexer);
+                }
+                Ok(())
+            }
+            Some(Token::Semicolon) => {
+                lexer.next();
+                skip_newlines(lexer);
+                Ok(())
+            }
+            Some(Token::CloseScope) | None => Ok(()),
+            Some(_) => {
+                lexer.next();
+                Err(DocumentParseError::Expected(
+                    "semicolon",
+                    lexer.slice().to_string(),
+                    lexer.span(),
+                ))
+            }
+        }
     }
 
     fn parse_variable_statement(
@@ -189,14 +242,18 @@ impl<R: Reader> Parser<R> {
             ));
         }
 
-        let expr = take!(self, lexer,
-            Token::Semicolon = ";" => None,
-            Token::Equal = "=" => {
+        let expr = match lexer.clone().next() {
+            Some(Token::Equal) => {
+                lexer.next();
                 let expr = self.parse_expression(lexer)?;
-                take!(self, lexer, Token::Semicolon = "semicolon");
+                self.take_statement_end(lexer)?;
                 Some(expr)
             }
-        );
+            _ => {
+                self.take_statement_end(lexer)?;
+                None
+            }
+        };
 
         if !allow_parameters && expr.is_none() {
             return Err(DocumentParseError::ParametersNotAllowedInScopes(
@@ -259,10 +316,12 @@ impl<R: Reader> Parser<R> {
         &mut self,
         lexer: &mut Lexer,
     ) -> Result<VecDeque<Argument>, DocumentParseError> {
+        skip_newlines(lexer);
         take!(self, lexer, Token::OpenBracket = "(");
 
         let mut args = VecDeque::new();
         loop {
+            skip_newlines(lexer);
             let mut peek = lexer.clone();
             take!(self, peek,
                 Token::CloseBracket = ")" => {
@@ -282,7 +341,8 @@ impl<R: Reader> Parser<R> {
                         args.push_back(Argument::Unnamed(Box::new(expression)));
                     }
 
-                     take!(self, lexer,
+                    skip_newlines(lexer);
+                    take!(self, lexer,
                         Token::Comma = "," => {},
                         Token::CloseBracket = ")" => break
                     );
@@ -322,11 +382,13 @@ impl<R: Reader> Parser<R> {
     }
 
     fn parse_list(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
+        skip_newlines(lexer);
         take!(self, lexer, Token::OpenList = "[");
         let sb = SpanBuilder::from(lexer);
 
         let mut items = Vec::new();
         loop {
+            skip_newlines(lexer);
             let mut peek = lexer.clone();
             take!(self, peek,
                 Token::CloseList = "]" => {
@@ -336,6 +398,7 @@ impl<R: Reader> Parser<R> {
                 _ = "expression" =>  items.push(self.parse_expression(lexer)?)
             );
 
+            skip_newlines(lexer);
             take!(self, lexer,
                 Token::CloseList = "]" => break,
                 Token::Comma = "," => {}
@@ -350,8 +413,11 @@ impl<R: Reader> Parser<R> {
         let sb = SpanBuilder::from(lexer);
 
         let range = self.parse_expression(lexer)?;
+        skip_newlines(lexer);
         take!(self, lexer, Token::As = "as");
+        skip_newlines(lexer);
         let ident = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
+        skip_newlines(lexer);
         take!(self, lexer, Token::Colon = ":");
 
         self.variables.insert(ident.to_string());
@@ -373,17 +439,23 @@ impl<R: Reader> Parser<R> {
         let sb = SpanBuilder::from(lexer);
 
         let range = self.parse_expression(lexer)?;
+        skip_newlines(lexer);
         let root = take!(self, lexer,
             Token::As = "as" => None,
             Token::From = "from" => {
                 let root = self.parse_expression(lexer)?;
+                skip_newlines(lexer);
                 take!(self, lexer, Token::As = "as");
                 Some(Box::new(root))
             }
         );
+        skip_newlines(lexer);
         let left = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
+        skip_newlines(lexer);
         take!(self, lexer, Token::Comma = ",");
+        skip_newlines(lexer);
         let right = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
+        skip_newlines(lexer);
         take!(self, lexer, Token::Colon = ":");
 
         self.variables.insert(left.to_string());
@@ -409,10 +481,13 @@ impl<R: Reader> Parser<R> {
         let sb = SpanBuilder::from(lexer);
 
         let condition = self.parse_expression(lexer)?;
+        skip_newlines(lexer);
         take!(self, lexer, Token::Colon = ":");
         let if_true = self.parse_expression(lexer)?;
+        skip_newlines(lexer);
         take!(self, lexer, Token::Else = "else");
 
+        skip_newlines(lexer);
         let mut peek = lexer.clone();
         let if_false = take!(self, peek,
             Token::Colon = ":" => {
@@ -439,6 +514,7 @@ impl<R: Reader> Parser<R> {
         left: Expression,
         parse_right: impl Fn(&mut Self, &mut Lexer) -> Result<Expression, DocumentParseError>,
     ) -> Result<Expression, DocumentParseError> {
+        skip_newlines(lexer);
         lexer.next();
         let sb = SpanBuilder::from(lexer);
         let right = parse_right(self, lexer)?;
@@ -484,43 +560,36 @@ impl<R: Reader> Parser<R> {
 
     fn parse_or(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_and(lexer)?;
-        let mut peek = lexer.clone();
-        match peek.next() {
+        match next_significant(lexer) {
             Some(Token::Or) => self.operator(lexer, "or", first, |s, l| s.parse_or(l)),
-            Some(_) => Ok(first),
-            None => Err(DocumentParseError::UnexpectedEndOfFile()),
+            _ => Ok(first),
         }
     }
 
     fn parse_and(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_equality(lexer)?;
-        let mut peek = lexer.clone();
-        match peek.next() {
+        match next_significant(lexer) {
             Some(Token::And) => self.operator(lexer, "and", first, |s, l| s.parse_and(l)),
-            Some(_) => Ok(first),
-            None => Err(DocumentParseError::UnexpectedEndOfFile()),
+            _ => Ok(first),
         }
     }
 
     fn parse_equality(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_comparison(lexer)?;
-        let mut peek = lexer.clone();
-        match peek.next() {
+        match next_significant(lexer) {
             Some(Token::Equals) => {
                 self.operator(lexer, "equals", first, |s, l| s.parse_equality(l))
             }
             Some(Token::NotEquals) => {
                 self.operator(lexer, "not_equals", first, |s, l| s.parse_equality(l))
             }
-            Some(_) => Ok(first),
-            None => Err(DocumentParseError::UnexpectedEndOfFile()),
+            _ => Ok(first),
         }
     }
 
     fn parse_comparison(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_add_sub(lexer)?;
-        let mut peek = lexer.clone();
-        match peek.next() {
+        match next_significant(lexer) {
             Some(Token::Less) => self.operator(lexer, "less", first, |s, l| s.parse_comparison(l)),
             Some(Token::LessEquals) => {
                 self.operator(lexer, "less_or_equal", first, |s, l| s.parse_comparison(l))
@@ -533,28 +602,24 @@ impl<R: Reader> Parser<R> {
                     s.parse_comparison(l)
                 })
             }
-            Some(_) => Ok(first),
-            None => Err(DocumentParseError::UnexpectedEndOfFile()),
+            _ => Ok(first),
         }
     }
 
     fn parse_add_sub(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_mul_div_mod(lexer)?;
-        let mut peek = lexer.clone();
-        match peek.next() {
+        match next_significant(lexer) {
             Some(Token::Plus) => self.operator(lexer, "add", first, |s, l| s.parse_add_sub(l)),
             Some(Token::Minus) => {
                 self.operator(lexer, "subtract", first, |s, l| s.parse_add_sub(l))
             }
-            Some(_) => Ok(first),
-            None => Err(DocumentParseError::UnexpectedEndOfFile()),
+            _ => Ok(first),
         }
     }
 
     fn parse_mul_div_mod(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_pow(lexer)?;
-        let mut peek = lexer.clone();
-        match peek.next() {
+        match next_significant(lexer) {
             Some(Token::Divide) => {
                 self.operator(lexer, "divide", first, |s, l| s.parse_mul_div_mod(l))
             }
@@ -564,18 +629,15 @@ impl<R: Reader> Parser<R> {
             Some(Token::Modulo) => {
                 self.operator(lexer, "modulo", first, |s, l| s.parse_mul_div_mod(l))
             }
-            Some(_) => Ok(first),
-            None => Err(DocumentParseError::UnexpectedEndOfFile()),
+            _ => Ok(first),
         }
     }
 
     fn parse_pow(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let first = self.parse_inject(lexer)?;
-        let mut peek = lexer.clone();
-        match peek.next() {
+        match next_significant(lexer) {
             Some(Token::Power) => self.operator(lexer, "power", first, |s, l| s.parse_pow(l)),
-            Some(_) => Ok(first),
-            None => Err(DocumentParseError::UnexpectedEndOfFile()),
+            _ => Ok(first),
         }
     }
 
@@ -589,9 +651,13 @@ impl<R: Reader> Parser<R> {
         lexer: &mut Lexer,
         first: Expression,
     ) -> Result<Expression, DocumentParseError> {
-        let mut peek = lexer.clone();
-        match peek.next() {
+        match next_significant(lexer) {
             Some(Token::Inject) => {
+                let mut peek = lexer.clone();
+                skip_newlines(&mut peek);
+                peek.next();
+
+                skip_newlines(lexer);
                 lexer.next();
                 let first_span = first.span().clone();
                 let sb = SpanBuilder::from(lexer);
@@ -634,16 +700,14 @@ impl<R: Reader> Parser<R> {
                     )),
                 }
             }
-            Some(_) => Ok(first),
-            None => Err(DocumentParseError::UnexpectedEndOfFile()),
+            _ => Ok(first),
         }
     }
 
     fn parse_spanning(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
         let mut first = self.parse_terminal_expression(lexer)?;
         loop {
-            let mut peek = lexer.clone();
-            first = match peek.next() {
+            first = match next_significant(lexer) {
                 Some(Token::OpenBracket) => {
                     let arguments = self.parse_call_arguments(lexer)?;
                     Expression::Invocation(
@@ -655,6 +719,7 @@ impl<R: Reader> Parser<R> {
                     )
                 }
                 Some(Token::Period) => {
+                    skip_newlines(lexer);
                     lexer.next();
                     let sb = SpanBuilder::from(lexer);
                     let l = Box::new(first);
@@ -668,6 +733,7 @@ impl<R: Reader> Parser<R> {
                     )
                 }
                 Some(Token::OpenList) => {
+                    skip_newlines(lexer);
                     lexer.next();
                     let sb = SpanBuilder::from(lexer);
                     let r = self.parse_expression(lexer)?;
@@ -680,8 +746,7 @@ impl<R: Reader> Parser<R> {
                         sb.to(lexer),
                     )
                 }
-                Some(_) => break,
-                None => return Err(DocumentParseError::UnexpectedEndOfFile()),
+                _ => break,
             }
         }
         Ok(first)
@@ -691,6 +756,7 @@ impl<R: Reader> Parser<R> {
         &mut self,
         lexer: &mut Lexer,
     ) -> Result<Expression, DocumentParseError> {
+        skip_newlines(lexer);
         let mut peek = lexer.clone();
         Ok(take!(self, peek,
             Token::Minus = "-" => {
@@ -1066,6 +1132,70 @@ pub mod tests {
         });
         parse("var foo = [cube(), 2];", |a| {
             a.unwrap();
+        });
+    }
+
+    #[test]
+    fn it_can_parse_without_semicolons() {
+        parse("var x = 5\nvar y = 6\ncube(x=x, y=y)", |a| {
+            a.unwrap();
+        });
+        parse("var s = {\n 5\n}\ns", |a| {
+            a.unwrap();
+        });
+        parse("var s = func {\n var t = 5\n t\n}\ns()", |a| {
+            a.unwrap();
+        });
+        parse("if true: 1 else: 0", |a| {
+            a.unwrap();
+        });
+        parse("if (1 == 1):\n cube()\nelse:\n sphere()\n;", |a| {
+            a.unwrap();
+        });
+        parse("var f = [1,\n2]\nf", |a| {
+            a.unwrap();
+        });
+        parse("map range(0, 3) as x:\n cube() -> translate(x=x)\n", |a| {
+            a.unwrap();
+        });
+        parse(
+            "reduce range(1, 3) from cube() as acc, x:\n acc -> union(cube())\n",
+            |a| {
+                a.unwrap();
+            },
+        );
+        parse("var x = 5 // comment\nx", |a| {
+            a.unwrap();
+        });
+        parse("var x = 5\r\nx", |a| {
+            a.unwrap();
+        });
+    }
+
+    #[test]
+    fn it_continues_expressions_across_lines() {
+        parse("cube()\n\n-> center()\n\n-> translate(z=2)\n", |a| {
+            a.unwrap();
+        });
+        parse("var x = 1 +\n2\nx", |a| {
+            a.unwrap();
+        });
+
+        parse_statement("1\n+ 2", |p| {
+            assert!(matches!(p, Statement::CreatePart(
+                Expression::Invocation(Invocation { arguments, .. }, _), ..
+            ) if arguments.iter().any(|a| a.has_name("left"))
+                && arguments.iter().any(|a| a.has_name("right"))));
+        });
+    }
+
+    #[test]
+    fn it_requires_a_separator_between_statements() {
+        parse("var x = 5 var y = 6", |a| {
+            a.expect_err("should require a separator between statements");
+        });
+        parse("1 2", |a| {
+            a.expect_err("should require a separator between statements");
         });
     }
 

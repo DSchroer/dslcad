@@ -20,6 +20,8 @@ pub enum Token {
     Colon,
     #[token(";")]
     Semicolon,
+    #[token("\n")]
+    Newline,
     #[token(".")]
     Period,
 
@@ -97,7 +99,7 @@ pub enum Token {
     Path,
 
     #[error]
-    #[regex(r"([ \t\n\r\f]+|//.*)", logos::skip)]
+    #[regex(r"([ \t\r\f]+|//.*)", logos::skip)]
     Error,
 }
 
@@ -121,7 +123,24 @@ mod tests {
 
     #[test]
     fn it_can_lex_with_crlf() {
-        assert_eq!(vec![Var, Identifier], tokens("var\r\nx"));
+        assert_eq!(vec![Var, Newline, Identifier], tokens("var\r\nx"));
+    }
+
+    #[test]
+    fn it_can_lex_newlines() {
+        assert_eq!(vec![Identifier, Newline, Identifier], tokens("foo\nbar"));
+        assert_eq!(
+            vec![Identifier, Newline, Newline, Identifier],
+            tokens("foo\n\nbar")
+        );
+    }
+
+    #[test]
+    fn it_can_lex_comments() {
+        assert_eq!(
+            vec![Identifier, Newline, Identifier],
+            tokens("foo // comment\nbar")
+        );
     }
 
     #[test]

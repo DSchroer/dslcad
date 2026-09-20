@@ -314,6 +314,15 @@ mod tests {
     }
 
     #[test]
+    fn it_supports_optional_semicolons() {
+        assert_eq!(Ok(5.), run("var x = 5\nx").to_number());
+        assert_eq!(
+            Ok(15.),
+            run("var a = {\n var b = 10\n b + 5\n}\na").to_number()
+        );
+    }
+
+    #[test]
     fn it_can_join_lines() {
         run(r"
 line(start=point(x=0,y=0), end=point(x=1,y=1))

@@ -15,6 +15,7 @@ to build parts.
 - `model.data` access data of a model
 - `list[5]` get the fifth item of a list
 - `if a: something() else: something_else();` test a and follow one branch depending on the value
+- statements can end at a newline instead of a semicolon, like JavaScript automatic semicolon insertion
 
 ## Lists
 - `[1,2,3]` make a list with three numbers
