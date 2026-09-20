@@ -3,13 +3,18 @@
 // so curves and surfaces are rebuilt as B-splines (no triangulation involved).
 #include <cmath>
 #include <memory>
+#include <vector>
 #include <utility>
 
 #include <Bnd_Box.hxx>
 #include <BRepBndLib.hxx>
+#include <BRepBuilderAPI_MakeSolid.hxx>
+#include <BRepBuilderAPI_Sewing.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepCheck_ListOfStatus.hxx>
 #include <BRepCheck_Result.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
 #include <BRepLib.hxx>
 #include <BRepTools.hxx>
 #include <BRepTools_Modification.hxx>
@@ -37,6 +42,7 @@
 #include <TColgp_Array1OfPnt2d.hxx>
 #include <TColgp_HArray1OfPnt2d.hxx>
 #include <TColgp_Array2OfPnt.hxx>
+#include <TColStd_HArray1OfReal.hxx>
 #include <TopAbs_Orientation.hxx>
 #include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
@@ -299,9 +305,11 @@ public:
         const Standard_Real v_period = v_periodic ? surface->VPeriod() : 0.0;
 
         TColgp_Array1OfPnt2d points(1, CURVE_SAMPLES);
+        Handle(TColStd_HArray1OfReal) parameters = new TColStd_HArray1OfReal(1, CURVE_SAMPLES);
         gp_Pnt2d previous;
         for (int i = 0; i < CURVE_SAMPLES; ++i) {
             const Standard_Real t = first + (last - first) * i / (CURVE_SAMPLES - 1);
+            parameters->SetValue(i + 1, t);
             const gp_Pnt point = curve3d->Value(t).Transformed(edge_location.Transformation());
 
             // Consecutive points are close together, so the previous parameter
@@ -351,9 +359,12 @@ public:
 
         if (closed) {
             // Closed surfaces and closed edges contain seams, so keep using an
-            // approximation that stays within a single period.
+            // approximation that stays within a single period. The pcurve is
+            // parameterized with the edge parameters so it stays in sync with
+            // the 3D curve.
             Geom2dAPI_PointsToBSpline fit;
-            fit.Init(points, 3, 8, GeomAbs_C2, myBend.tolerance / myBend.scale);
+            fit.Init(points, parameters->Array1(), 3, 8, GeomAbs_C2,
+                     myBend.tolerance / myBend.scale);
             if (!fit.IsDone()) {
                 myFailed = true;
                 return Standard_False;
@@ -363,7 +374,8 @@ public:
             // Interpolating the projected points keeps short pcurves simple.
             // Approximating them with the tight tolerance above can instead
             // oscillate between samples with an overshoot far larger than the
-            // pcurve itself, which leaves the shape invalid.
+            // pcurve itself, which leaves the shape invalid. Interpolating with
+            // the edge parameters keeps the pcurve in sync with the 3D curve.
             bool interpolated = false;
             try {
                 Handle(TColgp_HArray1OfPnt2d) interpolated_points =
@@ -372,8 +384,8 @@ public:
                     interpolated_points->SetValue(i, points.Value(i));
                 }
 
-                Geom2dAPI_Interpolate interpolate(interpolated_points, Standard_False,
-                                                  myBend.tolerance / myBend.scale);
+                Geom2dAPI_Interpolate interpolate(interpolated_points, parameters,
+                                                  Standard_False, myBend.tolerance / myBend.scale);
                 interpolate.Perform();
                 if (interpolate.IsDone()) {
                     result = interpolate.Curve();
@@ -388,7 +400,7 @@ public:
                 // Interpolation fails when the samples collapse, so fall back
                 // to an approximation that may deviate by the 3D tolerance.
                 Geom2dAPI_PointsToBSpline fit;
-                fit.Init(points, 3, 8, GeomAbs_C2, myBend.tolerance);
+                fit.Init(points, parameters->Array1(), 3, 8, GeomAbs_C2, myBend.tolerance);
                 if (!fit.IsDone()) {
                     myFailed = true;
                     return Standard_False;
@@ -455,6 +467,89 @@ private:
     bool myFailed;
     NCollection_DataMap<TopoDS_Shape, Handle(Geom_Curve)> myCurves;
 };
+
+// A full 360 degree bend maps the ends of the shape onto each other, leaving
+// two coincident end faces inside the result as an internal wall. Drop those
+// faces and stitch the rest back together, so the bend is a single continuous
+// solid instead of two halves touching along a face.
+TopoDS_Shape merge_wrapped_ends(const TopoDS_Shape& shape, double tolerance, double diagonal) {
+    std::vector<TopoDS_Face> faces;
+    std::vector<double> areas;
+    std::vector<gp_Pnt> centers;
+    std::vector<int> edge_counts;
+    for (TopExp_Explorer it(shape, TopAbs_FACE); it.More(); it.Next()) {
+        const TopoDS_Face face = TopoDS::Face(it.Current());
+        GProp_GProps props;
+        BRepGProp::SurfaceProperties(face, props);
+        int edge_count = 0;
+        for (TopExp_Explorer edge_it(face, TopAbs_EDGE); edge_it.More(); edge_it.Next()) {
+            edge_count++;
+        }
+        faces.push_back(face);
+        areas.push_back(props.Mass());
+        centers.push_back(props.CentreOfMass());
+        edge_counts.push_back(edge_count);
+    }
+
+    // Coincident end faces have the same geometry, so they match on area,
+    // centroid and number of edges. The tolerance scales with the shape since
+    // the two ends are fitted independently.
+    const double center_tolerance = std::max(diagonal * 1e-4, tolerance * 10.0);
+    std::vector<bool> drop(faces.size(), false);
+    for (size_t i = 0; i < faces.size(); ++i) {
+        for (size_t j = i + 1; j < faces.size(); ++j) {
+            if (drop[i] || drop[j] || edge_counts[i] != edge_counts[j]) {
+                continue;
+            }
+            const double largest = std::max(std::fabs(areas[i]), std::fabs(areas[j]));
+            if (centers[i].Distance(centers[j]) < center_tolerance &&
+                std::fabs(areas[i] - areas[j]) < std::max(largest * 1e-6, tolerance * tolerance)) {
+                drop[i] = drop[j] = true;
+            }
+        }
+    }
+
+    bool found = false;
+    for (bool dropped : drop) {
+        found = found || dropped;
+    }
+    if (!found) {
+        return shape;
+    }
+
+    BRepBuilderAPI_Sewing sewing(center_tolerance);
+    for (size_t i = 0; i < faces.size(); ++i) {
+        if (!drop[i]) {
+            sewing.Add(faces[i]);
+        }
+    }
+    sewing.Perform();
+    if (sewing.NbFreeEdges() != 0 || sewing.SewedShape().IsNull()) {
+        return shape;
+    }
+
+    TopoDS_Shape sewn = sewing.SewedShape();
+    int shell_count = 0;
+    TopoDS_Shell shell;
+    for (TopExp_Explorer shell_it(sewn, TopAbs_SHELL); shell_it.More(); shell_it.Next()) {
+        shell = TopoDS::Shell(shell_it.Current());
+        shell_count++;
+    }
+    if (shell_count != 1) {
+        return shape;
+    }
+    BRepBuilderAPI_MakeSolid make_solid(shell);
+    if (!make_solid.IsDone()) {
+        return shape;
+    }
+
+    TopoDS_Shape solid = make_solid.Solid();
+    if (!BRepCheck_Analyzer(solid).IsValid()) {
+        return shape;
+    }
+
+    return solid;
+}
 
 } // namespace
 
@@ -535,6 +630,18 @@ extern "C" void* dslcad_bend_shape(const void* shape, int axis, double degrees) 
             result = fixer->Shape();
             if (result.IsNull() || !BRepCheck_Analyzer(result).IsValid()) {
                 return nullptr;
+            }
+        }
+
+        // A full 360 degree bend wraps the shape back onto itself, so the two
+        // ends touch. The end faces then sit on top of each other inside the
+        // result as internal walls. Merge them away and stitch the shape back
+        // together so the bend forms a single continuous solid.
+        if (std::fabs(std::fabs(degrees) - 360.0) < 1e-9) {
+            try {
+                result = merge_wrapped_ends(result, bend.tolerance, diagonal);
+            } catch (const Standard_Failure&) {
+                // Keep the unmerged shape if the seam could not be stitched.
             }
         }
 
