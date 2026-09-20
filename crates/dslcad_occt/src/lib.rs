@@ -1,4 +1,5 @@
 mod bend;
+mod bounds;
 mod command;
 mod compound;
 mod edge;

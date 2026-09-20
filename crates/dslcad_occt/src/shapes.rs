@@ -53,6 +53,24 @@ pub trait DsShape: for<'a> From<&'a TopoDS_Shape> {
         .into())
     }
 
+    /// Compute the axis aligned bounding box of the shape.
+    fn bounds(&self) -> Result<(Point, Point), Error> {
+        crate::bounds::bounds(self.shape())
+    }
+
+    /// Length of the longest side of the shape's axis aligned bounding box.
+    fn max_dimension(&self) -> Result<f64, Error> {
+        let (minimum, maximum) = self.bounds()?;
+
+        Ok(f64::max(
+            (maximum.x() - minimum.x()).abs(),
+            f64::max(
+                (maximum.y() - minimum.y()).abs(),
+                (maximum.z() - minimum.z()).abs(),
+            ),
+        ))
+    }
+
     fn transform(&self, values: &[f64]) -> Result<Self, Error> {
         assert_eq!(values.len(), 3 * 4, "transform must be 3 x 4 matrix");
 
@@ -138,5 +156,19 @@ mod tests {
             Shape::cube(1., 1., 1.).unwrap().points().unwrap()
         );
         dbg!(shape.points().unwrap());
+    }
+
+    #[test]
+    fn it_measures_the_bounding_box() {
+        let cube = Shape::cube(2., 4., 6.).unwrap();
+        let (minimum, maximum) = cube.bounds().unwrap();
+
+        assert!((minimum.x() - 0.0).abs() < 1e-9);
+        assert!((minimum.y() - 0.0).abs() < 1e-9);
+        assert!((minimum.z() - 0.0).abs() < 1e-9);
+        assert!((maximum.x() - 2.0).abs() < 1e-9);
+        assert!((maximum.y() - 4.0).abs() < 1e-9);
+        assert!((maximum.z() - 6.0).abs() < 1e-9);
+        assert!((cube.max_dimension().unwrap() - 6.0).abs() < 1e-9);
     }
 }

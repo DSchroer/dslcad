@@ -218,6 +218,19 @@ pub fn scale(shape: Value, size: f64) -> Result<Value, RuntimeError> {
     Ok(same_type(&shape, result))
 }
 
+pub fn normalize(shape: Value) -> Result<Value, RuntimeError> {
+    let wire = shape.to_wire()?;
+    let length = wire.max_dimension()?;
+    let factor = if length > f64::EPSILON {
+        1.0 / length
+    } else {
+        1.0
+    };
+    let result = Wire::scale(&wire, factor)?;
+
+    Ok(same_type(&shape, result))
+}
+
 pub fn center(
     shape: Value,
     x: Option<bool>,

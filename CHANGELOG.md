@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Import from `svg` file
 - `--screenshot` parameter to render a single view to a png file with optional axis angles (`x90y45`)
 - `bend` operator to bend a 3D shape around an axis
+- `normalize` operator to uniformly scale a line, plane or shape so the largest side of its bounding box is 1 unit long
 
 ### Modified
 - Render all of the lines of a part in a single draw call

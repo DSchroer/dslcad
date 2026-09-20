@@ -462,6 +462,12 @@ impl Default for Library {
             bind!(rotate, faces::rotate_3d[shape=shape2d, x=option_number, y=option_number, z=option_number], Category::TwoD, "rotate a 2D shape"),
             bind!(scale, faces::scale[shape=shape2d, scale=number], Category::TwoD, "scale a 2D shape"),
             bind!(
+                normalize,
+                faces::normalize[shape = shape2d],
+                Category::TwoD,
+                "scale a 2D shape so its largest side is 1 unit long"
+            ),
+            bind!(
                 center,
                 faces::center[shape = shape2d, x=option_bool, y=option_bool, z=option_bool],
                 Category::TwoD,
@@ -490,6 +496,12 @@ impl Default for Library {
             bind!(rotate, shapes::rotate[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "rotate a shape"),
             bind!(scale, shapes::scale[shape=shape, scale=number], Category::ThreeD, "scale a shape"),
             bind!(scale, shapes::scale_xyz[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "scale a shape"),
+            bind!(
+                normalize,
+                shapes::normalize[shape = shape],
+                Category::ThreeD,
+                "scale a shape so its largest side is 1 unit long"
+            ),
             bind!(
                 center,
                 shapes::center[shape = shape, x=option_bool, y=option_bool, z=option_bool],

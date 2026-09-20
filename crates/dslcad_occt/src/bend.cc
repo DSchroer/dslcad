@@ -8,6 +8,8 @@
 #include <Bnd_Box.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepCheck_Analyzer.hxx>
+#include <BRepCheck_ListOfStatus.hxx>
+#include <BRepCheck_Result.hxx>
 #include <BRepLib.hxx>
 #include <BRepTools.hxx>
 #include <BRepTools_Modification.hxx>
@@ -37,6 +39,7 @@
 #include <TColgp_Array2OfPnt.hxx>
 #include <TopAbs_Orientation.hxx>
 #include <TopExp.hxx>
+#include <TopExp_Explorer.hxx>
 #include <TopLoc_Location.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Edge.hxx>
@@ -446,13 +449,17 @@ extern "C" void* dslcad_bend_shape(const void* shape, int axis, double degrees) 
         Handle(BendModification) modification = new BendModification(bend);
         BRepTools_Modifier modifier(input, modification);
         if (!modifier.IsDone() || modification->Failed()) {
+            fprintf(stderr, "BENDDBG modifier done=%d failed=%d\n", (int)modifier.IsDone(), (int)modification->Failed());
             return nullptr;
         }
 
         TopoDS_Shape result = modifier.ModifiedShape(input);
         if (result.IsNull()) {
+            fprintf(stderr, "BENDDBG result null\n");
             return nullptr;
         }
+        fprintf(stderr, "BENDDBG after modifier valid=%d angle=%g radius=%g\n",
+                (int)BRepCheck_Analyzer(result).IsValid(), angle, bend.radius);
 
         // Fitting surfaces and curves leaves the pcurves of some edges with a
         // parameterization that no longer matches their 3D curve. Recomputing
@@ -460,13 +467,38 @@ extern "C" void* dslcad_bend_shape(const void* shape, int axis, double degrees) 
         // back to ShapeFix when the shape stays invalid.
         if (!BRepCheck_Analyzer(result).IsValid()) {
             BRepLib::SameParameter(result, bend.tolerance, Standard_True);
+            fprintf(stderr, "BENDDBG after SameParameter valid=%d\n", (int)BRepCheck_Analyzer(result).IsValid());
         }
 
         if (!BRepCheck_Analyzer(result).IsValid()) {
+            {
+                BRepCheck_Analyzer whole(result);
+                const TopAbs_ShapeEnum types[3] = {TopAbs_FACE, TopAbs_WIRE, TopAbs_EDGE};
+                const char* names[3] = {"face", "wire", "edge"};
+                for (int t = 0; t < 3; ++t) {
+                    int total = 0, bad = 0;
+                    for (TopExp_Explorer it(result, types[t]); it.More(); it.Next()) {
+                        total++;
+                        if (!whole.IsValid(it.Current())) {
+                            bad++;
+                            if (bad <= 2) {
+                                const Handle(BRepCheck_Result)& res = whole.Result(it.Current());
+                                if (!res.IsNull() && res->IsStatusOnShape(it.Current())) {
+                                    for (BRepCheck_ListOfStatus::Iterator sit(res->StatusOnShape(it.Current())); sit.More(); sit.Next()) {
+                                        fprintf(stderr, "BENDDBG bad %s status=%d\n", names[t], (int)sit.Value());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    fprintf(stderr, "BENDDBG %ss=%d bad=%d\n", names[t], total, bad);
+                }
+            }
             Handle(ShapeFix_Shape) fixer = new ShapeFix_Shape(result);
             fixer->Perform();
             result = fixer->Shape();
             if (result.IsNull() || !BRepCheck_Analyzer(result).IsValid()) {
+                fprintf(stderr, "BENDDBG ShapeFix failed null=%d\n", (int)result.IsNull());
                 return nullptr;
             }
         }

@@ -73,6 +73,7 @@ to build parts.
 - `rotate(shape=line|plane, angle=[number])` rotate a 2D shape
 - `rotate(shape=line|plane, x=[number], y=[number], z=[number])` rotate a 2D shape
 - `scale(shape=line|plane, scale=number)` scale a 2D shape
+- `normalize(shape=line|plane)` scale a 2D shape so its largest side is 1 unit long
 - `center(shape=line|plane, x=[bool], y=[bool], z=[bool])` center a 2D shape
 - `offset(shape=plane, distance=number)` offset a plane
 - `thicken(shape=line, distance=[number], x=[number], y=[number], z=[number])` turn a line into a face
@@ -93,6 +94,7 @@ to build parts.
 - `rotate(shape=shape, x=[number], y=[number], z=[number])` rotate a shape
 - `scale(shape=shape, scale=number)` scale a shape
 - `scale(shape=shape, x=[number], y=[number], z=[number])` scale a shape
+- `normalize(shape=shape)` scale a shape so its largest side is 1 unit long
 - `center(shape=shape, x=[bool], y=[bool], z=[bool])` center a shape
 - `slice(left=shape, right=line|plane)` cut a slice out of a shape
 - `slice(left=shape, right=shape)` cut a slice out of a shape

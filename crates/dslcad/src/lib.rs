@@ -262,6 +262,22 @@ mod tests {
     }
 
     #[test]
+    fn it_can_normalize() {
+        use dslcad_occt::DsShape;
+
+        let shape = run("cube(x=2, y=4, z=6) -> normalize();");
+        let shape = shape.to_shape().unwrap();
+        assert!((shape.max_dimension().unwrap() - 1.0).abs() < 1e-6);
+        assert!((shape.volume() - 48.0 / 216.0).abs() < 1e-6);
+
+        let plane = run("square(x=2, y=4) -> normalize();");
+        assert!((plane.to_plane().unwrap().max_dimension().unwrap() - 1.0).abs() < 1e-6);
+
+        let line = run("line(start=point(x=0,y=0), end=point(x=3,y=4)) -> normalize();");
+        assert!((line.to_line().unwrap().max_dimension().unwrap() - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
     fn it_supports_arguments() {
         let args = parse_arguments(vec!["a=\"5\""].into_iter()).unwrap();
 

@@ -8,6 +8,7 @@ fn main() {
     build
         .cpp(true)
         .file("src/bend.cc")
+        .file("src/bounds.cc")
         .include(&include)
         .std("c++17")
         .warnings(false);
@@ -19,4 +20,5 @@ fn main() {
     build.compile("dslcad_bend");
 
     println!("cargo:rerun-if-changed=src/bend.cc");
+    println!("cargo:rerun-if-changed=src/bounds.cc");
 }

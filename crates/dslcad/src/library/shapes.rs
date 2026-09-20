@@ -78,6 +78,17 @@ pub fn scale(shape: &Shape, size: f64) -> Result<Value, RuntimeError> {
     Ok(Shape::scale(shape, size)?.into())
 }
 
+pub fn normalize(shape: &Shape) -> Result<Value, RuntimeError> {
+    let length = shape.max_dimension()?;
+    let factor = if length > f64::EPSILON {
+        1.0 / length
+    } else {
+        1.0
+    };
+
+    Ok(Shape::scale(shape, factor)?.into())
+}
+
 pub fn bend(
     shape: &Shape,
     x: Option<f64>,
