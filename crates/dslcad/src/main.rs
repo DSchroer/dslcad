@@ -1,4 +1,4 @@
-use clap::{Parser, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 use dslcad::error_printer::ErrorPrinter;
 use dslcad::library::Library;
 use dslcad::parser::{Ast, DocumentParseError, ParseError};
@@ -6,8 +6,11 @@ use dslcad::reader::{FsReader, StdinReader};
 use dslcad::runtime::{RuntimeError, WithStack};
 use dslcad::{eval, parse, parse_arguments, parse_with, render};
 use dslcad_storage::protocol;
-use dslcad_storage::protocol::{BincodeError, Render};
+use dslcad_storage::protocol::BincodeError;
+#[cfg(feature = "preview")]
+use dslcad_storage::protocol::Render;
 use dslcad_storage::threemf::{ThreeMF, ThreeMFError};
+#[cfg(feature = "preview")]
 use dslcad_viewer::PreviewHandle;
 use log::info;
 use std::env;
@@ -16,11 +19,47 @@ use std::io::{stderr, Write};
 use std::path::Path;
 use thiserror::Error;
 
+#[cfg(feature = "preview")]
+const EXAMPLE_HELP: &str = "\
+Examples:
+  dslcad ./part.ds                  render part.ds to part.3mf
+  dslcad ./part.ds --preview        open part.ds in the interactive preview
+  dslcad ./part.ds -o stl           render to an STL instead of a 3MF
+  dslcad ./part.ds -a size=5        render with the `size` script argument set to 5
+  dslcad ./part.ds -s x90y45 2      render a screenshot from an angle at 2x zoom
+  dslcad cheatsheet                 print the full syntax and function reference
+
+Run `dslcad cheatsheet` for the language reference, and see
+https://github.com/DSchroer/dslcad/tree/master/examples for example models.";
+
+#[cfg(not(feature = "preview"))]
+const EXAMPLE_HELP: &str = "\
+Examples:
+  dslcad ./part.ds                  render part.ds to part.3mf
+  dslcad ./part.ds -o stl           render to an STL instead of a 3MF
+  dslcad ./part.ds -a size=5        render with the `size` script argument set to 5
+  dslcad cheatsheet                 print the full syntax and function reference
+
+Run `dslcad cheatsheet` for the language reference, and see
+https://github.com/DSchroer/dslcad/tree/master/examples for example models.";
+
 #[derive(Parser, Debug, Clone)]
-#[command(author, version, about, long_about = None)]
+#[command(
+    author,
+    version,
+    about = "Parametric CAD from code",
+    long_about = "DSLCAD is a parametric CAD package with a scripting language and an \
+interactive 3D preview. Run a model file to render it to a 3D-printable mesh. Models are \
+written in .ds files; run `dslcad cheatsheet` to learn the language.",
+    after_help = EXAMPLE_HELP,
+    arg_required_else_help = true
+)]
 struct Args {
+    #[command(subcommand)]
+    command: Option<Command>,
+
     /// Source path to load, or `-` to read from stdin
-    source: String,
+    source: Option<String>,
 
     #[cfg(feature = "preview")]
     #[arg(short, long)]
@@ -37,9 +76,10 @@ struct Args {
         conflicts_with = "preview"
     )]
     /// Render a single view of the part to a png file. Angle is a sequence of
-    /// axis rotations like `x90y45`, where x tilts from the top, y rotates
-    /// around the vertical axis and z rolls the camera. Zoom is a
-    /// magnification factor (defaults to 1)
+    /// axis rotations like `x90y45`, where x tilts from the top (x0 is a top
+    /// view), y rotates around the vertical axis and z rolls the camera. A bare
+    /// number is shorthand for a y rotation. Zoom is a magnification factor
+    /// (defaults to 1)
     screenshot: Option<Vec<String>>,
 
     #[arg(short, long)]
@@ -55,19 +95,14 @@ struct Args {
     output: Output,
 
     #[arg(short, long)]
-    /// Log filter
+    /// Log filter (examples: "info", "debug")
     log: Option<String>,
-
-    #[command(flatten)]
-    cheatsheet: Cheatsheet,
 }
 
-#[derive(Parser, Debug, Clone)]
-#[command(author, version, about, long_about = None)]
-struct Cheatsheet {
-    #[arg(long)]
-    /// Print the cheatsheet
-    cheatsheet: bool,
+#[derive(Subcommand, Debug, Clone)]
+enum Command {
+    /// Print the full syntax and function cheat sheet
+    Cheatsheet,
 }
 
 #[derive(Debug, Clone, Default, ValueEnum)]
@@ -96,64 +131,70 @@ enum CliError {
     #[error(transparent)]
     Bincode(#[from] BincodeError),
     #[error(transparent)]
+    #[cfg(feature = "preview")]
     Notify(#[from] notify::Error),
     #[error(transparent)]
     Stl(#[from] protocol::StlError),
+    #[cfg(feature = "preview")]
     #[error("invalid screenshot argument: {0}")]
     InvalidScreenshot(String),
+    #[cfg(feature = "preview")]
     #[error("screenshot failed: {0}")]
     Screenshot(String),
 }
 
 fn main() {
-    match Args::try_parse() {
-        Ok(args) => {
-            if let Some(log) = &args.log {
-                env_logger::builder().parse_filters(log).init();
-            }
+    let args = match Args::try_parse() {
+        Ok(args) => args,
+        Err(e) => e.exit(),
+    };
 
-            #[cfg(feature = "preview")]
-            if let Some(values) = &args.screenshot {
-                let result = parse_screenshot_arguments(values);
-                match result {
-                    Ok((angle, zoom)) => {
-                        if let Err(e) = render_to_screenshot(
-                            &args.source,
-                            args.argument,
-                            args.deflection,
-                            angle,
-                            zoom,
-                        ) {
-                            handle_error(e, &mut stderr()).unwrap();
-                        }
-                    }
-                    Err(e) => handle_error(e, &mut stderr()).unwrap(),
-                }
-                return;
-            }
-
-            #[cfg(feature = "preview")]
-            if args.preview {
-                if let Err(e) = render_to_preview(&args.source, args.argument, args.deflection) {
-                    handle_error(e, &mut stderr()).unwrap();
-                }
-                return;
-            }
-
-            if let Err(e) =
-                render_to_file(&args.source, args.argument, args.deflection, args.output)
-            {
-                handle_error(e, &mut stderr()).unwrap();
-            }
-        }
-        Err(e) => {
-            if let Ok(Cheatsheet { cheatsheet: true }) = Cheatsheet::try_parse() {
-                println!("{}", Library::default());
-            } else {
-                e.exit();
-            }
-        }
+    if let Some(log) = &args.log {
+        env_logger::builder().parse_filters(log).init();
     }
+
+    if let Some(Command::Cheatsheet) = args.command {
+        let _ = writeln!(std::io::stdout(), "{}", Library::default());
+        return;
+    }
+
+    let Some(source) = args.source else {
+        eprintln!("error: no source file provided\n\nFor more information, try '--help'.");
+        std::process::exit(2);
+    };
+
+    #[cfg(feature = "preview")]
+    if let Some(values) = &args.screenshot {
+        let result = parse_screenshot_arguments(values);
+        match result {
+            Ok((angle, zoom)) => {
+                if let Err(e) =
+                    render_to_screenshot(&source, args.argument, args.deflection, angle, zoom)
+                {
+                    fail(e);
+                }
+            }
+            Err(e) => fail(e),
+        }
+        return;
+    }
+
+    #[cfg(feature = "preview")]
+    if args.preview {
+        if let Err(e) = render_to_preview(&source, args.argument, args.deflection) {
+            fail(e);
+        }
+        return;
+    }
+
+    if let Err(e) = render_to_file(&source, args.argument, args.deflection, args.output) {
+        fail(e);
+    }
+}
+
+fn fail(error: CliError) -> ! {
+    let _ = handle_error(error, &mut stderr());
+    std::process::exit(1);
 }
 
 fn handle_error(error: CliError, writer: &mut impl Write) -> Result<(), std::io::Error> {
@@ -186,7 +227,7 @@ fn render_to_file(
 
     let text_output = eval_result.to_text().unwrap_or_default();
     if !text_output.is_empty() {
-        println!("{}", &text_output);
+        println!("{}", text_output);
     }
 
     let cwd = env::current_dir()?;

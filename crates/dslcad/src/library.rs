@@ -338,37 +338,37 @@ impl Default for Library {
                 sin,
                 math::sin_deg[degrees = number],
                 Category::Math,
-                "sin operation"
+                "sine of an angle given in degrees"
             ),
             bind!(
                 sin,
                 math::sin_rad[radians = number],
                 Category::Math,
-                "sin operation"
+                "sine of an angle given in radians"
             ),
             bind!(
                 cos,
                 math::cos_deg[degrees = number],
                 Category::Math,
-                "cos operation"
+                "cosine of an angle given in degrees"
             ),
             bind!(
                 cos,
                 math::cos_rad[radians = number],
                 Category::Math,
-                "cos operation"
+                "cosine of an angle given in radians"
             ),
             bind!(
                 tan,
                 math::tan_deg[degrees = number],
                 Category::Math,
-                "tan operation"
+                "tangent of an angle given in degrees"
             ),
             bind!(
                 tan,
                 math::tan_rad[radians = number],
                 Category::Math,
-                "tan operation"
+                "tangent of an angle given in radians"
             ),
             bind!(less, math::less[left=number, right=number], Category::Hidden, "less than"),
             bind!(less_or_equal, math::less_or_equal[left=number, right=number], Category::Hidden, "less than or equal"),
@@ -415,7 +415,7 @@ impl Default for Library {
                 string,
                 text::string[item = any],
                 Category::Text,
-                "convert to text"
+                "convert a number, boolean or text to text"
             ),
             Signature {
                 name: "format",
@@ -440,14 +440,14 @@ impl Default for Library {
                 "generate an error"
             ),
             // 2D
-            bind!(point, faces::point[x=option_number, y=option_number, z=option_number], Category::TwoD, "create a new 2D point"),
+            bind!(point, faces::point[x=option_number, y=option_number, z=option_number], Category::TwoD, "create a point in 2D or 3D space (x, y and z default to 0)"),
             bind!(line, faces::line[start=point, end=point], Category::TwoD, "create a line between two points"),
-            bind!(square, faces::square[x=option_number, y=option_number], Category::TwoD, "create a square"),
+            bind!(square, faces::square[x=option_number, y=option_number], Category::TwoD, "create a rectangle (x and y default to 1)"),
             bind!(
                 circle,
                 faces::circle[radius = option_number],
                 Category::TwoD,
-                "create a circle"
+                "create a circle (radius defaults to 0.5)"
             ),
             bind!(arc, faces::arc[start=point, center=point, end=point], Category::TwoD, "create an arcing line between three points"),
             bind!(union, faces::union_edge[left=shape2d, right=shape2d], Category::TwoD, "combine two 2D shapes"),
@@ -458,8 +458,8 @@ impl Default for Library {
                 "make a closed face from a list of points, lines and arcs"
             ),
             bind!(translate, faces::translate[shape=shape2d, x=option_number, y=option_number, z=option_number], Category::TwoD, "move a 2D shape"),
-            bind!(rotate, faces::rotate[shape=shape2d, angle=option_number], Category::TwoD, "rotate a 2D shape"),
-            bind!(rotate, faces::rotate_3d[shape=shape2d, x=option_number, y=option_number, z=option_number], Category::TwoD, "rotate a 2D shape"),
+            bind!(rotate, faces::rotate[shape=shape2d, angle=option_number], Category::TwoD, "rotate a 2D shape around the z axis by angle in degrees"),
+            bind!(rotate, faces::rotate_3d[shape=shape2d, x=option_number, y=option_number, z=option_number], Category::TwoD, "rotate a 2D shape around the x, y and z axes by degrees"),
             bind!(scale, faces::scale[shape=shape2d, scale=number], Category::TwoD, "scale a 2D shape"),
             bind!(
                 normalize,
@@ -471,31 +471,31 @@ impl Default for Library {
                 center,
                 faces::center[shape = shape2d, x=option_bool, y=option_bool, z=option_bool],
                 Category::TwoD,
-                "center a 2D shape"
+                "center a 2D shape on the given axes (each axis defaults to true; pass false to leave it in place)"
             ),
-            bind!(offset, faces::offset[shape=plane, distance=number], Category::TwoD, "offset a plane"),
-            bind!(thicken, faces::thicken[shape=line, distance=option_number, x=option_number, y=option_number, z=option_number], Category::TwoD, "turn a line into a face"),
+            bind!(offset, faces::offset[shape=plane, distance=number], Category::TwoD, "expand a closed 2D shape outward by distance"),
+            bind!(thicken, faces::thicken[shape=line, distance=option_number, x=option_number, y=option_number, z=option_number], Category::TwoD, "turn a line into a face by thickening it"),
             // 3D
             bind!(extrude, faces::extrude[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
-            bind!(revolve, faces::revolve[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape around an axis"),
-            bind!(bend, shapes::bend[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "bend a shape around an axis"),
-            bind!(cube, shapes::cube[x=option_number, y=option_number, z=option_number], Category::ThreeD, "create a cube"),
+            bind!(revolve, faces::revolve[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "revolve a face around the x, y or z axis (the value is the angle in degrees)"),
+            bind!(bend, shapes::bend[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "bend a shape around the x, y and z axes (each value is an angle in degrees)"),
+            bind!(cube, shapes::cube[x=option_number, y=option_number, z=option_number], Category::ThreeD, "create a cube or box (x, y and z default to 1)"),
             bind!(
                 sphere,
                 shapes::sphere[radius = option_number],
                 Category::ThreeD,
-                "create a sphere"
+                "create a sphere (radius defaults to 0.5)"
             ),
-            bind!(cylinder, shapes::cylinder[radius=option_number, height=option_number], Category::ThreeD, "create a cylinder"),
+            bind!(cylinder, shapes::cylinder[radius=option_number, height=option_number], Category::ThreeD, "create a cylinder (radius defaults to 0.5, height to 1)"),
             bind!(union, shapes::union_shape[left=shape, right=shape], Category::ThreeD, "combine two shapes"),
             bind!(chamfer, shapes::chamfer[shape=shape, radius=number], Category::ThreeD, "chamfer edges"),
             bind!(fillet, shapes::fillet[shape=shape, radius=number], Category::ThreeD, "fillet edges"),
             bind!(difference, shapes::difference[left=shape, right=shape], Category::ThreeD, "cut one shape out of another"),
             bind!(intersect, shapes::intersect[left=shape, right=shape], Category::ThreeD, "intersection between two shapes"),
             bind!(translate, shapes::translate[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "move a shape"),
-            bind!(rotate, shapes::rotate[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "rotate a shape"),
-            bind!(scale, shapes::scale[shape=shape, scale=number], Category::ThreeD, "scale a shape"),
-            bind!(scale, shapes::scale_xyz[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "scale a shape"),
+            bind!(rotate, shapes::rotate[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "rotate a shape around the x, y and z axes by degrees"),
+            bind!(scale, shapes::scale[shape=shape, scale=number], Category::ThreeD, "scale a shape uniformly"),
+            bind!(scale, shapes::scale_xyz[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "scale a shape independently on the x, y and z axes"),
             bind!(
                 normalize,
                 shapes::normalize[shape = shape],
@@ -506,19 +506,19 @@ impl Default for Library {
                 center,
                 shapes::center[shape = shape, x=option_bool, y=option_bool, z=option_bool],
                 Category::ThreeD,
-                "center a shape"
+                "center a shape on the given axes (each axis defaults to true; pass false to leave it in place)"
             ),
             bind!(
                 slice,
                 shapes::slice_2d[left = shape, right = shape2d],
                 Category::ThreeD,
-                "cut a slice out of a shape"
+                "cut a 2D cross-section out of a shape"
             ),
             bind!(
                 slice,
                 shapes::slice[left = shape, right = shape],
                 Category::ThreeD,
-                "cut a slice out of a shape"
+                "cut one shape out of another"
             ),
             // Lists
             bind!(
@@ -527,7 +527,7 @@ impl Default for Library {
                 Category::Lists,
                 "get the length of a list"
             ),
-            bind!(range, lists::range[start=option_number, end=number], Category::Lists, "create a list of numbers from a range"),
+            bind!(range, lists::range[start=option_number, end=number], Category::Lists, "create a list of whole numbers from start (default 0) up to but not including end"),
         ];
 
         Self::from_signatures(signatures)
@@ -540,48 +540,77 @@ impl Display for Library {
 
         write!(
             f,
-            r"
-## Syntax
-- `var name = value;` create a variable called name that stores value
-- `value;` draw the value, each script can only draw one thing
-- `b(name=a)` pass a into the name parameter of function b
-- `a ->name b()` pipe a into the name parameter of function b
-- `./file(name=a)` run a file as if it were a function
-- `model.data` access data of a model
-- `list[5]` get the fifth item of a list
-- `if a: something() else: something_else();` test a and follow one branch depending on the value
-- statements can end at a newline instead of a semicolon, like JavaScript automatic semicolon insertion
+            r#"
+## Getting Started
+- `cube();` draw a 1x1x1 cube
+- `square(x=10, y=5) -> extrude(z=2);` extrude a 2D shape into 3D
+- `cube() -> translate(z=2) -> difference(sphere());` move a shape and cut a sphere out of it
+- run `dslcad ./part.ds` to write `part.3mf`, or `dslcad ./part.ds --preview` to edit live
 
-## Lists
-- `[1,2,3]` make a list with three numbers
-- `map MY_LIST as NAME: OPERATION` loop over every entry in MY_LIST
-- `reduce MY_LIST as NAME1,NAME2: OPERATION` combine every item in MY_LIST
-- `reduce MY_LIST from BASE as NAME1,NAME2: OPERATION` combine every item in MY_LIST starting from BASE
+Coordinates are in millimetres.
+
+## Syntax
+- `// text` a comment to the end of the line
+- `var name = value;` declare a variable called name that stores value
+- `name = value;` reassign an existing variable
+- `var name;` declare a parameter, set from the CLI with `--argument name=value`
+- `value;` draw the value; each top-level value is a separate part
+- `123`, `1.5` numbers; `true` / `false` booleans; `"text"` strings (escapes `\n`, `\t`, `"`, `\`)
+- `b(name=a)` pass the value of `a` as the named argument `name` of function `b`
+- `b(a)` pass `a` as the first argument of `b` (positional arguments are matched in order)
+- `a ->name b()` pipe `a` into the named argument `name` of function `b`
+- `a -> b()` pipe `a` into the first argument of `b`
+- `a.b` access property `b` of `a` (for example `point.x`, `shape.center`, `shape.volume`)
+- `list[0]` get an item of a list (the index is zero-based)
+- `{{ ... }}` a scope; `func {{ ... }}` a function that takes its own arguments
+- `if a: b() else: c()` branch on condition `a` (the `else` branch is required)
+- statements may end at a newline instead of a semicolon, like JavaScript automatic semicolon insertion
+
+## Collections and Loops
+- `[1, 2, 3]` make a list with three numbers
+- `map LIST as NAME: OPERATION` loop over every entry in LIST, collecting the results
+- `reduce LIST as NAME1,NAME2: OPERATION` combine every item in LIST
+- `reduce LIST from BASE as NAME1,NAME2: OPERATION` combine every item in LIST starting from BASE
+
+## Resources
+- `./part.ds(name=a)` run another script as if it were a function
+- `./model.stl()` import an STL mesh as a 3D shape
+- `./drawing.svg()` import an SVG drawing as a 2D line or plane
+- `./data.ini()` import an INI file as an object of text values
 
 ## Operators
-- `a + b` addition
+- `a + b` addition; concatenates text when both sides are text
 - `a - b` subtraction
 - `a * b` multiplication
 - `a / b` division
 - `a % b` modulo
 - `a ^ b` power
+- `-a` negate a number
 
 ## Logic
-- `a < b` less than
-- `a <= b` less than or equal
-- `a == b` equal
-- `a != b` not equal
-- `a > b` greater than
-- `a >= b` greater than or equal
+- `a < b` less than (numbers only)
+- `a <= b` less than or equal (numbers only)
+- `a == b` equal (numbers only)
+- `a != b` not equal (numbers only)
+- `a > b` greater than (numbers only)
+- `a >= b` greater than or equal (numbers only)
 - `a and b` logical and
 - `a or b` logical or
 - `not a` logical not
 
 ## Properties
-- `point.{{x,y,z}}` properties of points
-- `2d_value.{{center}}` properties of 2D objects
-- `3d_value.{{center}}` properties of 3D objects
-"
+- `point.x`, `point.y`, `point.z` coordinates of a point
+- `2d_value.center` center of a 2D object
+- `3d_value.center` center of a 3D object
+- `3d_value.volume` volume of a 3D object
+
+## Signature Notation
+- `name(type)` required argument of the given type
+- `name=[type]` optional argument (values in the description are the defaults)
+- `name=*` argument of any type
+- `...` any number of additional named arguments
+- `line|plane` accepts either type
+"#
         )?;
 
         let mut to_print = self.signatures.clone();

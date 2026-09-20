@@ -1118,7 +1118,11 @@ mod tests {
             .flatten()
             .collect();
 
-        let expected = [0.7071067811865476, 0.2928932188134524, 0.];
+        let expected = [
+            std::f64::consts::FRAC_1_SQRT_2,
+            1. - std::f64::consts::FRAC_1_SQRT_2,
+            0.,
+        ];
         let distance = points
             .iter()
             .map(|point| {

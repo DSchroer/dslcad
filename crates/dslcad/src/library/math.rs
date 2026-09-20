@@ -74,15 +74,15 @@ pub fn deg_to_rad(degrees: f64) -> Result<f64, RuntimeError> {
 }
 
 pub fn sin_deg(degrees: f64) -> Result<f64, RuntimeError> {
-    rad_to_deg(f64::sin(deg_to_rad(degrees)?))
+    Ok(f64::sin(deg_to_rad(degrees)?))
 }
 
 pub fn cos_deg(degrees: f64) -> Result<f64, RuntimeError> {
-    rad_to_deg(f64::cos(deg_to_rad(degrees)?))
+    Ok(f64::cos(deg_to_rad(degrees)?))
 }
 
 pub fn tan_deg(degrees: f64) -> Result<f64, RuntimeError> {
-    rad_to_deg(f64::tan(deg_to_rad(degrees)?))
+    Ok(f64::tan(deg_to_rad(degrees)?))
 }
 
 pub fn sin_rad(radians: f64) -> Result<f64, RuntimeError> {
@@ -109,5 +109,14 @@ pub mod tests {
     fn it_supports_trig() {
         assert_eq!(90., rad_to_deg(PI / 2.).unwrap());
         assert_eq!(PI / 2., deg_to_rad(90.).unwrap());
+    }
+
+    #[test]
+    fn it_supports_degree_trig() {
+        assert!((sin_deg(90.).unwrap() - 1.).abs() < f64::EPSILON);
+        assert!((cos_deg(0.).unwrap() - 1.).abs() < f64::EPSILON);
+        assert!(sin_deg(0.).unwrap().abs() < f64::EPSILON);
+        assert!(cos_deg(90.).unwrap().abs() < f64::EPSILON);
+        assert!((tan_deg(45.).unwrap() - 1.).abs() < 1e-12);
     }
 }
