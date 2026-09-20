@@ -53,6 +53,7 @@
 namespace {
 
 const int SURFACE_SAMPLES = 15;
+const int MAX_SURFACE_SAMPLES = 256;
 const int CURVE_SAMPLES = 33;
 
 struct Bend {
@@ -84,6 +85,25 @@ gp_Pnt bend_point(const Bend& bend, const gp_Pnt& point) {
     return gp_Pnt(result[0], result[1], result[2]);
 }
 
+// Whether every control point of a surface stays within the bounding box of the
+// points it was fitted to. A B-spline lies inside the convex hull of its poles,
+// so poles far outside the samples mean the fit oscillated.
+bool poles_within(const Handle(Geom_BSplineSurface)& surface, const double lower[3],
+                  const double upper[3], double margin) {
+    for (int i = 1; i <= surface->NbUPoles(); ++i) {
+        for (int j = 1; j <= surface->NbVPoles(); ++j) {
+            const gp_Pnt pole = surface->Pole(i, j);
+            const double coordinates[3] = {pole.X(), pole.Y(), pole.Z()};
+            for (int k = 0; k < 3; ++k) {
+                if (coordinates[k] < lower[k] - margin || coordinates[k] > upper[k] + margin) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
 // Rebuilds every curve and surface of a shape from points mapped through the
 // bend. The new geometry is approximated with B-splines within a tolerance
 // relative to the shape's size.
@@ -109,43 +129,78 @@ public:
         // surface overshoots and its projections become ambiguous.
         const bool u_closed = original->IsUClosed();
         const bool v_closed = original->IsVClosed();
-        const int nu = SURFACE_SAMPLES;
-        const int nv = SURFACE_SAMPLES;
-        const double du = u_closed ? (u2 - u1) / nu : (u2 - u1) / (nu - 1);
-        const double dv = v_closed ? (v2 - v1) / nv : (v2 - v1) / (nv - 1);
 
-        TColgp_Array2OfPnt points(1, nu, 1, nv);
-        for (int i = 0; i < nu; ++i) {
-            for (int j = 0; j < nv; ++j) {
-                const gp_Pnt point = original->Value(u1 + du * i, v1 + dv * j)
-                                         .Transformed(face_location.Transformation());
-                const gp_Pnt bent = bend_point(myBend, point);
+        // A face can cover a large part of the shape (for example the flat top
+        // and bottom of a long traced path). Fitting such a face from a fixed,
+        // coarse grid makes the B-spline oscillate, which shows up as stray
+        // geometry. Start coarse and refine until the fit stops overshooting.
+        Handle(Geom_BSplineSurface) fitted;
+        for (int samples = SURFACE_SAMPLES;; samples = std::min(samples * 2, MAX_SURFACE_SAMPLES)) {
+            const int nu = samples;
+            const int nv = samples;
+            const double du = u_closed ? (u2 - u1) / nu : (u2 - u1) / (nu - 1);
+            const double dv = v_closed ? (v2 - v1) / nv : (v2 - v1) / (nv - 1);
 
-                // When only V is closed, transpose the grid so that the periodic
-                // fit can close it, and swap the fitted surface back below.
-                if (v_closed && !u_closed) {
-                    points.SetValue(j + 1, i + 1, bent);
-                } else {
-                    points.SetValue(i + 1, j + 1, bent);
+            TColgp_Array2OfPnt points(1, nu, 1, nv);
+            double lower[3] = {1e300, 1e300, 1e300};
+            double upper[3] = {-1e300, -1e300, -1e300};
+            for (int i = 0; i < nu; ++i) {
+                for (int j = 0; j < nv; ++j) {
+                    const gp_Pnt point = original->Value(u1 + du * i, v1 + dv * j)
+                                             .Transformed(face_location.Transformation());
+                    const gp_Pnt bent = bend_point(myBend, point);
+
+                    const double coordinates[3] = {bent.X(), bent.Y(), bent.Z()};
+                    for (int k = 0; k < 3; ++k) {
+                        lower[k] = std::min(lower[k], coordinates[k]);
+                        upper[k] = std::max(upper[k], coordinates[k]);
+                    }
+
+                    // When only V is closed, transpose the grid so that the periodic
+                    // fit can close it, and swap the fitted surface back below.
+                    if (v_closed && !u_closed) {
+                        points.SetValue(j + 1, i + 1, bent);
+                    } else {
+                        points.SetValue(i + 1, j + 1, bent);
+                    }
                 }
             }
-        }
 
-        GeomAPI_PointsToBSplineSurface fit;
-        if (u_closed || (v_closed && !u_closed)) {
-            fit.Interpolate(points, Approx_ChordLength, Standard_True);
-        } else {
-            fit.Init(points, 3, 8, GeomAbs_C2, myBend.tolerance);
-            if (!fit.IsDone()) {
-                fit.Interpolate(points);
+            GeomAPI_PointsToBSplineSurface fit;
+            try {
+                if (u_closed || (v_closed && !u_closed)) {
+                    fit.Interpolate(points, Approx_ChordLength, Standard_True);
+                } else {
+                    fit.Init(points, 3, 8, GeomAbs_C2, myBend.tolerance);
+                    if (!fit.IsDone()) {
+                        fit.Interpolate(points);
+                    }
+                }
+            } catch (const Standard_Failure&) {
+                // Handled by the retry / failure logic below.
             }
-        }
-        if (!fit.IsDone()) {
-            myFailed = true;
-            return Standard_False;
+
+            if (!fit.IsDone()) {
+                if (samples >= MAX_SURFACE_SAMPLES) {
+                    myFailed = true;
+                    return Standard_False;
+                }
+                continue;
+            }
+
+            fitted = fit.Surface();
+
+            const double diagonal = std::sqrt(
+                (upper[0] - lower[0]) * (upper[0] - lower[0]) +
+                (upper[1] - lower[1]) * (upper[1] - lower[1]) +
+                (upper[2] - lower[2]) * (upper[2] - lower[2]));
+            if (samples < MAX_SURFACE_SAMPLES &&
+                !poles_within(fitted, lower, upper, diagonal * 0.1)) {
+                continue;
+            }
+            break;
         }
 
-        Handle(Geom_BSplineSurface) fitted = fit.Surface();
         if (v_closed && !u_closed) {
             fitted->ExchangeUV();
         }
@@ -309,18 +364,27 @@ public:
             // Approximating them with the tight tolerance above can instead
             // oscillate between samples with an overshoot far larger than the
             // pcurve itself, which leaves the shape invalid.
-            Handle(TColgp_HArray1OfPnt2d) interpolated =
-                new TColgp_HArray1OfPnt2d(1, CURVE_SAMPLES);
-            for (int i = 1; i <= CURVE_SAMPLES; ++i) {
-                interpolated->SetValue(i, points.Value(i));
+            bool interpolated = false;
+            try {
+                Handle(TColgp_HArray1OfPnt2d) interpolated_points =
+                    new TColgp_HArray1OfPnt2d(1, CURVE_SAMPLES);
+                for (int i = 1; i <= CURVE_SAMPLES; ++i) {
+                    interpolated_points->SetValue(i, points.Value(i));
+                }
+
+                Geom2dAPI_Interpolate interpolate(interpolated_points, Standard_False,
+                                                  myBend.tolerance / myBend.scale);
+                interpolate.Perform();
+                if (interpolate.IsDone()) {
+                    result = interpolate.Curve();
+                    interpolated = true;
+                }
+            } catch (const Standard_Failure&) {
+                // The interpolator rejects coincident samples.
+                interpolated = false;
             }
 
-            Geom2dAPI_Interpolate interpolate(interpolated, Standard_False,
-                                              myBend.tolerance / myBend.scale);
-            interpolate.Perform();
-            if (interpolate.IsDone()) {
-                result = interpolate.Curve();
-            } else {
+            if (!interpolated) {
                 // Interpolation fails when the samples collapse, so fall back
                 // to an approximation that may deviate by the 3D tolerance.
                 Geom2dAPI_PointsToBSpline fit;
@@ -449,17 +513,13 @@ extern "C" void* dslcad_bend_shape(const void* shape, int axis, double degrees) 
         Handle(BendModification) modification = new BendModification(bend);
         BRepTools_Modifier modifier(input, modification);
         if (!modifier.IsDone() || modification->Failed()) {
-            fprintf(stderr, "BENDDBG modifier done=%d failed=%d\n", (int)modifier.IsDone(), (int)modification->Failed());
             return nullptr;
         }
 
         TopoDS_Shape result = modifier.ModifiedShape(input);
         if (result.IsNull()) {
-            fprintf(stderr, "BENDDBG result null\n");
             return nullptr;
         }
-        fprintf(stderr, "BENDDBG after modifier valid=%d angle=%g radius=%g\n",
-                (int)BRepCheck_Analyzer(result).IsValid(), angle, bend.radius);
 
         // Fitting surfaces and curves leaves the pcurves of some edges with a
         // parameterization that no longer matches their 3D curve. Recomputing
@@ -467,38 +527,13 @@ extern "C" void* dslcad_bend_shape(const void* shape, int axis, double degrees) 
         // back to ShapeFix when the shape stays invalid.
         if (!BRepCheck_Analyzer(result).IsValid()) {
             BRepLib::SameParameter(result, bend.tolerance, Standard_True);
-            fprintf(stderr, "BENDDBG after SameParameter valid=%d\n", (int)BRepCheck_Analyzer(result).IsValid());
         }
 
         if (!BRepCheck_Analyzer(result).IsValid()) {
-            {
-                BRepCheck_Analyzer whole(result);
-                const TopAbs_ShapeEnum types[3] = {TopAbs_FACE, TopAbs_WIRE, TopAbs_EDGE};
-                const char* names[3] = {"face", "wire", "edge"};
-                for (int t = 0; t < 3; ++t) {
-                    int total = 0, bad = 0;
-                    for (TopExp_Explorer it(result, types[t]); it.More(); it.Next()) {
-                        total++;
-                        if (!whole.IsValid(it.Current())) {
-                            bad++;
-                            if (bad <= 2) {
-                                const Handle(BRepCheck_Result)& res = whole.Result(it.Current());
-                                if (!res.IsNull() && res->IsStatusOnShape(it.Current())) {
-                                    for (BRepCheck_ListOfStatus::Iterator sit(res->StatusOnShape(it.Current())); sit.More(); sit.Next()) {
-                                        fprintf(stderr, "BENDDBG bad %s status=%d\n", names[t], (int)sit.Value());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    fprintf(stderr, "BENDDBG %ss=%d bad=%d\n", names[t], total, bad);
-                }
-            }
             Handle(ShapeFix_Shape) fixer = new ShapeFix_Shape(result);
             fixer->Perform();
             result = fixer->Shape();
             if (result.IsNull() || !BRepCheck_Analyzer(result).IsValid()) {
-                fprintf(stderr, "BENDDBG ShapeFix failed null=%d\n", (int)result.IsNull());
                 return nullptr;
             }
         }

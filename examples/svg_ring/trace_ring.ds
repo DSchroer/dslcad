@@ -1,6 +1,7 @@
 ./trace_small.svg()
--> thicken(y=50)
--> extrude(z=10)
+-> normalize()
+-> thicken(y=0.01)
+-> extrude(z=0.01)
 -> center()
--> bend(y=400)
+-> bend(y=360)
 ;
