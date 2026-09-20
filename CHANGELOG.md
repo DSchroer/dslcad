@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Export to `step` format via the `--output step` parameter
 - Import from `svg` file
 - `--screenshot` parameter to render a single view to a png file with optional axis angles (`x90y45`)
 - `bend` operator to bend a 3D shape around an axis

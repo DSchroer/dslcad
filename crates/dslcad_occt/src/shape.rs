@@ -5,20 +5,23 @@ use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
 use log::debug;
 use opencascade_sys::ffi::{
-    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_vec, BRepAlgoAPI_Common, BRepAlgoAPI_Cut,
-    BRepAlgoAPI_Fuse, BRepAlgoAPI_Section, BRepBuilderAPI_GTransform, BRepBuilderAPI_MakeFace,
-    BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform, BRepFilletAPI_MakeChamfer,
-    BRepFilletAPI_MakeChamfer_ctor, BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor,
-    BRepGProp_VolumeProperties, BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox,
-    BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor,
-    BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol,
-    BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt,
-    BRep_Tool_Triangulation, GProp_GProps_CentreOfMass, GProp_GProps_ctor,
-    HandlePoly_Triangulation_Get, Poly_Triangulation_Node, ShapeUpgrade_UnifySameDomain_ctor,
-    TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge,
-    TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Vertex, TopoDS_cast_to_face,
+    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_vec, transfer_shape, write_step,
+    BRepAlgoAPI_Common, BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse, BRepAlgoAPI_Section,
+    BRepBuilderAPI_GTransform, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
+    BRepBuilderAPI_Transform, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor,
+    BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepGProp_VolumeProperties,
+    BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
+    BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
+    BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
+    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt, BRep_Tool_Triangulation,
+    GProp_GProps_CentreOfMass, GProp_GProps_ctor, HandlePoly_Triangulation_Get,
+    IFSelect_ReturnStatus, Poly_Triangulation_Node, STEPControl_Writer_ctor,
+    ShapeUpgrade_UnifySameDomain_ctor, TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor,
+    TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Vertex,
+    TopoDS_cast_to_face,
 };
 use std::f64::consts::PI;
+use std::path::Path;
 
 pub struct Shape {
     pub(crate) shape: UniquePtr<TopoDS_Shape>,
@@ -261,6 +264,25 @@ impl Shape {
         let mut props = GProp_GProps_ctor();
         BRepGProp_VolumeProperties(self.shape(), props.pin_mut());
         props.Mass()
+    }
+
+    pub fn write_step(&self, path: impl AsRef<Path>) -> Result<(), Error> {
+        let mut writer = STEPControl_Writer_ctor();
+
+        let status = transfer_shape(writer.pin_mut(), &self.shape);
+        if status != IFSelect_ReturnStatus::IFSelect_RetDone {
+            return Err("failed to transfer shape to STEP writer".into());
+        }
+
+        let status = write_step(
+            writer.pin_mut(),
+            path.as_ref().to_string_lossy().to_string(),
+        );
+        if status != IFSelect_ReturnStatus::IFSelect_RetDone {
+            return Err("failed to write STEP file".into());
+        }
+
+        Ok(())
     }
 
     pub fn mesh(&self, deflection: f64) -> Result<Mesh, Error> {
@@ -570,5 +592,19 @@ mod tests {
         let c = Shape::cylinder(10., 100.).unwrap();
         let shape = Shape::intersect(&b, &c).unwrap();
         shape.mesh(0.1).unwrap();
+    }
+
+    #[test]
+    fn it_can_write_step() {
+        let shape = Shape::cube(10., 10., 10.).unwrap();
+        let path = std::env::temp_dir().join("dslcad_test.step");
+
+        shape.write_step(&path).unwrap();
+
+        let contents = std::fs::read_to_string(&path).unwrap();
+        assert!(contents.contains("ISO-10303-21"));
+        assert!(contents.contains("MANIFOLD_SOLID_BREP"));
+
+        let _ = std::fs::remove_file(&path);
     }
 }

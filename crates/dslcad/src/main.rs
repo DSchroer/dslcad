@@ -25,6 +25,7 @@ Examples:
   dslcad ./part.ds                  render part.ds to part.3mf
   dslcad ./part.ds --preview        open part.ds in the interactive preview
   dslcad ./part.ds -o stl           render to an STL instead of a 3MF
+  dslcad ./part.ds -o step          render to a STEP instead of a 3MF
   dslcad ./part.ds -a size=5        render with the `size` script argument set to 5
   dslcad ./part.ds -s x90y45 2      render a screenshot from an angle at 2x zoom
   dslcad cheatsheet                 print the full syntax and function reference
@@ -37,6 +38,7 @@ const EXAMPLE_HELP: &str = "\
 Examples:
   dslcad ./part.ds                  render part.ds to part.3mf
   dslcad ./part.ds -o stl           render to an STL instead of a 3MF
+  dslcad ./part.ds -o step          render to a STEP instead of a 3MF
   dslcad ./part.ds -a size=5        render with the `size` script argument set to 5
   dslcad cheatsheet                 print the full syntax and function reference
 
@@ -112,6 +114,7 @@ enum Output {
     ThreeMf,
     Raw,
     Stl,
+    Step,
 }
 
 #[derive(Debug, Error)]
@@ -263,6 +266,13 @@ fn render_to_file(
             let outpath = cwd.join(format!("{}.stl", file));
             let mut out = File::create(&outpath)?;
             render.to_stl(&mut out)?;
+            outpath
+        }
+        Output::Step => {
+            let shape = eval_result.to_shape()?;
+
+            let outpath = cwd.join(format!("{}.step", file));
+            shape.write_step(&outpath).map_err(RuntimeError::from)?;
             outpath
         }
     };
