@@ -1,10 +1,10 @@
 use clap::{Parser, ValueEnum};
 use dslcad::error_printer::ErrorPrinter;
 use dslcad::library::Library;
-use dslcad::parser::{DocumentParseError, ParseError};
-use dslcad::reader::FsReader;
+use dslcad::parser::{Ast, DocumentParseError, ParseError};
+use dslcad::reader::{FsReader, StdinReader};
 use dslcad::runtime::{RuntimeError, WithStack};
-use dslcad::{eval, parse, parse_arguments, render};
+use dslcad::{eval, parse, parse_arguments, parse_with, render};
 use dslcad_storage::protocol;
 use dslcad_storage::protocol::{BincodeError, Render};
 use dslcad_storage::threemf::{ThreeMF, ThreeMFError};
@@ -19,7 +19,7 @@ use thiserror::Error;
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Source path to load
+    /// Source path to load, or `-` to read from stdin
     source: String,
 
     #[cfg(feature = "preview")]
@@ -166,6 +166,15 @@ fn handle_error(error: CliError, writer: &mut impl Write) -> Result<(), std::io:
     }
 }
 
+fn load_ast(source: &str) -> Result<Ast, CliError> {
+    if source == "-" {
+        let reader = StdinReader::new()?;
+        Ok(parse_with(reader, source.to_string())?)
+    } else {
+        Ok(parse(source.to_string())?)
+    }
+}
+
 fn render_to_file(
     source: &String,
     arguments: Vec<String>,
@@ -173,7 +182,7 @@ fn render_to_file(
     output: Output,
 ) -> Result<(), CliError> {
     let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
-    let eval_result = eval(parse(source.clone())?, arguments)?;
+    let eval_result = eval(load_ast(source)?, arguments)?;
 
     let text_output = eval_result.to_text().unwrap_or_default();
     if !text_output.is_empty() {
@@ -181,13 +190,17 @@ fn render_to_file(
     }
 
     let cwd = env::current_dir()?;
-    let file = Path::new(source).file_stem().unwrap();
+    let file = Path::new(source)
+        .file_stem()
+        .map(|stem| stem.to_string_lossy().to_string())
+        .filter(|stem| stem != "-")
+        .unwrap_or_else(|| "stdin".to_string());
 
     let outfile = match output {
         Output::ThreeMf => {
             let render = render(eval_result, deflection)?;
 
-            let outpath = cwd.join(format!("{}.3mf", file.to_string_lossy()));
+            let outpath = cwd.join(format!("{}.3mf", file));
             let threemf: ThreeMF = render.into();
             let out = File::create(&outpath)?;
             threemf.write_to_zip(out)?;
@@ -196,7 +209,7 @@ fn render_to_file(
         Output::Raw => {
             let render = render(eval_result, deflection)?;
 
-            let outpath = cwd.join(format!("{}.bin", file.to_string_lossy()));
+            let outpath = cwd.join(format!("{}.bin", file));
             let raw: Vec<u8> = render.try_into()?;
             let mut out = File::create(&outpath)?;
             out.write_all(&raw)?;
@@ -206,7 +219,7 @@ fn render_to_file(
             let compressed = eval_result.to_shape()?.into();
             let render = render(compressed, deflection)?;
 
-            let outpath = cwd.join(format!("{}.stl", file.to_string_lossy()));
+            let outpath = cwd.join(format!("{}.stl", file));
             let mut out = File::create(&outpath)?;
             render.to_stl(&mut out)?;
             outpath
@@ -258,7 +271,7 @@ fn render_to_screenshot(
     use dslcad_viewer::{Preview, ScreenshotOptions};
 
     let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
-    let render = render(eval(parse(source.to_string())?, arguments)?, deflection)?;
+    let render = render(eval(load_ast(source)?, arguments)?, deflection)?;
 
     if !render.stdout.is_empty() {
         print!("{}", render.stdout);
@@ -292,7 +305,7 @@ fn render_to_preview(
     arguments: Vec<String>,
     deflection: f64,
 ) -> Result<(), CliError> {
-    use dslcad::parser::{Ast, DocId};
+    use dslcad::parser::DocId;
     use dslcad_viewer::Preview;
     use notify::{recommended_watcher, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
     use std::sync::{Arc, Mutex};
@@ -315,7 +328,7 @@ fn render_to_preview(
         deflection: f64,
         watch: Arc<Mutex<Option<RecommendedWatcher>>>,
     ) -> Result<Render, CliError> {
-        let ast = parse(source.to_string())?;
+        let ast = load_ast(source)?;
         add_files_to_watch(watch, &ast);
         let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
         let render = render(eval(ast, arguments)?, deflection)?;

@@ -1,5 +1,5 @@
 use crate::library::Library;
-use crate::parser::{Ast, DocId, DocumentParseError, Literal, ParseError, Parser};
+use crate::parser::{Ast, DocId, DocumentParseError, Literal, ParseError, Parser, Reader};
 use crate::reader::FsReader;
 use crate::resources::ResourceExt;
 use crate::runtime::{Engine, RuntimeError, Value, WithStack};
@@ -18,9 +18,13 @@ mod source;
 mod trace;
 
 pub fn parse(source: String) -> Result<Ast, ParseError> {
+    parse_with(FsReader, source)
+}
+
+pub fn parse_with<R: Reader>(reader: R, source: String) -> Result<Ast, ParseError> {
     let parse_time = Instant::now();
 
-    let parser = Parser::new(FsReader, DocId::new(source)).with_default_loaders();
+    let parser = Parser::new(reader, DocId::new(source)).with_default_loaders();
     let ast = parser.parse();
 
     trace!("parse in {}s", parse_time.elapsed().as_secs_f64());
