@@ -14,9 +14,9 @@ use opencascade_sys::ffi::{
     BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol,
     BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt,
     BRep_Tool_Triangulation, GProp_GProps_CentreOfMass, GProp_GProps_ctor,
-    HandlePoly_Triangulation_Get, Poly_Triangulation_Node, TopAbs_Orientation, TopAbs_ShapeEnum,
-    TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned,
-    TopoDS_Vertex, TopoDS_cast_to_face,
+    HandlePoly_Triangulation_Get, Poly_Triangulation_Node, ShapeUpgrade_UnifySameDomain_ctor,
+    TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge,
+    TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Vertex, TopoDS_cast_to_face,
 };
 use std::f64::consts::PI;
 
@@ -240,6 +240,15 @@ impl Shape {
         }
 
         Ok(Builder::try_build(&mut chamfer)?.into())
+    }
+
+    /// Merge faces and edges that share the same underlying geometry to
+    /// reduce the complexity of the shape.
+    pub fn simplify(&self) -> Result<Self, Error> {
+        let mut upgrade = ShapeUpgrade_UnifySameDomain_ctor(&self.shape, true, true, true);
+        upgrade.pin_mut().AllowInternalEdges(false);
+        upgrade.pin_mut().Build();
+        Ok(upgrade.Shape().into())
     }
 
     pub fn center_of_mass(&self) -> Point {
@@ -497,6 +506,18 @@ mod tests {
     fn it_can_write_cylinder_stl() {
         let shape = Shape::cylinder(10., 100.).unwrap();
         shape.mesh(0.1).unwrap();
+    }
+
+    #[test]
+    fn it_can_simplify_a_shape() {
+        let b = Shape::cube(10., 10., 10.).unwrap();
+        let c = Shape::cube(5., 5., 5.).unwrap();
+        let shape = b.fuse(&c).unwrap();
+
+        let simplified = shape.simplify().unwrap();
+
+        assert!((simplified.volume() - shape.volume()).abs() < 0.01);
+        simplified.mesh(0.1).unwrap();
     }
 
     #[test]

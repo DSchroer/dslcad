@@ -115,7 +115,7 @@ impl<'a> Engine<'a> {
     }
 
     fn named_argument_values(
-        argument_values: Vec<ArgValue>,
+        argument_values: Vec<ArgValue<'_>>,
     ) -> Result<HashMap<&str, Value>, RuntimeError> {
         argument_values
             .into_iter()

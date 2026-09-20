@@ -14,6 +14,8 @@ use opencascade_sys::ffi::{
 };
 use std::pin::Pin;
 
+const EPSILON: f64 = 1e-9;
+
 pub struct WireFactory {
     make_wire: UniquePtr<BRepBuilderAPI_MakeWire>,
 }
@@ -168,6 +170,73 @@ impl Wire {
         Ok(Builder::try_build(&mut offset)?.into())
     }
 
+    /// Replace the wire with a polyline approximation that stays within
+    /// `tolerance` of the original, removing points that carry little detail.
+    pub fn simplify(&self, tolerance: f64) -> Result<Self, Error> {
+        let tolerance = tolerance.max(0.0);
+        let deflection = (tolerance * 0.25).max(1e-4);
+
+        if self.is_compound() {
+            let mut contours = Vec::new();
+            for contour in self.contours() {
+                contours.push(contour.simplify_contour(tolerance, deflection)?);
+            }
+            Wire::compound(&contours)
+        } else {
+            self.simplify_contour(tolerance, deflection)
+        }
+    }
+
+    fn simplify_contour(&self, tolerance: f64, deflection: f64) -> Result<Self, Error> {
+        let mut points: Vec<Point> = Vec::new();
+
+        for line in self.points(deflection)? {
+            let mut segment: Vec<Point> = line
+                .into_iter()
+                .map(|point| Point::new(point[0], point[1], point[2]))
+                .collect();
+
+            if segment.is_empty() {
+                continue;
+            }
+
+            if let Some(last) = points.last() {
+                if segment.last().unwrap().distance(last) < segment[0].distance(last) {
+                    segment.reverse();
+                }
+            }
+
+            for point in segment {
+                let duplicate = points
+                    .last()
+                    .map(|last| last.distance(&point) <= EPSILON)
+                    .unwrap_or(false);
+                if !duplicate {
+                    points.push(point);
+                }
+            }
+        }
+
+        if points.len() < 2 {
+            return Ok(self.clone());
+        }
+
+        if points[0].distance(points.last().unwrap()) <= EPSILON {
+            points.push(points[0].clone());
+        }
+
+        let simplified = douglas_peucker(&points, tolerance);
+
+        let mut factory = WireFactory::new();
+        for window in simplified.windows(2) {
+            if window[0].distance(&window[1]) > EPSILON {
+                factory.add_edge(&Edge::new_line(&window[0], &window[1])?);
+            }
+        }
+
+        factory.build()
+    }
+
     pub fn edges(&self) -> Vec<Edge> {
         let mut edges = Vec::new();
 
@@ -246,6 +315,64 @@ impl Wire {
     }
 }
 
+fn douglas_peucker(points: &[Point], tolerance: f64) -> Vec<Point> {
+    if points.len() < 3 {
+        return points.to_vec();
+    }
+
+    let mut keep = vec![false; points.len()];
+    keep[0] = true;
+    keep[points.len() - 1] = true;
+    simplify_segment(points, 0, points.len() - 1, tolerance, &mut keep);
+
+    points
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| keep[*index])
+        .map(|(_, point)| point.clone())
+        .collect()
+}
+
+fn simplify_segment(points: &[Point], start: usize, end: usize, tolerance: f64, keep: &mut [bool]) {
+    if end <= start + 1 {
+        return;
+    }
+
+    let mut farthest = start;
+    let mut max_distance = 0.0;
+    for index in (start + 1)..end {
+        let distance = point_line_distance(&points[index], &points[start], &points[end]);
+        if distance > max_distance {
+            max_distance = distance;
+            farthest = index;
+        }
+    }
+
+    if max_distance > tolerance {
+        keep[farthest] = true;
+        simplify_segment(points, start, farthest, tolerance, keep);
+        simplify_segment(points, farthest, end, tolerance, keep);
+    }
+}
+
+fn point_line_distance(point: &Point, start: &Point, end: &Point) -> f64 {
+    let direction = end.clone() - start.clone();
+    let length = direction.length();
+
+    if length < EPSILON {
+        return point.distance(start);
+    }
+
+    let offset = point.clone() - start.clone();
+    let cross = Point::new(
+        offset.y() * direction.z() - offset.z() * direction.y(),
+        offset.z() * direction.x() - offset.x() * direction.z(),
+        offset.x() * direction.y() - offset.y() * direction.x(),
+    );
+
+    cross.length() / length
+}
+
 impl From<&TopoDS_Shape> for Wire {
     fn from(value: &TopoDS_Shape) -> Self {
         Wire(TopoDS_Shape_to_owned(value))
@@ -300,6 +427,73 @@ mod tests {
         let mut wire = WireFactory::new();
         wire.add_edge(&Edge::new_line(&from, &to).unwrap());
         wire.build().unwrap()
+    }
+
+    fn polyline(points: &[Point], close: bool) -> Wire {
+        let mut wire = WireFactory::new();
+
+        let mut ordered: Vec<Point> = points.to_vec();
+        if close {
+            ordered.push(points[0].clone());
+        }
+
+        for window in ordered.windows(2) {
+            wire.add_edge(&Edge::new_line(&window[0], &window[1]).unwrap());
+        }
+
+        wire.build().unwrap()
+    }
+
+    #[test]
+    fn it_simplifies_collinear_points() {
+        let points: Vec<Point> = (0..11).map(|i| Point::new(i as f64, 0., 0.)).collect();
+        let wire = polyline(&points, false);
+
+        assert_eq!(10, wire.edges().len());
+
+        let simplified = wire.simplify(0.01).unwrap();
+        assert_eq!(1, simplified.edges().len());
+    }
+
+    #[test]
+    fn it_simplifies_closed_contours() {
+        let points: Vec<Point> = (0..11).map(|i| Point::new(i as f64, 0., 0.)).collect();
+        let mut closed = points.clone();
+        closed.push(Point::new(10., 10., 0.));
+        let wire = polyline(&closed, true);
+
+        let simplified = wire.simplify(0.01).unwrap();
+        assert_eq!(3, simplified.edges().len());
+    }
+
+    #[test]
+    fn it_keeps_detail_beyond_tolerance() {
+        let points = vec![
+            Point::new(0., 0., 0.),
+            Point::new(1., 1., 0.),
+            Point::new(2., 0., 0.),
+        ];
+        let wire = polyline(&points, false);
+
+        let simplified = wire.simplify(0.01).unwrap();
+        assert_eq!(2, simplified.edges().len());
+
+        let flat = wire.simplify(2.0).unwrap();
+        assert_eq!(1, flat.edges().len());
+    }
+
+    #[test]
+    fn it_simplifies_compounds() {
+        let first: Vec<Point> = (0..5).map(|i| Point::new(i as f64, 0., 0.)).collect();
+        let second: Vec<Point> = (0..5).map(|i| Point::new(i as f64, 10., 0.)).collect();
+        let compound =
+            Wire::compound(&[polyline(&first, false), polyline(&second, false)]).unwrap();
+
+        let simplified = compound.simplify(0.01).unwrap();
+
+        assert!(simplified.is_compound());
+        assert_eq!(2, simplified.contours().len());
+        assert_eq!(1, simplified.contours()[0].edges().len());
     }
 
     #[test]

@@ -106,12 +106,14 @@ Coordinates are in millimetres.
 - `normalize(shape=line|plane)` scale a 2D shape so its largest side is 1 unit long
 - `center(shape=line|plane, x=[bool], y=[bool], z=[bool])` center a 2D shape on the given axes (each axis defaults to true; pass false to leave it in place)
 - `offset(shape=plane, distance=number)` expand a closed 2D shape outward by distance
+- `simplify(shape=line|plane, tolerance=[number])` remove detail from a line or plane so it stays within tolerance of the original
 - `thicken(shape=line, distance=[number], x=[number], y=[number], z=[number])` turn a line into a face by thickening it
 
 ## 3D
 - `extrude(shape=plane, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
 - `revolve(shape=plane, x=[number], y=[number], z=[number])` revolve a face around the x, y or z axis (the value is the angle in degrees)
 - `bend(shape=shape, x=[number], y=[number], z=[number])` bend a shape around the x, y and z axes (each value is an angle in degrees)
+- `simplify(shape=shape)` merge same-domain faces and edges of a shape to reduce its complexity
 - `cube(x=[number], y=[number], z=[number])` create a cube or box (x, y and z default to 1)
 - `sphere(radius=[number])` create a sphere (radius defaults to 0.5)
 - `cylinder(radius=[number], height=[number])` create a cylinder (radius defaults to 0.5, height to 1)

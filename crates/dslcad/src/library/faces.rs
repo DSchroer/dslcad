@@ -248,6 +248,14 @@ pub fn offset(shape: &Wire, distance: f64) -> Result<Value, RuntimeError> {
     Ok(Value::Plane(Rc::new(shape.offset(distance)?)))
 }
 
+pub fn simplify(shape: Value, tolerance: Option<f64>) -> Result<Value, RuntimeError> {
+    let tolerance = tolerance.unwrap_or(0.01);
+    let wire = shape.to_wire()?;
+    let result = wire.simplify(tolerance)?;
+
+    Ok(same_type(&shape, result))
+}
+
 pub fn thicken(
     shape: &Wire,
     distance: Option<f64>,

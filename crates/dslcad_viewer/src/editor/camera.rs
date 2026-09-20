@@ -216,10 +216,7 @@ pub fn input_map(
             )));
         }
         if keyboard.pressed(KeyCode::ArrowRight) {
-            events.send(ControlEvent::TranslateTarget(Vec2::new(
-                -1. * zoom_amount,
-                0.0,
-            )));
+            events.send(ControlEvent::TranslateTarget(Vec2::new(-zoom_amount, 0.0)));
         }
         if keyboard.pressed(KeyCode::ArrowUp) {
             events.send(ControlEvent::TranslateTarget(Vec2::new(
@@ -228,10 +225,7 @@ pub fn input_map(
             )));
         }
         if keyboard.pressed(KeyCode::ArrowDown) {
-            events.send(ControlEvent::TranslateTarget(Vec2::new(
-                0.0,
-                -1. * zoom_amount,
-            )));
+            events.send(ControlEvent::TranslateTarget(Vec2::new(0.0, -zoom_amount)));
         }
     } else {
         if keyboard.pressed(KeyCode::ArrowLeft) {

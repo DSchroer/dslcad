@@ -102,6 +102,10 @@ pub fn bend(
     Ok(shape.into())
 }
 
+pub fn simplify(shape: &Shape) -> Result<Value, RuntimeError> {
+    Ok(shape.simplify()?.into())
+}
+
 pub fn scale_xyz(
     shape: &Shape,
     x: Option<f64>,

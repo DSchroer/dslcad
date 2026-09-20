@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--screenshot` parameter to render a single view to a png file with optional axis angles (`x90y45`)
 - `bend` operator to bend a 3D shape around an axis
 - `normalize` operator to uniformly scale a line, plane or shape so the largest side of its bounding box is 1 unit long
+- `simplify` operator to reduce detail: it decimates a line or plane within a tolerance, and merges same-domain faces and edges of a shape
 
 ### Modified
 - Semicolons are now optional: statements can end at a newline, like JavaScript automatic semicolon insertion

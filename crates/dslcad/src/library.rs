@@ -474,11 +474,18 @@ impl Default for Library {
                 "center a 2D shape on the given axes (each axis defaults to true; pass false to leave it in place)"
             ),
             bind!(offset, faces::offset[shape=plane, distance=number], Category::TwoD, "expand a closed 2D shape outward by distance"),
+            bind!(simplify, faces::simplify[shape=shape2d, tolerance=option_number], Category::TwoD, "remove detail from a line or plane so it stays within tolerance of the original"),
             bind!(thicken, faces::thicken[shape=line, distance=option_number, x=option_number, y=option_number, z=option_number], Category::TwoD, "turn a line into a face by thickening it"),
             // 3D
             bind!(extrude, faces::extrude[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "revolve a face around the x, y or z axis (the value is the angle in degrees)"),
             bind!(bend, shapes::bend[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "bend a shape around the x, y and z axes (each value is an angle in degrees)"),
+            bind!(
+                simplify,
+                shapes::simplify[shape = shape],
+                Category::ThreeD,
+                "merge same-domain faces and edges of a shape to reduce its complexity"
+            ),
             bind!(cube, shapes::cube[x=option_number, y=option_number, z=option_number], Category::ThreeD, "create a cube or box (x, y and z default to 1)"),
             bind!(
                 sphere,
@@ -614,7 +621,7 @@ Coordinates are in millimetres.
         )?;
 
         let mut to_print = self.signatures.clone();
-        to_print.sort_by(|a, b| a.category.cmp(&b.category));
+        to_print.sort_by_key(|a| a.category);
 
         let mut category: Option<Category> = None;
 

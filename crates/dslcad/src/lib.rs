@@ -282,6 +282,24 @@ mod tests {
     }
 
     #[test]
+    fn it_can_simplify() {
+        use dslcad_occt::DsShape;
+
+        let line =
+            run("line(start=point(x=0,y=0), end=point(x=10,y=0)) -> simplify(tolerance=0.1);");
+        assert!(line.to_line().is_ok());
+        assert!((line.to_line().unwrap().max_dimension().unwrap() - 10.0).abs() < 1e-6);
+
+        let plane = run("square(x=2, y=4) -> simplify();");
+        assert!(plane.to_plane().is_ok());
+
+        let shape = run("cube(x=2, y=4, z=6) -> simplify();");
+        assert!((shape.to_shape().unwrap().volume() - 48.0).abs() < 1e-6);
+
+        assert!(try_run("simplify(tolerance=0.1);").is_err());
+    }
+
+    #[test]
     fn it_supports_arguments() {
         let args = parse_arguments(vec!["a=\"5\""].into_iter()).unwrap();
 

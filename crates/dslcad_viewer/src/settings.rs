@@ -15,11 +15,13 @@ pub type Settings = FileStore;
 #[cfg(target_arch = "wasm32")]
 pub type Settings = MemStore;
 
+#[cfg(target_arch = "wasm32")]
 #[derive(Default, Resource)]
 pub struct MemStore {
     values: HashMap<&'static str, String>,
 }
 
+#[cfg(target_arch = "wasm32")]
 impl Store for MemStore {
     fn load<'a>(&'a self, key: &'static str) -> Option<&'a str> {
         self.values.get(key).map(|f| f.as_str())

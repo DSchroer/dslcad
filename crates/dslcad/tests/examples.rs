@@ -18,14 +18,14 @@ fn can_run_examples() {
 fn run_example(path: &str) {
     let now = Instant::now();
 
-    println!("Example [{}]", &path);
+    println!("Example [{}]", path);
 
-    let ast = parse(path.to_owned()).unwrap_or_else(|_| panic!("failed to parse {}", &path));
+    let ast = parse(path.to_owned()).unwrap_or_else(|_| panic!("failed to parse {}", path));
 
     println!("\tParsed in {:.4}ms", now.elapsed().as_secs_f64() * 1000.0);
 
     render(eval(ast, HashMap::new()).unwrap(), 0.1)
-        .unwrap_or_else(|e| panic!("failed to render {}\n{e}", &path));
+        .unwrap_or_else(|e| panic!("failed to render {}\n{e}", path));
 
     println!(
         "\tRendered in {:.4}ms",
