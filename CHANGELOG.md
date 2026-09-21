@@ -5,27 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.0.6]
 
 ### Added
 - Export to `step` format via the `--output step` parameter
-- Import from `svg` file
-- `--screenshot` parameter to render a single view to a png file with optional axis angles (`x90y45`)
+- Import from `svg` files
+- Import text from `ttf` files
+- `--screenshot` parameter to render a single view to a png file with optional axis angles and zoom
 - `bend` operator to bend a 3D shape around an axis
 - `normalize` operator to uniformly scale a line, plane or shape so the largest side of its bounding box is 1 unit long
 - `simplify` operator to reduce detail: it decimates a line or plane within a tolerance, and merges same-domain faces and edges of a shape
 
 ### Modified
 - Semicolons are now optional: statements can end at a newline, like JavaScript automatic semicolon insertion
-- Render all of the lines of a part in a single draw call
-- Only report unique edges and vertices for shapes
-- Preview uses a CAD style viewport with a ground grid, color coded axes (x red, y green, z blue) and a corner axis gizmo
-- Lines and points use a bright wireframe color when drawn on the viewport background, such as for 2D parts or hidden meshes
 - `Grid` toggle in the `View` menu
-
-### Fixed
-- Slow preview and screenshot rendering for parts with many edges
-- Slow `bend` on shapes with many faces by projecting pcurves locally and repairing them with `SameParameter` instead of a full `ShapeFix`
 
 ## [v0.0.5]
 
@@ -91,4 +84,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.0.1] - 2023-02-10
 
 First full release!
-
