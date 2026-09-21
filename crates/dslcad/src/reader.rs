@@ -35,7 +35,14 @@ fn resolve(importer: &Path, path: &Path) -> Option<PathBuf> {
 /// Walks up from the importing document's directory looking for a `modules`
 /// directory that contains the requested module, node style.
 fn find_module(importer: &Path, module: &Path) -> Option<PathBuf> {
-    let mut directory = importer.parent();
+    let directory = importer.parent().unwrap_or(Path::new(""));
+    let directory = if directory.is_absolute() {
+        directory.to_path_buf()
+    } else {
+        std::env::current_dir().ok()?.join(directory)
+    };
+
+    let mut directory = Some(directory.as_path());
     while let Some(current) = directory {
         let candidate = current.join("modules").join(module);
         if candidate.is_file() {
@@ -136,6 +143,29 @@ mod tests {
         );
 
         let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn it_finds_modules_from_a_relative_importer() {
+        let root = std::env::current_dir()
+            .unwrap()
+            .join(format!("dslcad_relative_modules_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+
+        let importer = root.join("part.ds");
+        fs::create_dir_all(importer.parent().unwrap()).unwrap();
+        fs::write(&importer, "gear();").unwrap();
+
+        let module = root.join("modules").join("stamp").join("gear.ds");
+        fs::create_dir_all(module.parent().unwrap()).unwrap();
+        fs::write(&module, "gear();").unwrap();
+
+        let relative = Path::new(root.file_name().unwrap()).join("part.ds");
+        let result = resolve(&relative, Path::new("@stamp/gear.ds"));
+
+        let _ = fs::remove_dir_all(&root);
+
+        assert_eq!(result, Some(module));
     }
 
     #[test]
