@@ -12,11 +12,11 @@ const DEFAULT_SIZE: f64 = 10.0;
 
 pub struct TtfLoader;
 
-impl<R: Reader> ResourceLoader<R> for TtfLoader {
+impl ResourceLoader for TtfLoader {
     fn load(
         &self,
         path: &str,
-        reader: &R,
+        reader: &dyn Reader,
         arguments: &HashMap<String, Literal>,
     ) -> Result<Box<dyn Resource>, DocumentParseError> {
         let message = match arguments.get("message") {

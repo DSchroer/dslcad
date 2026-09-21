@@ -19,7 +19,7 @@ impl Display for ParseError {
 
 impl Error for ParseError {}
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum DocumentParseError {
     #[error("file not found")]
     NoSuchFile(),

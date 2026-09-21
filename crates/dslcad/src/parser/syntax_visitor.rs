@@ -2,7 +2,7 @@ use crate::parser::{
     Expression, If, Index, Invocation, Literal, Map, NestedScope, Property, Reduce, Reference,
     Statement, Variable,
 };
-use crate::resources::Resource;
+use crate::resources::ResourceFactory;
 use logos::Span;
 use std::rc::Rc;
 
@@ -31,6 +31,7 @@ pub trait ExpressionVisitor: Sized {
     fn visit_reduce(&mut self, l: &Reduce, s: &Span) -> Self::Result;
     fn visit_if(&mut self, l: &If, s: &Span) -> Self::Result;
     fn visit_scope(&mut self, l: &NestedScope, s: &Span) -> Self::Result;
+    fn visit_resource(&mut self, l: &ResourceFactory, s: &Span) -> Self::Result;
 }
 
 pub trait LiteralVisitor: Sized {
@@ -43,6 +44,5 @@ pub trait LiteralVisitor: Sized {
     fn visit_bool(&mut self, v: &bool) -> Self::Result;
     fn visit_text(&mut self, v: &str) -> Self::Result;
     fn visit_list(&mut self, v: &[Expression]) -> Self::Result;
-    fn visit_resource(&mut self, v: &dyn Resource) -> Self::Result;
     fn visit_function(&mut self, v: &Rc<Vec<Statement>>) -> Self::Result;
 }

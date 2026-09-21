@@ -11,27 +11,27 @@ use logos::Logos;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::OsStr;
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::str::FromStr;
 
 use crate::library::Library;
 use crate::parser::span_builder::SpanBuilder;
-use crate::parser::Literal::Resource;
-use crate::resources::ResourceLoader;
+use crate::resources::{ResourceFactory, ResourceLoader};
 pub use parse_error::{DocumentParseError, ParseError};
 pub use reader::Reader;
 pub use syntax_tree::*;
 pub use syntax_visitor::*;
 
 pub struct Parser<R> {
-    reader: R,
+    reader: Rc<R>,
     current_id: DocId,
     variables: HashSet<String>,
     to_parse: Vec<DocId>,
-    resource_loaders: HashMap<&'static str, Box<dyn ResourceLoader<R>>>,
+    resource_loaders: HashMap<&'static str, Rc<dyn ResourceLoader>>,
 }
 
-/// The resolved target of a path call: either another document to run, or an
-/// eagerly loaded resource literal.
+/// The resolved target of a path call: either another document to run, or a
+/// deferred resource load.
 enum ParsedPath {
     Document(CallPath),
     Resource(Expression),
@@ -77,7 +77,7 @@ fn next_significant(lexer: &Lexer) -> Option<Token> {
 impl<T> Parser<T> {
     pub fn new(reader: T, root: DocId) -> Self {
         Parser {
-            reader,
+            reader: Rc::new(reader),
             current_id: root,
             variables: HashSet::new(),
             to_parse: Vec::new(),
@@ -120,7 +120,7 @@ impl<T> Parser<T> {
     }
 }
 
-impl<R: Reader> Parser<R> {
+impl<R: Reader + 'static> Parser<R> {
     pub fn parse(mut self) -> Result<Ast, ParseError> {
         self.to_parse.push(self.current_id.clone());
         let mut ast = Ast::new(self.current_id.clone());
@@ -146,12 +146,8 @@ impl<R: Reader> Parser<R> {
         Ok(ast)
     }
 
-    pub fn with_loader(
-        mut self,
-        ext: &'static str,
-        loader: impl ResourceLoader<R> + 'static,
-    ) -> Self {
-        self.resource_loaders.insert(ext, Box::new(loader));
+    pub fn with_loader(mut self, ext: &'static str, loader: impl ResourceLoader + 'static) -> Self {
+        self.resource_loaders.insert(ext, Rc::new(loader));
         self
     }
 
@@ -336,44 +332,39 @@ impl<R: Reader> Parser<R> {
                 }
 
                 let arguments = self.parse_resource_arguments(lexer)?;
-                let loader = self.resource_loaders.get(extension).unwrap();
-                let resource = loader.load(buf.to_str().unwrap(), &self.reader, &arguments)?;
-                Ok(ParsedPath::Resource(Expression::Literal(
-                    Resource(resource),
+                let loader = self.resource_loaders.get(extension).unwrap().clone();
+                let reader: Rc<dyn Reader> = self.reader.clone();
+                let factory = ResourceFactory::new(
+                    buf.to_str().unwrap().to_string(),
+                    arguments,
+                    loader,
+                    reader,
+                );
+
+                Ok(ParsedPath::Resource(Expression::Resource(
+                    factory,
                     lexer.span(),
                 )))
             }
         }
     }
 
-    /// Parses the argument list of a resource call. Resources are loaded
-    /// eagerly while parsing, so their arguments must be literal values.
+    /// Parses the argument list of a resource call. Resources are loaded at
+    /// runtime, so their arguments can be any expression, but they must be
+    /// named.
     fn parse_resource_arguments(
         &mut self,
         lexer: &mut Lexer,
-    ) -> Result<HashMap<String, Literal>, DocumentParseError> {
+    ) -> Result<VecDeque<Argument>, DocumentParseError> {
         let arguments = self.parse_call_arguments(lexer)?;
-        let mut named = HashMap::new();
 
-        for argument in arguments {
-            match argument {
-                Argument::Named(name, expression) => {
-                    let literal = constant_literal(&expression).ok_or_else(|| {
-                        DocumentParseError::InvalidResource(format!(
-                            "argument '{name}' must be a literal value"
-                        ))
-                    })?;
-                    named.insert(name, literal);
-                }
-                Argument::Unnamed(_) => {
-                    return Err(DocumentParseError::InvalidResource(
-                        "resource arguments must be named".into(),
-                    ))
-                }
-            }
+        if arguments.iter().any(|a| matches!(a, Argument::Unnamed(_))) {
+            return Err(DocumentParseError::InvalidResource(
+                "resource arguments must be named".into(),
+            ));
         }
 
-        Ok(named)
+        Ok(arguments)
     }
 
     fn parse_call_arguments(
@@ -900,20 +891,6 @@ impl<R: Reader> Parser<R> {
     }
 }
 
-/// Extracts a literal value from an expression, used for arguments that must
-/// be known while parsing (such as resource options).
-fn constant_literal(expression: &Expression) -> Option<Literal> {
-    match expression {
-        Expression::Literal(literal, _) => match literal {
-            Literal::Number(value) => Some(Literal::Number(*value)),
-            Literal::Bool(value) => Some(Literal::Bool(*value)),
-            Literal::Text(value) => Some(Literal::Text(value.clone())),
-            _ => None,
-        },
-        _ => None,
-    }
-}
-
 fn escape_string(input: &str) -> String {
     let source = input[1..input.len() - 1].to_string();
     source
@@ -939,11 +916,11 @@ pub mod tests {
     #[derive(Debug, Clone)]
     struct TestRes;
 
-    impl<R: Reader> ResourceLoader<R> for TestRes {
+    impl ResourceLoader for TestRes {
         fn load(
             &self,
             _: &str,
-            _: &R,
+            _: &dyn Reader,
             _: &HashMap<String, Literal>,
         ) -> Result<Box<dyn Resource>, DocumentParseError> {
             Ok(Box::new(self.clone()))
@@ -1032,10 +1009,17 @@ pub mod tests {
     }
 
     #[test]
-    fn it_rejects_non_literal_resource_arguments() {
-        parse("./cube.stl(message=5 + 5);", |a| {
-            assert!(a.is_err());
+    fn it_can_parse_dynamic_resource_arguments() {
+        parse("var name = \"me\"; ./cube.stl(message=name);", |a| {
+            a.unwrap();
         });
+        parse("./cube.stl(message=5 + 5);", |a| {
+            a.unwrap();
+        });
+    }
+
+    #[test]
+    fn it_rejects_unnamed_resource_arguments() {
         parse("./cube.stl(5);", |a| {
             assert!(a.is_err());
         });

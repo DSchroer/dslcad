@@ -21,7 +21,7 @@ pub fn parse(source: String) -> Result<Ast, ParseError> {
     parse_with(FsReader, source)
 }
 
-pub fn parse_with<R: Reader>(reader: R, source: String) -> Result<Ast, ParseError> {
+pub fn parse_with<R: Reader + 'static>(reader: R, source: String) -> Result<Ast, ParseError> {
     let parse_time = Instant::now();
 
     let parser = Parser::new(reader, DocId::new(source)).with_default_loaders();
@@ -307,6 +307,35 @@ mod tests {
         let res = render(eval(ast, args).unwrap(), 0.001).unwrap();
 
         assert_eq!("5", &res.stdout);
+    }
+
+    #[test]
+    fn it_supports_dynamic_resource_arguments() {
+        let dir = std::env::temp_dir().join(format!("dslcad_dynamic_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+
+        std::fs::copy(
+            "../../examples/text/Electrolize-Regular.ttf",
+            dir.join("font.ttf"),
+        )
+        .unwrap();
+
+        let source = dir.join("part.ds");
+        std::fs::write(
+            &source,
+            "var name = \"hi\"; ./font.ttf(message=name, size=10);",
+        )
+        .unwrap();
+
+        let ast = parse(source.to_str().unwrap().to_string()).unwrap();
+        let value = eval(ast, HashMap::new()).unwrap();
+        assert!(value
+            .flatten()
+            .iter()
+            .any(|value| matches!(value, Value::Plane(_))));
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

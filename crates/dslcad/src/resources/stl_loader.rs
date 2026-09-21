@@ -10,11 +10,11 @@ use stl_io::IndexedMesh;
 
 pub struct StlLoader;
 
-impl<R: Reader> ResourceLoader<R> for StlLoader {
+impl ResourceLoader for StlLoader {
     fn load(
         &self,
         path: &str,
-        reader: &R,
+        reader: &dyn Reader,
         _arguments: &HashMap<String, Literal>,
     ) -> Result<Box<dyn Resource>, DocumentParseError> {
         let data = reader.read_bytes(Path::new(path)).unwrap();

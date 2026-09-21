@@ -15,11 +15,11 @@ const EPSILON: f64 = 1e-9;
 
 pub struct SvgLoader;
 
-impl<R: Reader> ResourceLoader<R> for SvgLoader {
+impl ResourceLoader for SvgLoader {
     fn load(
         &self,
         path: &str,
-        reader: &R,
+        reader: &dyn Reader,
         _arguments: &HashMap<String, Literal>,
     ) -> Result<Box<dyn Resource>, DocumentParseError> {
         let data = reader

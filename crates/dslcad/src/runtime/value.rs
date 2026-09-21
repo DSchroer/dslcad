@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use super::Access;
 use super::Type;
-use crate::parser::Statement;
+use crate::parser::{Literal, Statement};
 use crate::runtime::scope::Scope;
 use crate::runtime::{RuntimeError, ScriptInstance};
 use dslcad_occt::{DsShape, Point, Shape, Wire};
@@ -182,6 +182,19 @@ impl Value {
             Value::Script(i) => i.value().to_bool(),
             Value::List(l) if l.len() == 1 => l[0].to_bool(),
             _ => Err(RuntimeError::UnexpectedType()),
+        }
+    }
+
+    /// Converts a value into a literal, used to pass runtime values to
+    /// resource loaders. Only scalar values can be converted.
+    pub fn to_literal(&self) -> Option<Literal> {
+        match self {
+            Value::Number(v) => Some(Literal::Number(*v)),
+            Value::Bool(v) => Some(Literal::Bool(*v)),
+            Value::Text(v) => Some(Literal::Text(v.clone())),
+            Value::Script(i) => i.value().to_literal(),
+            Value::List(l) if l.len() == 1 => l[0].to_literal(),
+            _ => None,
         }
     }
 

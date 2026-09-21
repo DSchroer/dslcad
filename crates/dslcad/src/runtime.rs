@@ -22,7 +22,7 @@ pub use stack::WithStack;
 pub use types::Type;
 pub use value::Value;
 
-use crate::resources::Resource;
+use crate::resources::ResourceFactory;
 use crate::runtime::stack::{Stack, StackFrame};
 use crate::runtime::value::Function;
 pub use runtime_error::RuntimeError;
@@ -360,6 +360,39 @@ impl ExpressionVisitor for Engine<'_> {
         let inst = self.eval_statements(DocId::new_with_path("scope", document), &l.statements)?;
         Ok(Value::Script(Rc::new(inst)))
     }
+
+    fn visit_resource(&mut self, factory: &ResourceFactory, _s: &Span) -> Self::Result {
+        let mut arguments = HashMap::new();
+
+        for argument in factory.arguments() {
+            match argument {
+                Argument::Named(name, expression) => {
+                    let value = self.visit_expression(expression)?;
+                    let literal = value.to_literal().ok_or_else(|| {
+                        WithStack::from_err(
+                            RuntimeError::InvalidResourceArgument(name.clone()),
+                            &self.stack,
+                        )
+                    })?;
+                    arguments.insert(name.clone(), literal);
+                }
+                Argument::Unnamed(_) => {
+                    return Err(WithStack::from_err(
+                        RuntimeError::InvalidResourceArgument("".to_string()),
+                        &self.stack,
+                    ))
+                }
+            }
+        }
+
+        let resource = factory
+            .load(&arguments)
+            .map_err(|e| WithStack::from_err(RuntimeError::from(e), &self.stack))?;
+
+        resource
+            .to_instance()
+            .map_err(|e| WithStack::from_err(e, &self.stack))
+    }
 }
 
 impl LiteralVisitor for Engine<'_> {
@@ -383,11 +416,6 @@ impl LiteralVisitor for Engine<'_> {
                 .map(|v| self.visit_expression(v))
                 .collect::<Result<Vec<_>, _>>()?,
         ))
-    }
-
-    fn visit_resource(&mut self, v: &dyn Resource) -> Self::Result {
-        v.to_instance()
-            .map_err(|e| WithStack::from_err(e, &self.stack))
     }
 
     fn visit_function(&mut self, v: &Rc<Vec<Statement>>) -> Self::Result {

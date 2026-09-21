@@ -1,5 +1,5 @@
 use crate::parser::syntax_visitor::{ExpressionVisitor, LiteralVisitor, StatementVisitor};
-use crate::resources::Resource;
+use crate::resources::ResourceFactory;
 use logos::Span;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
@@ -128,6 +128,7 @@ pub enum Expression {
     Reduce(Reduce, Span),
     If(If, Span),
     Scope(NestedScope, Span),
+    Resource(ResourceFactory, Span),
 }
 
 #[derive(Debug)]
@@ -193,6 +194,7 @@ impl Expression {
             Expression::Reduce(v, s) => visitor.visit_reduce(v, s),
             Expression::If(v, s) => visitor.visit_if(v, s),
             Expression::Scope(v, s) => visitor.visit_scope(v, s),
+            Expression::Resource(v, s) => visitor.visit_resource(v, s),
         }
     }
 
@@ -207,6 +209,7 @@ impl Expression {
             Expression::Reduce(_, span) => span,
             Expression::If(_, span) => span,
             Expression::Scope(_, span) => span,
+            Expression::Resource(_, span) => span,
         }
     }
 }
@@ -217,7 +220,6 @@ pub enum Literal {
     Bool(bool),
     Text(String),
     List(Vec<Expression>),
-    Resource(Box<dyn Resource>),
     Function(Rc<Vec<Statement>>),
 }
 
@@ -228,7 +230,6 @@ impl Literal {
             Literal::Bool(v) => visitor.visit_bool(v),
             Literal::Text(v) => visitor.visit_text(v),
             Literal::List(v) => visitor.visit_list(v),
-            Literal::Resource(v) => visitor.visit_resource(v.as_ref()),
             Literal::Function(v) => visitor.visit_function(v),
         }
     }

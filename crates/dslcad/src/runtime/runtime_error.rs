@@ -34,6 +34,10 @@ pub enum RuntimeError {
     },
     #[error("can not build arc with two identical points")]
     ArcWithIdenticalPoints(),
+    #[error("resource argument '{0}' must be a number, boolean, or text")]
+    InvalidResourceArgument(String),
+    #[error(transparent)]
+    Resource(#[from] crate::parser::DocumentParseError),
     #[error("{0}")]
     UserDefined(String),
 }

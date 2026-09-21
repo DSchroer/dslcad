@@ -45,6 +45,8 @@ Coordinates are in millimetres.
 - `./font.ttf(message="hi")` import text from a TrueType/OpenType font as a 2D plane
 - `./data.ini()` import an INI file as an object of text values
 
+Resource arguments can be any expression, so `./font.ttf(message=name)` works with a variable.
+
 ## Operators
 - `a + b` addition; concatenates text when both sides are text
 - `a - b` subtraction

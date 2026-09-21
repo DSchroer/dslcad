@@ -7,11 +7,11 @@ use std::rc::Rc;
 
 pub struct IniLoader;
 
-impl<R: Reader> ResourceLoader<R> for IniLoader {
+impl ResourceLoader for IniLoader {
     fn load(
         &self,
         path: &str,
-        reader: &R,
+        reader: &dyn Reader,
         _arguments: &HashMap<String, Literal>,
     ) -> Result<Box<dyn Resource>, DocumentParseError> {
         let data = reader.read(Path::new(path)).unwrap();
