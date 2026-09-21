@@ -1778,7 +1778,7 @@ checksum = "f25c0e292a7ca6d6498557ff1df68f32c99850012b6ea401cf8daf771f22ff53"
 
 [[package]]
 name = "dslcad"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "clap",
  "dslcad-occt",
