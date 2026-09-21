@@ -10,7 +10,7 @@ use logos::Logos;
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::OsStr;
-use std::path::Path;
+use std::path::PathBuf;
 use std::str::FromStr;
 
 use crate::library::Library;
@@ -28,6 +28,13 @@ pub struct Parser<R> {
     variables: HashSet<String>,
     to_parse: Vec<DocId>,
     resource_loaders: HashMap<&'static str, Box<dyn ResourceLoader<R>>>,
+}
+
+/// The resolved target of a path call: either another document to run, or an
+/// eagerly loaded resource literal.
+enum ParsedPath {
+    Document(CallPath),
+    Resource(Expression),
 }
 
 macro_rules! take {
@@ -271,45 +278,73 @@ impl<R: Reader> Parser<R> {
     }
 
     fn parse_call(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
-        let path = take!(self, lexer,
-            Token::Path = "path" => {
-                let path =  lexer.slice();
+        let path = take!(self, lexer, Token::Path = "path" => lexer.slice());
 
-                let mut buf = std::path::PathBuf::new();
-                buf.push(self.current_id.to_path());
-                let buf = buf.parent().unwrap();
-                let buf = buf.join(path);
+        let mut buf = PathBuf::from(path);
+        if buf.extension().is_none() {
+            buf.set_extension("ds");
+        }
 
-                match buf.extension().unwrap_or(OsStr::new("ds")).to_str().unwrap() {
-                    "ds" => {
-                        let id = DocId::new(self.reader.normalize(Path::new(&buf.with_extension("ds"))).to_str().unwrap().to_string());
-                        self.to_parse.push(id.clone());
-                        CallPath::Document(id)
+        let buf = self
+            .reader
+            .normalize(self.current_id.to_path(), &buf)
+            .ok_or_else(|| DocumentParseError::NoSuchModule(path.to_string(), lexer.span()))?;
+
+        let target = self.resolve_call_target(buf, lexer)?;
+
+        match target {
+            ParsedPath::Resource(expression) => Ok(expression),
+            ParsedPath::Document(path) => {
+                let sb = SpanBuilder::from(lexer);
+                let args = self.parse_call_arguments(lexer)?;
+
+                Ok(Expression::Invocation(
+                    Invocation {
+                        path,
+                        arguments: args,
                     },
-                    extension => {
-                        if let Some(loader) = self.resource_loaders.get(extension) {
-                            take!(self, lexer, Token::OpenBracket = "(");
-                            take!(self, lexer, Token::CloseBracket = ")");
+                    sb.to(lexer),
+                ))
+            }
+        }
+    }
 
-                            return Ok(Expression::Literal(Resource(loader.load(buf.to_str().unwrap(), &self.reader)?), lexer.span()))
-                        } else {
-                            return Err(DocumentParseError::UnknownResourceType(extension.to_owned(), lexer.span()))
-                        }
-                    }
+    /// Turns a resolved path into either a document invocation target or an
+    /// eagerly loaded resource literal, depending on its extension.
+    fn resolve_call_target(
+        &mut self,
+        buf: PathBuf,
+        lexer: &mut Lexer,
+    ) -> Result<ParsedPath, DocumentParseError> {
+        match buf
+            .extension()
+            .unwrap_or(OsStr::new("ds"))
+            .to_str()
+            .unwrap()
+        {
+            "ds" => {
+                let id = DocId::new(buf.to_str().unwrap().to_string());
+                self.to_parse.push(id.clone());
+                Ok(ParsedPath::Document(CallPath::Document(id)))
+            }
+            extension => {
+                if let Some(loader) = self.resource_loaders.get(extension) {
+                    take!(self, lexer, Token::OpenBracket = "(");
+                    take!(self, lexer, Token::CloseBracket = ")");
+
+                    let resource = loader.load(buf.to_str().unwrap(), &self.reader)?;
+                    Ok(ParsedPath::Resource(Expression::Literal(
+                        Resource(resource),
+                        lexer.span(),
+                    )))
+                } else {
+                    Err(DocumentParseError::UnknownResourceType(
+                        extension.to_owned(),
+                        lexer.span(),
+                    ))
                 }
             }
-        );
-        let sb = SpanBuilder::from(lexer);
-
-        let args = self.parse_call_arguments(lexer)?;
-
-        Ok(Expression::Invocation(
-            Invocation {
-                path,
-                arguments: args,
-            },
-            sb.to(lexer),
-        ))
+        }
     }
 
     fn parse_call_arguments(
@@ -942,6 +977,19 @@ pub mod tests {
     }
 
     #[test]
+    fn it_can_parse_module_calls() {
+        parse("@/cube.ds();", |a| {
+            a.unwrap();
+        });
+        parse("@lib/cube.ds();", |a| {
+            a.unwrap();
+        });
+        parse("@lib/cube(name=5);", |a| {
+            a.unwrap();
+        });
+    }
+
+    #[test]
     fn it_can_parse() {
         parse("cube(x=10,y=10);", |a| {
             a.unwrap();
@@ -1209,8 +1257,14 @@ pub mod tests {
             Ok(self.0.to_string())
         }
 
-        fn normalize(&self, path: &Path) -> PathBuf {
-            PathBuf::from(path)
+        fn normalize(&self, importer: &Path, path: &Path) -> Option<PathBuf> {
+            match path.to_str().and_then(|path| path.strip_prefix('@')) {
+                Some(module) => {
+                    let module = module.strip_prefix('/').unwrap_or(module);
+                    Some(PathBuf::from(module))
+                }
+                None => Some(importer.parent().unwrap_or(Path::new("")).join(path)),
+            }
         }
     }
 }

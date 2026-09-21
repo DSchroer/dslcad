@@ -104,7 +104,7 @@ mod tests {
     use crate::{parse_arguments, render};
     use std::collections::HashMap;
     use std::io::Error;
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
 
     fn parse_str(code: &'static str) -> Ast {
         let reader = TestReader(code);
@@ -374,10 +374,6 @@ line(start=point(x=0,y=0), end=point(x=1,y=1))
 
         fn read(&self, _: &Path) -> Result<String, std::io::Error> {
             Ok(self.0.to_string())
-        }
-
-        fn normalize(&self, path: &Path) -> PathBuf {
-            PathBuf::from(path)
         }
     }
 }

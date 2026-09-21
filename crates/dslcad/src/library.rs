@@ -581,6 +581,7 @@ Coordinates are in millimetres.
 
 ## Resources
 - `./part.ds(name=a)` run another script as if it were a function
+- `@lib/part.ds(name=a)` run a shared script from the nearest `modules` directory (searched upward from the current file)
 - `./model.stl()` import an STL mesh as a 3D shape
 - `./drawing.svg()` import an SVG drawing as a 2D line or plane
 - `./data.ini()` import an INI file as an object of text values

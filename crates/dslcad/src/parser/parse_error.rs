@@ -23,6 +23,8 @@ impl Error for ParseError {}
 pub enum DocumentParseError {
     #[error("file not found")]
     NoSuchFile(),
+    #[error("could not find module {0} in any modules directory")]
+    NoSuchModule(String, Span),
     #[error("failed to parse resource: {0}")]
     InvalidResource(String),
     #[error("unexpected end of file")]
@@ -55,6 +57,7 @@ impl DocumentParseError {
                 (i, line.len()..line.len())
             }
             DocumentParseError::UnknownResourceType(_, span)
+            | DocumentParseError::NoSuchModule(_, span)
             | DocumentParseError::UndeclaredIdentifier(_, span)
             | DocumentParseError::DuplicateVariableName(_, span)
             | DocumentParseError::ParametersNotAllowedInScopes(span)
