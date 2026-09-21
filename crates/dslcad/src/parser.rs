@@ -328,23 +328,52 @@ impl<R: Reader> Parser<R> {
                 Ok(ParsedPath::Document(CallPath::Document(id)))
             }
             extension => {
-                if let Some(loader) = self.resource_loaders.get(extension) {
-                    take!(self, lexer, Token::OpenBracket = "(");
-                    take!(self, lexer, Token::CloseBracket = ")");
-
-                    let resource = loader.load(buf.to_str().unwrap(), &self.reader)?;
-                    Ok(ParsedPath::Resource(Expression::Literal(
-                        Resource(resource),
-                        lexer.span(),
-                    )))
-                } else {
-                    Err(DocumentParseError::UnknownResourceType(
+                if !self.resource_loaders.contains_key(extension) {
+                    return Err(DocumentParseError::UnknownResourceType(
                         extension.to_owned(),
                         lexer.span(),
+                    ));
+                }
+
+                let arguments = self.parse_resource_arguments(lexer)?;
+                let loader = self.resource_loaders.get(extension).unwrap();
+                let resource = loader.load(buf.to_str().unwrap(), &self.reader, &arguments)?;
+                Ok(ParsedPath::Resource(Expression::Literal(
+                    Resource(resource),
+                    lexer.span(),
+                )))
+            }
+        }
+    }
+
+    /// Parses the argument list of a resource call. Resources are loaded
+    /// eagerly while parsing, so their arguments must be literal values.
+    fn parse_resource_arguments(
+        &mut self,
+        lexer: &mut Lexer,
+    ) -> Result<HashMap<String, Literal>, DocumentParseError> {
+        let arguments = self.parse_call_arguments(lexer)?;
+        let mut named = HashMap::new();
+
+        for argument in arguments {
+            match argument {
+                Argument::Named(name, expression) => {
+                    let literal = constant_literal(&expression).ok_or_else(|| {
+                        DocumentParseError::InvalidResource(format!(
+                            "argument '{name}' must be a literal value"
+                        ))
+                    })?;
+                    named.insert(name, literal);
+                }
+                Argument::Unnamed(_) => {
+                    return Err(DocumentParseError::InvalidResource(
+                        "resource arguments must be named".into(),
                     ))
                 }
             }
         }
+
+        Ok(named)
     }
 
     fn parse_call_arguments(
@@ -871,6 +900,20 @@ impl<R: Reader> Parser<R> {
     }
 }
 
+/// Extracts a literal value from an expression, used for arguments that must
+/// be known while parsing (such as resource options).
+fn constant_literal(expression: &Expression) -> Option<Literal> {
+    match expression {
+        Expression::Literal(literal, _) => match literal {
+            Literal::Number(value) => Some(Literal::Number(*value)),
+            Literal::Bool(value) => Some(Literal::Bool(*value)),
+            Literal::Text(value) => Some(Literal::Text(value.clone())),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
 fn escape_string(input: &str) -> String {
     let source = input[1..input.len() - 1].to_string();
     source
@@ -897,7 +940,12 @@ pub mod tests {
     struct TestRes;
 
     impl<R: Reader> ResourceLoader<R> for TestRes {
-        fn load(&self, _: &str, _: &R) -> Result<Box<dyn Resource>, DocumentParseError> {
+        fn load(
+            &self,
+            _: &str,
+            _: &R,
+            _: &HashMap<String, Literal>,
+        ) -> Result<Box<dyn Resource>, DocumentParseError> {
             Ok(Box::new(self.clone()))
         }
     }
@@ -973,6 +1021,23 @@ pub mod tests {
     fn it_can_parse_resource_calls() {
         parse("./cube.stl();", |a| {
             a.unwrap();
+        });
+    }
+
+    #[test]
+    fn it_can_parse_resource_arguments() {
+        parse("./cube.stl(message=\"hi\", size=5);", |a| {
+            a.unwrap();
+        });
+    }
+
+    #[test]
+    fn it_rejects_non_literal_resource_arguments() {
+        parse("./cube.stl(message=5 + 5);", |a| {
+            assert!(a.is_err());
+        });
+        parse("./cube.stl(5);", |a| {
+            assert!(a.is_err());
         });
     }
 

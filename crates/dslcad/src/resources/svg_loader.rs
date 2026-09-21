@@ -1,9 +1,10 @@
-use crate::parser::{DocumentParseError, Reader};
+use crate::parser::{DocumentParseError, Literal, Reader};
 use crate::resources::{Resource, ResourceLoader};
 use crate::runtime::{RuntimeError, Value};
 use dslcad_occt::{Edge, Point, Wire, WireFactory};
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::Reader as XmlReader;
+use std::collections::HashMap;
 use std::f64::consts::PI;
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
@@ -15,7 +16,12 @@ const EPSILON: f64 = 1e-9;
 pub struct SvgLoader;
 
 impl<R: Reader> ResourceLoader<R> for SvgLoader {
-    fn load(&self, path: &str, reader: &R) -> Result<Box<dyn Resource>, DocumentParseError> {
+    fn load(
+        &self,
+        path: &str,
+        reader: &R,
+        _arguments: &HashMap<String, Literal>,
+    ) -> Result<Box<dyn Resource>, DocumentParseError> {
         let data = reader
             .read(Path::new(path))
             .map_err(|_| DocumentParseError::NoSuchFile())?;
@@ -74,6 +80,24 @@ impl Resource for Svg {
 }
 
 impl Svg {
+    /// Builds a drawing directly from a set of SVG path definitions. This is
+    /// used by resources (such as fonts) that produce outlines which share the
+    /// SVG contour pipeline rather than authoring an SVG document.
+    pub(crate) fn from_paths<I, S>(paths: I) -> Result<Self, String>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let transform = Transform::identity();
+        let mut contours = Vec::new();
+
+        for path in paths {
+            contours.extend(parse_path(path.as_ref(), &transform)?);
+        }
+
+        Ok(Svg { contours })
+    }
+
     fn parse(data: &str) -> Result<Self, String> {
         let mut reader = XmlReader::from_str(data);
         reader.config_mut().trim_text(true);
@@ -1210,7 +1234,11 @@ mod tests {
     #[test]
     fn it_imports_the_trace_ring_example_as_a_line() {
         let resource = SvgLoader
-            .load("../../examples/svg_ring/trace.svg", &FsReader)
+            .load(
+                "../../examples/svg_ring/trace.svg",
+                &FsReader,
+                &HashMap::new(),
+            )
             .unwrap();
         let value = resource.to_instance().unwrap();
 
@@ -1227,7 +1255,11 @@ mod tests {
     #[test]
     fn it_reports_errors() {
         assert!(SvgLoader
-            .load("../../examples/svg_import/missing.svg", &FsReader)
+            .load(
+                "../../examples/svg_import/missing.svg",
+                &FsReader,
+                &HashMap::new()
+            )
             .is_err());
         assert!(Svg::parse(r#"<svg><path d="M 0 0 L"/></svg>"#).is_err());
     }
@@ -1235,7 +1267,11 @@ mod tests {
     #[test]
     fn it_loads_the_stamp_example() {
         let resource = SvgLoader
-            .load("../../examples/svg_import/stamp-heat-mesh.svg", &FsReader)
+            .load(
+                "../../examples/svg_import/stamp-heat-mesh.svg",
+                &FsReader,
+                &HashMap::new(),
+            )
             .unwrap();
         let value = resource.to_instance().unwrap();
 
@@ -1282,7 +1318,11 @@ mod tests {
     #[test]
     fn it_can_transform_loaded_lines() {
         let resource = SvgLoader
-            .load("../../examples/svg_import/stamp-heat-mesh.svg", &FsReader)
+            .load(
+                "../../examples/svg_import/stamp-heat-mesh.svg",
+                &FsReader,
+                &HashMap::new(),
+            )
             .unwrap();
         let value = resource.to_instance().unwrap();
 

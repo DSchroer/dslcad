@@ -1,0 +1,5 @@
+// Import a font and turn a message into a 2D plane of text.
+var text = ./Electrolize-Regular.ttf(message="Hello, world!", size=10);
+
+// Any 2D plane can be extruded, so text can be turned into 3D letters.
+text -> center() -> extrude(z=1);

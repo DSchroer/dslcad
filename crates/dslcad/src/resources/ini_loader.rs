@@ -1,4 +1,4 @@
-use crate::parser::{DocumentParseError, Reader};
+use crate::parser::{DocumentParseError, Literal, Reader};
 use crate::resources::{Resource, ResourceLoader};
 use crate::runtime::{RuntimeError, ScriptInstance, Value};
 use std::collections::HashMap;
@@ -8,7 +8,12 @@ use std::rc::Rc;
 pub struct IniLoader;
 
 impl<R: Reader> ResourceLoader<R> for IniLoader {
-    fn load(&self, path: &str, reader: &R) -> Result<Box<dyn Resource>, DocumentParseError> {
+    fn load(
+        &self,
+        path: &str,
+        reader: &R,
+        _arguments: &HashMap<String, Literal>,
+    ) -> Result<Box<dyn Resource>, DocumentParseError> {
         let data = reader.read(Path::new(path)).unwrap();
 
         let mut values = HashMap::new();

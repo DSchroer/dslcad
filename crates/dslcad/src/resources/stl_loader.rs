@@ -1,7 +1,8 @@
-use crate::parser::{DocumentParseError, Reader};
+use crate::parser::{DocumentParseError, Literal, Reader};
 use crate::resources::{Resource, ResourceLoader};
 use crate::runtime::{RuntimeError, Value};
 use dslcad_occt::{Point, TriangleMesh};
+use std::collections::HashMap;
 use std::io::Cursor;
 use std::path::Path;
 use std::rc::Rc;
@@ -10,7 +11,12 @@ use stl_io::IndexedMesh;
 pub struct StlLoader;
 
 impl<R: Reader> ResourceLoader<R> for StlLoader {
-    fn load(&self, path: &str, reader: &R) -> Result<Box<dyn Resource>, DocumentParseError> {
+    fn load(
+        &self,
+        path: &str,
+        reader: &R,
+        _arguments: &HashMap<String, Literal>,
+    ) -> Result<Box<dyn Resource>, DocumentParseError> {
         let data = reader.read_bytes(Path::new(path)).unwrap();
         let mut cursor = Cursor::new(&data);
         let mesh =
