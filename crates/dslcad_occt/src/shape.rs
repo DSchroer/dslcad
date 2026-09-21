@@ -450,6 +450,13 @@ mod tests {
         wire.build().unwrap()
     }
 
+    fn column() -> Shape {
+        Shape::cylinder(10., 100.)
+            .unwrap()
+            .translate(&Point::new(0.3, 0.3, 0.))
+            .unwrap()
+    }
+
     #[test]
     fn it_only_returns_unique_edges_and_vertices() {
         let shape = Shape::cube(1., 1., 1.).unwrap();
@@ -573,7 +580,7 @@ mod tests {
     #[test]
     fn it_can_write_fuse_stl() {
         let b = Shape::cube(15., 15., 1.).unwrap();
-        let c = Shape::cylinder(10., 100.).unwrap();
+        let c = column();
         let shape = Shape::fuse(&b, &c).unwrap();
         shape.mesh(0.1).unwrap();
     }
@@ -581,7 +588,7 @@ mod tests {
     #[test]
     fn it_can_write_cut_stl() {
         let b = Shape::cube(15., 15., 1.).unwrap();
-        let c = Shape::cylinder(10., 100.).unwrap();
+        let c = column();
         let shape = Shape::cut(&b, &c).unwrap();
         shape.mesh(0.1).unwrap();
     }
@@ -589,7 +596,7 @@ mod tests {
     #[test]
     fn it_can_write_intersect_stl() {
         let b = Shape::cube(15., 15., 1.).unwrap();
-        let c = Shape::cylinder(10., 100.).unwrap();
+        let c = column();
         let shape = Shape::intersect(&b, &c).unwrap();
         shape.mesh(0.1).unwrap();
     }
