@@ -5,6 +5,8 @@ use dslcad::parser::{Ast, DocumentParseError, ParseError};
 use dslcad::reader::{FsReader, StdinReader};
 use dslcad::runtime::{RuntimeError, WithStack};
 use dslcad::{eval, parse, parse_arguments, parse_with, render};
+#[cfg(feature = "preview")]
+use dslcad::{eval_with_cache, render_with_cache, Cache};
 use dslcad_storage::protocol;
 use dslcad_storage::protocol::BincodeError;
 #[cfg(feature = "preview")]
@@ -378,11 +380,22 @@ fn render_to_preview(
         arguments: &[String],
         deflection: f64,
         watch: Arc<Mutex<Option<RecommendedWatcher>>>,
+        cache: Arc<Mutex<Cache>>,
     ) -> Result<Render, CliError> {
         let ast = load_ast(source)?;
         add_files_to_watch(watch, &ast);
         let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
-        let render = render(eval(ast, arguments)?, deflection)?;
+
+        let mut cache = cache.lock().unwrap();
+        let value = eval_with_cache(ast, arguments, Some(&mut cache))?;
+        let render = render_with_cache(value, deflection, Some(&mut cache))?;
+
+        log::debug!(
+            "preview cache: {} hits, {} misses",
+            cache.hits(),
+            cache.misses()
+        );
+
         Ok(render)
     }
 
@@ -392,9 +405,10 @@ fn render_to_preview(
         arguments: &[String],
         deflection: f64,
         watch: Arc<Mutex<Option<RecommendedWatcher>>>,
+        cache: Arc<Mutex<Cache>>,
     ) {
         handle.show_rendering();
-        match render_with_watcher(source, arguments, deflection, watch) {
+        match render_with_watcher(source, arguments, deflection, watch, cache) {
             Ok(render) => handle.show_render(render),
             Err(err) => {
                 let mut buffer = Vec::new();
@@ -406,13 +420,15 @@ fn render_to_preview(
 
     let (preview, handle) = Preview::new();
     let watch = Arc::new(Mutex::new(None));
+    let cache = Arc::new(Mutex::new(Cache::new()));
 
     let watcher = {
-        let (source, arguments, watch, handle) = (
+        let (source, arguments, watch, handle, cache) = (
             source.to_string(),
             arguments.clone(),
             watch.clone(),
             handle.clone(),
+            cache.clone(),
         );
         recommended_watcher(move |event| {
             if let Ok(notify::Event {
@@ -426,6 +442,7 @@ fn render_to_preview(
                     &arguments,
                     deflection,
                     watch.clone(),
+                    cache.clone(),
                 );
             }
         })?
@@ -438,7 +455,14 @@ fn render_to_preview(
 
     let source = source.to_string();
     std::thread::spawn(move || {
-        render_to_handle(handle, &source, &arguments, deflection, watch.clone())
+        render_to_handle(
+            handle,
+            &source,
+            &arguments,
+            deflection,
+            watch.clone(),
+            cache,
+        )
     });
 
     preview.open(Library::default().to_string());

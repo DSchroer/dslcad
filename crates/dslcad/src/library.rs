@@ -270,18 +270,19 @@ impl Library {
     pub fn find<'b>(
         &self,
         to_call: CallSignature<'b>,
-    ) -> Result<(&Function, HashMap<&'b str, Value>), RuntimeError> {
+    ) -> Result<(&Function, HashMap<&'b str, Value>, usize), RuntimeError> {
         if let Some(indices) = self.lookup.get(to_call.name) {
             let mut options = Vec::new();
             for i in indices {
                 let signature = &self.signatures[*i];
                 if let Some(full_args) = signature.call_with(&to_call) {
-                    options.push((signature.function, full_args))
+                    options.push((*i, signature.function, full_args))
                 }
             }
 
             if options.len() == 1 {
-                return Ok(options.remove(0));
+                let (index, function, arguments) = options.remove(0);
+                return Ok((function, arguments, index));
             }
 
             Err(RuntimeError::CouldNotFindFunctionSignature {
@@ -783,7 +784,7 @@ pub mod tests {
             bind!(test, one[a=number, b=number], Category::Math, ""),
             bind!(test, two[a=point, b=number], Category::Math, ""),
         ]);
-        let (call, args) = lib
+        let (call, args, _) = lib
             .find(CallSignature::new(
                 "test",
                 vec![

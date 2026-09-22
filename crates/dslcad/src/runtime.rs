@@ -22,6 +22,7 @@ pub use stack::WithStack;
 pub use types::Type;
 pub use value::Value;
 
+use crate::cache::Cache;
 use crate::resources::ResourceFactory;
 use crate::runtime::stack::{Stack, StackFrame};
 use crate::runtime::value::Function;
@@ -36,6 +37,7 @@ pub struct Engine<'a> {
     stack: Stack,
     scope: Scope,
     current_document: Option<DocId>,
+    cache: Option<&'a mut Cache>,
 }
 
 impl<'a> Engine<'a> {
@@ -46,7 +48,13 @@ impl<'a> Engine<'a> {
             stack: Stack::new(),
             scope: Scope::default(),
             current_document: None,
+            cache: None,
         }
+    }
+
+    pub fn with_cache(mut self, cache: Option<&'a mut Cache>) -> Self {
+        self.cache = cache;
+        self
     }
 
     pub fn eval_root(
@@ -226,11 +234,28 @@ impl ExpressionVisitor for Engine<'_> {
 
                 let res = match func.as_ref() {
                     Function::Builtin { name } => {
-                        let (f, a) = self
+                        let (f, a, signature) = self
                             .library
                             .find(CallSignature::new(name, argument_values))
                             .map_err(|e| WithStack::from_err(e, &self.stack))?;
-                        f(&a).map_err(|e| WithStack::from_err(e, &self.stack))?
+
+                        if let Some(cache) = self.cache.as_deref_mut() {
+                            let key = Cache::eval_key(signature, &a);
+                            if let Some(cached) = cache.get_eval(&key) {
+                                cached
+                            } else {
+                                let value =
+                                    f(&a).map_err(|e| WithStack::from_err(e, &self.stack))?;
+                                cache.insert_eval(
+                                    key,
+                                    value.clone(),
+                                    a.values().cloned().collect(),
+                                );
+                                value
+                            }
+                        } else {
+                            f(&a).map_err(|e| WithStack::from_err(e, &self.stack))?
+                        }
                     }
                     Function::Defined {
                         clojure,

@@ -8,6 +8,7 @@ use log::trace;
 use std::collections::HashMap;
 use std::time::Instant;
 
+pub mod cache;
 pub mod error_printer;
 pub mod library;
 pub mod parser;
@@ -16,6 +17,8 @@ mod resources;
 pub mod runtime;
 mod source;
 mod trace;
+
+pub use cache::Cache;
 
 pub fn parse(source: String) -> Result<Ast, ParseError> {
     parse_with(FsReader, source)
@@ -51,9 +54,21 @@ pub fn eval(
     documents: Ast,
     arguments: HashMap<&str, Literal>,
 ) -> Result<Value, WithStack<RuntimeError>> {
+    eval_with_cache(documents, arguments, None)
+}
+
+/// Evaluate a document, reusing results from `cache` when one is provided.
+///
+/// The cache is shared across evaluations so that unchanged calls do not get
+/// recomputed, which keeps preview iteration fast.
+pub fn eval_with_cache(
+    documents: Ast,
+    arguments: HashMap<&str, Literal>,
+    cache: Option<&mut Cache>,
+) -> Result<Value, WithStack<RuntimeError>> {
     let lib = Library::default();
 
-    let mut engine = Engine::new(&lib, &documents);
+    let mut engine = Engine::new(&lib, &documents).with_cache(cache);
 
     let eval_time = Instant::now();
     let instance = engine.eval_root(arguments)?;
@@ -63,12 +78,24 @@ pub fn eval(
 }
 
 pub fn render(instance: Value, deflection: f64) -> Result<Render, RuntimeError> {
+    render_with_cache(instance, deflection, None)
+}
+
+/// Render a value to meshes, reusing results from `cache` when one is provided.
+pub fn render_with_cache(
+    instance: Value,
+    deflection: f64,
+    cache: Option<&mut Cache>,
+) -> Result<Render, RuntimeError> {
     let render_time = Instant::now();
 
     let text = instance.to_text().unwrap_or_default();
 
     let parts: Vec<_> = instance.flatten().into_iter().cloned().collect();
-    let output = values_to_output(parts, deflection)?;
+    let output = match cache {
+        Some(cache) => values_to_output_cached(parts, deflection, cache)?,
+        None => values_to_output(parts, deflection)?,
+    };
 
     trace!("render in {}s", render_time.elapsed().as_secs_f64());
 
@@ -76,6 +103,73 @@ pub fn render(instance: Value, deflection: f64) -> Result<Render, RuntimeError> 
         parts: output,
         stdout: text,
     })
+}
+
+#[cfg(feature = "rayon")]
+fn values_to_output_cached(
+    values: Vec<Value>,
+    deflection: f64,
+    cache: &mut Cache,
+) -> Result<Vec<Part>, RuntimeError> {
+    use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
+    let mut output: Vec<Part> = Vec::with_capacity(values.len());
+    let mut misses = Vec::new();
+
+    for (index, value) in values.into_iter().enumerate() {
+        let key = Cache::render_key(&value, deflection);
+        match cache.get_render(&key) {
+            Some(part) => output.push(part),
+            None => {
+                // Placeholder, overwritten once the mesh is computed below.
+                output.push(Part::Empty);
+                misses.push((index, key, value));
+            }
+        }
+    }
+
+    let computed: Vec<_> = misses
+        .into_par_iter()
+        .map(|(index, key, value)| {
+            let part = value.to_output(deflection);
+            (index, key, value, part)
+        })
+        .collect();
+
+    for (index, key, value, part) in computed {
+        let part = part?;
+        if part != Part::Empty {
+            cache.insert_render(key, value, part.clone());
+        }
+        output[index] = part;
+    }
+
+    Ok(output)
+}
+
+#[cfg(not(feature = "rayon"))]
+fn values_to_output_cached(
+    values: Vec<Value>,
+    deflection: f64,
+    cache: &mut Cache,
+) -> Result<Vec<Part>, RuntimeError> {
+    let mut output = Vec::with_capacity(values.len());
+
+    for value in values {
+        let key = Cache::render_key(&value, deflection);
+        if let Some(part) = cache.get_render(&key) {
+            output.push(part);
+            continue;
+        }
+
+        let part = value.to_output(deflection)?;
+        if part != Part::Empty {
+            cache.insert_render(key, value, part.clone());
+        }
+        output.push(part);
+    }
+
+    Ok(output)
 }
 
 #[cfg(feature = "rayon")]
@@ -393,6 +487,32 @@ line(start=point(x=0,y=0), end=point(x=1,y=1))
             .map(|v| v.to_output(0.1).unwrap())
             .collect();
         assert_eq!(4, parts.len());
+    }
+
+    #[test]
+    fn it_reuses_cached_values_across_evaluations() {
+        let code = "cube(x=2) -> translate(x=1);";
+        let mut cache = Cache::new();
+
+        let first = {
+            let ast = parse_str(code);
+            let value = eval_with_cache(ast, HashMap::new(), Some(&mut cache)).unwrap();
+            render_with_cache(value, 0.1, Some(&mut cache)).unwrap()
+        };
+
+        let hits_after_first = cache.hits();
+
+        let second = {
+            let ast = parse_str(code);
+            let value = eval_with_cache(ast, HashMap::new(), Some(&mut cache)).unwrap();
+            render_with_cache(value, 0.1, Some(&mut cache)).unwrap()
+        };
+
+        assert!(
+            cache.hits() > hits_after_first,
+            "expected the second evaluation to reuse cached values"
+        );
+        assert_eq!(first, second);
     }
 
     pub struct TestReader(pub &'static str);
