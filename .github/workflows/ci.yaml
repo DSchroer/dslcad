@@ -6,6 +6,9 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # OCCT's vendored CMake project requires CMake < 3.5 compatibility, which
+  # CMake 4+ rejects unless this override is set.
+  CMAKE_POLICY_VERSION_MINIMUM: "3.5"
 
 jobs:
   build_and_test:

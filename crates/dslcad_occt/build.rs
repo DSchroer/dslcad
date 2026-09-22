@@ -1,8 +1,7 @@
-use std::env;
+use std::{env, path::PathBuf};
 
 fn main() {
-    let occt = occt_sys::occt_path();
-    let include = occt.join("include");
+    let include = occt_include();
 
     let mut build = cc::Build::new();
     build
@@ -21,4 +20,27 @@ fn main() {
 
     println!("cargo:rerun-if-changed=src/bend.cc");
     println!("cargo:rerun-if-changed=src/bounds.cc");
+}
+
+/// Locate the installed OpenCASCADE headers.
+///
+/// OpenCASCADE is built by `opencascade-sys`. Cargo does not order the build
+/// scripts of normal dependencies before ours, so `opencascade-sys` is also a
+/// build dependency, which forces its (host) build to complete first. For
+/// native builds that is the same OCCT this target links against; for
+/// cross-compilation the target build may still be running, so fall back to the
+/// host headers, which are identical across targets.
+fn occt_include() -> PathBuf {
+    let target = occt_sys::occt_path().join("include");
+    if target.exists() {
+        return target;
+    }
+
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("missing OUT_DIR"));
+    let host = out_dir.join("../../../../../OCCT/include");
+    if host.exists() {
+        return host.canonicalize().unwrap_or(host);
+    }
+
+    target
 }

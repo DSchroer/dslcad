@@ -1,5 +1,8 @@
 TARGET := `rustc -vV | sed -n 's|host: ||p'`
 export CMAKE_BUILD_PARALLEL_LEVEL := `nproc --all`
+# OCCT's vendored CMake project still asks for CMake < 3.5 compatibility, which
+# newer CMake (4+) refuses to configure without this override.
+export CMAKE_POLICY_VERSION_MINIMUM := "3.5"
 
 run *FLAGS:
     cargo run --target {{ TARGET }} {{ FLAGS }}
@@ -30,6 +33,11 @@ build-viewer *FLAGS:
 
     if [ "{{ TARGET }}" == "wasm32-unknown-emscripten" ]; then
         exit 0
+    fi
+
+    if [ "{{ TARGET }}" == "wasm32-unknown-unknown" ]; then
+      # bevy_egui uses unstable web-sys clipboard APIs on the web.
+      export RUSTFLAGS="${RUSTFLAGS:-} --cfg=web_sys_unstable_apis"
     fi
 
     cargo build --bin dslcad-viewer --target {{ TARGET }} --release {{ FLAGS }}

@@ -13,3 +13,7 @@ log = "0.4"
 [build-dependencies]
 cc = "1"
 occt-sys = "0.6"
+# `opencascade-sys` builds OpenCASCADE from source as part of its build script.
+# Declaring it as a build dependency as well guarantees that build finishes
+# before this crate's build script tries to compile C++ against its headers.
+opencascade-sys = { git = "https://github.com/bschwind/opencascade-rs", rev="cd3519c", features = [ "builtin" ] }
