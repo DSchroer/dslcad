@@ -14,6 +14,9 @@ build *FLAGS:
     if [ "{{ TARGET }}" == "wasm32-unknown-emscripten" ]; then
       FLAGS="--no-default-features";
       export CXXFLAGS="-DRUST_CXX_NO_EXCEPTIONS=ON";
+      # Link the C++ runtime. The C++ sources in `dslcad-occt` use exceptions
+      # and the standard library, which `emcc` does not link by default.
+      export EMCC_CFLAGS="${EMCC_CFLAGS:-} -sDEFAULT_TO_CXX=1";
     elif [ "{{ TARGET }}" == "wasm32-unknown-unknown" ]; then
         exit 0
     fi
