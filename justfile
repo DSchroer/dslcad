@@ -17,13 +17,11 @@ build *FLAGS:
       # Link the C++ runtime. The C++ sources in `dslcad-occt` and OpenCASCADE
       # use exceptions and the standard library, which `emcc` does not link by
       # default. Forcing wasm exceptions keeps them consistent with the
-      # `-fwasm-exceptions` the Rust target passes to the linker, instead of the
-      # `-femscripten-exceptions` that `emcc` selects for `-fexceptions`.
-      export EMCC_CFLAGS="${EMCC_CFLAGS:-} -sDEFAULT_TO_CXX=1 -fwasm-exceptions";
-      # `emcc` runs its `wasm-opt` pass for `-O2`/`-O3`, and the current
-      # Emscripten release cannot parse the resulting exception-handling wasm.
-      # Keep the optimization level low enough that the pass is skipped.
-      export CARGO_PROFILE_RELEASE_OPT_LEVEL=1;
+      # `-fwasm-exceptions` the Rust target passes to the linker, and the legacy
+      # exception model matches the one the Rust objects are built with (the
+      # newer exnref model currently emits invalid br_table instructions for
+      # this code, see llvm-project#217723).
+      export EMCC_CFLAGS="${EMCC_CFLAGS:-} -sDEFAULT_TO_CXX=1 -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=1";
     elif [ "{{ TARGET }}" == "wasm32-unknown-unknown" ]; then
         exit 0
     fi
