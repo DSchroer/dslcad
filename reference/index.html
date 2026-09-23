@@ -1,0 +1,567 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../concepts/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Syntax Reference - DSLCAD (Pronounced DieselCAD)</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#syntax-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="DSLCAD (Pronounced DieselCAD)" class="md-header__button md-logo" aria-label="DSLCAD (Pronounced DieselCAD)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            DSLCAD (Pronounced DieselCAD)
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Syntax Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/DSchroer/dslcad/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="DSLCAD (Pronounced DieselCAD)" class="md-nav__button md-logo" aria-label="DSLCAD (Pronounced DieselCAD)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    DSLCAD (Pronounced DieselCAD)
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/DSchroer/dslcad/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Syntax Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="syntax-reference">Syntax Reference</h1>
+<p>The following is a cheat sheet style reference for all operators in DSLCAD.
+Please refer to the <a href="https://github.com/DSchroer/dslcad/tree/master/examples">examples</a> folder for even more reference on how
+to build parts.</p>
+<h1 id="cheat-sheet">Cheat Sheet</h1>
+<h2 id="getting-started">Getting Started</h2>
+<ul>
+<li><code>cube();</code> draw a 1x1x1 cube</li>
+<li><code>square(x=10, y=5) -&gt; extrude(z=2);</code> extrude a 2D shape into 3D</li>
+<li><code>cube() -&gt; translate(z=2) -&gt; difference(sphere());</code> move a shape and cut a sphere out of it</li>
+<li>run <code>dslcad ./part.ds</code> to write <code>part.3mf</code>, or <code>dslcad ./part.ds --preview</code> to edit live</li>
+</ul>
+<p>Coordinates are in millimetres.</p>
+<h2 id="syntax">Syntax</h2>
+<ul>
+<li><code>// text</code> a comment to the end of the line</li>
+<li><code>var name = value;</code> declare a variable called name that stores value</li>
+<li><code>name = value;</code> reassign an existing variable</li>
+<li><code>var name;</code> declare a parameter, set from the CLI with <code>--argument name=value</code></li>
+<li><code>value;</code> draw the value; each top-level value is a separate part</li>
+<li><code>123</code>, <code>1.5</code> numbers; <code>true</code> / <code>false</code> booleans; <code>"text"</code> strings (escapes <code>\n</code>, <code>\t</code>, <code>"</code>, <code>\</code>)</li>
+<li><code>b(name=a)</code> pass the value of <code>a</code> as the named argument <code>name</code> of function <code>b</code></li>
+<li><code>b(a)</code> pass <code>a</code> as the first argument of <code>b</code> (positional arguments are matched in order)</li>
+<li><code>a -&gt;name b()</code> pipe <code>a</code> into the named argument <code>name</code> of function <code>b</code></li>
+<li><code>a -&gt; b()</code> pipe <code>a</code> into the first argument of <code>b</code></li>
+<li><code>a.b</code> access property <code>b</code> of <code>a</code> (for example <code>point.x</code>, <code>shape.center</code>, <code>shape.volume</code>)</li>
+<li><code>list[0]</code> get an item of a list (the index is zero-based)</li>
+<li><code>{ ... }</code> a scope; <code>func { ... }</code> a function that takes its own arguments</li>
+<li><code>if a: b() else: c()</code> branch on condition <code>a</code> (the <code>else</code> branch is required)</li>
+<li>statements may end at a newline instead of a semicolon, like JavaScript automatic semicolon insertion</li>
+</ul>
+<h2 id="collections-and-loops">Collections and Loops</h2>
+<ul>
+<li><code>[1, 2, 3]</code> make a list with three numbers</li>
+<li><code>map LIST as NAME: OPERATION</code> loop over every entry in LIST, collecting the results</li>
+<li><code>reduce LIST as NAME1,NAME2: OPERATION</code> combine every item in LIST</li>
+<li><code>reduce LIST from BASE as NAME1,NAME2: OPERATION</code> combine every item in LIST starting from BASE</li>
+</ul>
+<h2 id="resources">Resources</h2>
+<ul>
+<li><code>./part.ds(name=a)</code> run another script as if it were a function</li>
+<li><code>@lib/part.ds(name=a)</code> run a shared script from the nearest <code>modules</code> directory (searched upward from the current file)</li>
+<li><code>./model.stl()</code> import an STL mesh as a 3D shape</li>
+<li><code>./drawing.svg()</code> import an SVG drawing as a 2D line or plane</li>
+<li><code>./font.ttf(message="hi")</code> import text from a TrueType/OpenType font as a 2D plane</li>
+<li><code>./data.ini()</code> import an INI file as an object of text values</li>
+</ul>
+<p>Resource arguments can be any expression, so <code>./font.ttf(message=name)</code> works with a variable.</p>
+<h2 id="operators">Operators</h2>
+<ul>
+<li><code>a + b</code> addition; concatenates text when both sides are text</li>
+<li><code>a - b</code> subtraction</li>
+<li><code>a * b</code> multiplication</li>
+<li><code>a / b</code> division</li>
+<li><code>a % b</code> modulo</li>
+<li><code>a ^ b</code> power</li>
+<li><code>-a</code> negate a number</li>
+</ul>
+<h2 id="logic">Logic</h2>
+<ul>
+<li><code>a &lt; b</code> less than (numbers only)</li>
+<li><code>a &lt;= b</code> less than or equal (numbers only)</li>
+<li><code>a == b</code> equal (numbers only)</li>
+<li><code>a != b</code> not equal (numbers only)</li>
+<li><code>a &gt; b</code> greater than (numbers only)</li>
+<li><code>a &gt;= b</code> greater than or equal (numbers only)</li>
+<li><code>a and b</code> logical and</li>
+<li><code>a or b</code> logical or</li>
+<li><code>not a</code> logical not</li>
+</ul>
+<h2 id="properties">Properties</h2>
+<ul>
+<li><code>point.x</code>, <code>point.y</code>, <code>point.z</code> coordinates of a point</li>
+<li><code>2d_value.center</code> center of a 2D object</li>
+<li><code>3d_value.center</code> center of a 3D object</li>
+<li><code>3d_value.volume</code> volume of a 3D object</li>
+</ul>
+<h2 id="signature-notation">Signature Notation</h2>
+<ul>
+<li><code>name(type)</code> required argument of the given type</li>
+<li><code>name=[type]</code> optional argument (values in the description are the defaults)</li>
+<li><code>name=*</code> argument of any type</li>
+<li><code>...</code> any number of additional named arguments</li>
+<li><code>line|plane</code> accepts either type</li>
+</ul>
+<h2 id="math">Math</h2>
+<ul>
+<li><code>pi()</code> constant pi</li>
+<li><code>rad_to_deg(radians=number)</code> convert radians to degrees</li>
+<li><code>deg_to_rad(degrees=number)</code> convert degrees to radians</li>
+<li><code>sin(degrees=number)</code> sine of an angle given in degrees</li>
+<li><code>sin(radians=number)</code> sine of an angle given in radians</li>
+<li><code>cos(degrees=number)</code> cosine of an angle given in degrees</li>
+<li><code>cos(radians=number)</code> cosine of an angle given in radians</li>
+<li><code>tan(degrees=number)</code> tangent of an angle given in degrees</li>
+<li><code>tan(radians=number)</code> tangent of an angle given in radians</li>
+<li><code>round(number=number)</code> round to the nearest whole number</li>
+<li><code>ceil(number=number)</code> round up to a whole number</li>
+<li><code>floor(number=number)</code> round down to a whole number</li>
+<li><code>sqrt(number=number)</code> square root of a number</li>
+</ul>
+<h2 id="2d">2D</h2>
+<ul>
+<li><code>point(x=[number], y=[number], z=[number])</code> create a point in 2D or 3D space (x, y and z default to 0)</li>
+<li><code>line(start=point, end=point)</code> create a line between two points</li>
+<li><code>square(x=[number], y=[number])</code> create a rectangle (x and y default to 1)</li>
+<li><code>circle(radius=[number])</code> create a circle (radius defaults to 0.5)</li>
+<li><code>arc(start=point, center=point, end=point)</code> create an arcing line between three points</li>
+<li><code>union(left=line|plane, right=line|plane)</code> combine two 2D shapes</li>
+<li><code>face(parts=list)</code> make a closed face from a list of points, lines and arcs</li>
+<li><code>translate(shape=line|plane, x=[number], y=[number], z=[number])</code> move a 2D shape</li>
+<li><code>rotate(shape=line|plane, angle=[number])</code> rotate a 2D shape around the z axis by angle in degrees</li>
+<li><code>rotate(shape=line|plane, x=[number], y=[number], z=[number])</code> rotate a 2D shape around the x, y and z axes by degrees</li>
+<li><code>scale(shape=line|plane, scale=number)</code> scale a 2D shape</li>
+<li><code>normalize(shape=line|plane)</code> scale a 2D shape so its largest side is 1 unit long</li>
+<li><code>center(shape=line|plane, x=[bool], y=[bool], z=[bool])</code> center a 2D shape on the given axes (each axis defaults to true; pass false to leave it in place)</li>
+<li><code>offset(shape=plane, distance=number)</code> expand a closed 2D shape outward by distance</li>
+<li><code>simplify(shape=line|plane, tolerance=[number])</code> remove detail from a line or plane so it stays within tolerance of the original</li>
+<li><code>thicken(shape=line, distance=[number], x=[number], y=[number], z=[number])</code> turn a line into a face by thickening it</li>
+</ul>
+<h2 id="3d">3D</h2>
+<ul>
+<li><code>extrude(shape=plane, x=[number], y=[number], z=[number])</code> extrude a face into a 3D shape</li>
+<li><code>revolve(shape=plane, x=[number], y=[number], z=[number])</code> revolve a face around the x, y or z axis (the value is the angle in degrees)</li>
+<li><code>bend(shape=shape, x=[number], y=[number], z=[number])</code> bend a shape around the x, y and z axes (each value is an angle in degrees)</li>
+<li><code>simplify(shape=shape)</code> merge same-domain faces and edges of a shape to reduce its complexity</li>
+<li><code>cube(x=[number], y=[number], z=[number])</code> create a cube or box (x, y and z default to 1)</li>
+<li><code>sphere(radius=[number])</code> create a sphere (radius defaults to 0.5)</li>
+<li><code>cylinder(radius=[number], height=[number])</code> create a cylinder (radius defaults to 0.5, height to 1)</li>
+<li><code>union(left=shape, right=shape)</code> combine two shapes</li>
+<li><code>chamfer(shape=shape, radius=number)</code> chamfer edges</li>
+<li><code>fillet(shape=shape, radius=number)</code> fillet edges</li>
+<li><code>difference(left=shape, right=shape)</code> cut one shape out of another</li>
+<li><code>intersect(left=shape, right=shape)</code> intersection between two shapes</li>
+<li><code>translate(shape=shape, x=[number], y=[number], z=[number])</code> move a shape</li>
+<li><code>rotate(shape=shape, x=[number], y=[number], z=[number])</code> rotate a shape around the x, y and z axes by degrees</li>
+<li><code>scale(shape=shape, scale=number)</code> scale a shape uniformly</li>
+<li><code>scale(shape=shape, x=[number], y=[number], z=[number])</code> scale a shape independently on the x, y and z axes</li>
+<li><code>normalize(shape=shape)</code> scale a shape so its largest side is 1 unit long</li>
+<li><code>center(shape=shape, x=[bool], y=[bool], z=[bool])</code> center a shape on the given axes (each axis defaults to true; pass false to leave it in place)</li>
+<li><code>slice(left=shape, right=line|plane)</code> cut a 2D cross-section out of a shape</li>
+<li><code>slice(left=shape, right=shape)</code> cut one shape out of another</li>
+</ul>
+<h2 id="lists">Lists</h2>
+<ul>
+<li><code>length(list=list)</code> get the length of a list</li>
+<li><code>range(start=[number], end=number)</code> create a list of whole numbers from start (default 0) up to but not including end</li>
+</ul>
+<h2 id="text">Text</h2>
+<ul>
+<li><code>string(item=*)</code> convert a number, boolean or text to text</li>
+<li><code>format(message=text, ...)</code> format text using {my_arg} style formatting</li>
+<li><code>formatln(message=text, ...)</code> format text with newline</li>
+<li><code>error(message=text)</code> generate an error</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <script async src="https://eyes.schroer.ca/tracker.js" data-ackee-server="https://eyes.schroer.ca" data-ackee-domain-id="e0b2e9fa-5152-43db-9738-ff54f0bf2703"></script>
+<script async src="/utils.js"></script>
+<link rel="stylesheet" type="text/css" rel="noopener" target="_blank" href="/utils.css">
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
