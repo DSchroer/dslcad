@@ -18,6 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+        with:
+          # Only the cargo registry is cached. The target directory contains
+          # OpenCASCADE's installed headers and libraries, which the action's
+          # cleanup step strips, leaving `opencascade-sys` marked as fresh while
+          # its OCCT installation is missing.
+          cache-targets: false
       - run: rustup update stable && rustup default stable
       - run: cargo build --verbose
       - run: cargo test --verbose

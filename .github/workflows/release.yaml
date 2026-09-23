@@ -50,6 +50,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+        with:
+          # Only the cargo registry is cached. The target directory contains
+          # OpenCASCADE's installed headers and libraries, which the action's
+          # cleanup step strips, leaving `opencascade-sys` marked as fresh while
+          # its OCCT installation is missing.
+          cache-targets: false
       - uses: extractions/setup-just@v2
       - uses: mymindstorm/setup-emsdk@v14
       - uses: actions/setup-python@v5
@@ -87,6 +93,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+        with:
+          # Only the cargo registry is cached. The target directory contains
+          # OpenCASCADE's installed headers and libraries, which the action's
+          # cleanup step strips, leaving `opencascade-sys` marked as fresh while
+          # its OCCT installation is missing.
+          cache-targets: false
       - uses: extractions/setup-just@v2
       - if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
         uses: mymindstorm/setup-emsdk@v14
