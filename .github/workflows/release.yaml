@@ -65,7 +65,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-      - run: rustup update stable && rustup default stable && rustup target add wasm32-unknown-emscripten && rustup target add wasm32-unknown-unknown
+      - run: rustup toolchain install 1.92.0 --profile minimal && rustup default 1.92.0 && rustup target add wasm32-unknown-emscripten && rustup target add wasm32-unknown-unknown
       - run: cargo install -f wasm-bindgen-cli@0.2.100
       - run: just build-docs-editor
       - run: pip install mkdocs-material
@@ -102,7 +102,13 @@ jobs:
       - uses: extractions/setup-just@v2
       - if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
         uses: mymindstorm/setup-emsdk@v14
-      - run: rustup update stable && rustup default stable && rustup target add ${{ matrix.target }}
+      - if: ${{ matrix.target != 'wasm32-unknown-emscripten' }}
+        run: rustup update stable && rustup default stable && rustup target add ${{ matrix.target }}
+      - if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
+        # Rust 1.93 enables wasm exception handling for this target by default,
+        # which is currently miscompiled for OpenCASCADE (invalid br_table, see
+        # llvm-project#217723). Pin to 1.92, which uses the legacy/JS model.
+        run: rustup toolchain install 1.92.0 --profile minimal && rustup default 1.92.0 && rustup target add wasm32-unknown-emscripten
       - if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
         run: cargo install -f wasm-bindgen-cli@0.2.100
       - run: just CMAKE_BUILD_PARALLEL_LEVEL=4 TARGET=${{ matrix.target }} pack

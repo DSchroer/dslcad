@@ -14,14 +14,12 @@ build *FLAGS:
     if [ "{{ TARGET }}" == "wasm32-unknown-emscripten" ]; then
       FLAGS="--no-default-features";
       export CXXFLAGS="-DRUST_CXX_NO_EXCEPTIONS=ON";
-      # Link the C++ runtime. The C++ sources in `dslcad-occt` and OpenCASCADE
-      # use exceptions and the standard library, which `emcc` does not link by
-      # default. Forcing wasm exceptions keeps them consistent with the
-      # `-fwasm-exceptions` the Rust target passes to the linker, and the legacy
-      # exception model matches the one the Rust objects are built with (the
-      # newer exnref model currently emits invalid br_table instructions for
-      # this code, see llvm-project#217723).
-      export EMCC_CFLAGS="${EMCC_CFLAGS:-} -sDEFAULT_TO_CXX=1 -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=1";
+      # `emcc` does not link the C++ runtime by default, which the C++ sources
+      # in `dslcad-occt` and OpenCASCADE need for exceptions and the standard
+      # library. CI pins Rust 1.92 for this target because 1.93+ enables wasm
+      # exception handling by default, which is currently miscompiled for
+      # OpenCASCADE (invalid br_table, see llvm-project#217723).
+      export EMCC_CFLAGS="${EMCC_CFLAGS:-} -sDEFAULT_TO_CXX=1";
     elif [ "{{ TARGET }}" == "wasm32-unknown-unknown" ]; then
         exit 0
     fi
