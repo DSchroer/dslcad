@@ -14,9 +14,12 @@ build *FLAGS:
     if [ "{{ TARGET }}" == "wasm32-unknown-emscripten" ]; then
       FLAGS="--no-default-features";
       export CXXFLAGS="-DRUST_CXX_NO_EXCEPTIONS=ON";
-      # Link the C++ runtime. The C++ sources in `dslcad-occt` use exceptions
-      # and the standard library, which `emcc` does not link by default.
-      export EMCC_CFLAGS="${EMCC_CFLAGS:-} -sDEFAULT_TO_CXX=1";
+      # Link the C++ runtime. The C++ sources in `dslcad-occt` and OpenCASCADE
+      # use exceptions and the standard library, which `emcc` does not link by
+      # default. Forcing wasm exceptions keeps them consistent with the
+      # `-fwasm-exceptions` the Rust target passes to the linker, instead of the
+      # `-femscripten-exceptions` that `emcc` selects for `-fexceptions`.
+      export EMCC_CFLAGS="${EMCC_CFLAGS:-} -sDEFAULT_TO_CXX=1 -fwasm-exceptions";
     elif [ "{{ TARGET }}" == "wasm32-unknown-unknown" ]; then
         exit 0
     fi
