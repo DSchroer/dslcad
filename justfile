@@ -20,6 +20,10 @@ build *FLAGS:
       # `-fwasm-exceptions` the Rust target passes to the linker, instead of the
       # `-femscripten-exceptions` that `emcc` selects for `-fexceptions`.
       export EMCC_CFLAGS="${EMCC_CFLAGS:-} -sDEFAULT_TO_CXX=1 -fwasm-exceptions";
+      # `emcc` runs its `wasm-opt` pass for `-O2`/`-O3`, and the current
+      # Emscripten release cannot parse the resulting exception-handling wasm.
+      # Keep the optimization level low enough that the pass is skipped.
+      export CARGO_PROFILE_RELEASE_OPT_LEVEL=1;
     elif [ "{{ TARGET }}" == "wasm32-unknown-unknown" ]; then
         exit 0
     fi
