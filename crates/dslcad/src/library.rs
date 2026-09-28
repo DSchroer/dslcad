@@ -133,6 +133,7 @@ macro_rules! arguments {
     (bool) => {Access::Required(Type::Bool)};
     (option_bool) => {Access::Optional(Type::Bool)};
     (text) => {Access::Required(Type::Text)};
+    (option_text) => {Access::Optional(Type::Text)};
     (any) => {Access::RequiredAny()};
     (point) => {Access::Required(Type::Point)};
     (line) => {Access::Required(Type::Line)};
@@ -182,6 +183,12 @@ macro_rules! invoke {
             .ok_or(RuntimeError::UnsetParameter(String::from(stringify!($name))))?;
         value
             .to_text()?
+    }};
+    ($map: ident, $name: ident=option_text) => {{
+        match $map.get(stringify!($name)) {
+            Some(value) => Some(value.to_text()?),
+            None => None,
+        }
     }};
     ($map: ident, $name: ident=point) => {{
         let value = $map
@@ -481,6 +488,7 @@ impl Default for Library {
             bind!(extrude, faces::extrude[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "revolve a face around the x, y or z axis (the value is the angle in degrees)"),
             bind!(bend, shapes::bend[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "bend a shape around the x, y and z axes (each value is an angle in degrees)"),
+            bind!(taper, shapes::taper[shape=shape, x=option_number, y=option_number, z=option_number, axis=option_text], Category::ThreeD, "taper the walls running along the x, y or z axis inward along the given axis (the value is the angle in degrees; the axis selects the sides and defaults to every other axis, accepting combinations like \"xy\")"),
             bind!(
                 simplify,
                 shapes::simplify[shape = shape],

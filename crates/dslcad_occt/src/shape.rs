@@ -33,7 +33,7 @@ impl AsRef<TopoDS_Shape> for Shape {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Axis {
     X,
     Y,

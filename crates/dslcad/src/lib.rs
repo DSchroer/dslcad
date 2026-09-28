@@ -353,6 +353,28 @@ mod tests {
     }
 
     #[test]
+    fn it_can_taper_shapes() {
+        let one_side = run(r#"cube(x=10, y=10, z=1) ->shape taper(z=45, axis="y");"#);
+        let volume = one_side.to_shape().unwrap().volume();
+        assert!((volume - 90.0).abs() < 0.1, "unexpected volume {volume}");
+
+        // The axis can combine directions, and defaults to all of them.
+        let two_sides = run(r#"cube(x=10, y=10, z=1) ->shape taper(z=45, axis="xy");"#);
+        let volume = two_sides.to_shape().unwrap().volume();
+        assert!((volume - 81.33).abs() < 0.1, "unexpected volume {volume}");
+
+        let defaulted = run("cube(x=10, y=10, z=1) ->shape taper(z=45);");
+        let volume = defaulted.to_shape().unwrap().volume();
+        assert!((volume - 81.33).abs() < 0.1, "unexpected volume {volume}");
+
+        let untapered = run(r#"cube(x=10, y=10, z=1) ->shape taper(z=0, axis="y");"#);
+        assert!((untapered.to_shape().unwrap().volume() - 100.0).abs() < 1e-9);
+
+        assert!(try_run(r#"cube() ->shape taper(z=45, axis="w");"#).is_err());
+        assert!(try_run("cube() ->shape taper(axis=\"y\");").is_err());
+    }
+
+    #[test]
     fn it_has_axis_scaling() {
         run("cube() -> scale(x=2);");
         run("cube() -> scale(y=2);");

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - In-memory caching while the preview is running, so editing a model only recomputes the values that changed
+- `taper` operator to draft the walls of a 3D shape inward along an axis without scaling its cross-section
 
 ## [v0.0.6]
 

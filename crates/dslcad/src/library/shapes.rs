@@ -102,6 +102,53 @@ pub fn bend(
     Ok(shape.into())
 }
 
+pub fn taper(
+    shape: &Shape,
+    x: Option<f64>,
+    y: Option<f64>,
+    z: Option<f64>,
+    axis: Option<String>,
+) -> Result<Value, RuntimeError> {
+    let (up, degrees) = if let Some(x) = x {
+        (Axis::X, x)
+    } else if let Some(y) = y {
+        (Axis::Y, y)
+    } else if let Some(z) = z {
+        (Axis::Z, z)
+    } else {
+        return Err(RuntimeError::UnsetParameter(String::from("x, y, or z")));
+    };
+
+    // Without an explicit axis every wall around the taper axis leans inward.
+    let directions = match axis {
+        Some(axis) => parse_directions(&axis)?,
+        None => [Axis::X, Axis::Y, Axis::Z]
+            .into_iter()
+            .filter(|axis| *axis != up)
+            .collect(),
+    };
+
+    Ok(Shape::taper(shape, up, &directions, degrees)?.into())
+}
+
+fn parse_directions(axis: &str) -> Result<Vec<Axis>, RuntimeError> {
+    let mut directions = Vec::new();
+    for letter in axis.chars() {
+        let direction = match letter {
+            'x' => Axis::X,
+            'y' => Axis::Y,
+            'z' => Axis::Z,
+            _ => return Err(RuntimeError::UnexpectedType()),
+        };
+
+        if !directions.contains(&direction) {
+            directions.push(direction);
+        }
+    }
+
+    Ok(directions)
+}
+
 pub fn simplify(shape: &Shape) -> Result<Value, RuntimeError> {
     Ok(shape.simplify()?.into())
 }

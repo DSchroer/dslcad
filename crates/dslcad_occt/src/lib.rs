@@ -9,6 +9,7 @@ mod mesh;
 mod point;
 mod shape;
 mod shapes;
+mod taper;
 mod triangle_mesh;
 mod wire;
 

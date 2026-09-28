@@ -8,6 +8,7 @@ fn main() {
         .cpp(true)
         .file("src/bend.cc")
         .file("src/bounds.cc")
+        .file("src/taper.cc")
         .include(&include)
         .std("c++17")
         .warnings(false);
@@ -20,6 +21,7 @@ fn main() {
 
     println!("cargo:rerun-if-changed=src/bend.cc");
     println!("cargo:rerun-if-changed=src/bounds.cc");
+    println!("cargo:rerun-if-changed=src/taper.cc");
 }
 
 /// Locate the OpenCASCADE headers.
