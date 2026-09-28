@@ -15,6 +15,9 @@ pub struct Render {
     /// the model and do not take part in framing or export.
     #[serde(default)]
     pub annotations: Vec<Annotation>,
+    /// Named views that group a camera with the annotations it draws.
+    #[serde(default)]
+    pub views: Vec<ViewDef>,
 }
 
 impl TryFrom<&[u8]> for Render {
@@ -151,6 +154,58 @@ pub struct TextBlock {
     pub plane: TextPlane,
 }
 
+/// Camera rotations around the part axes, in degrees. An unset axis keeps the
+/// viewer's default.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
+pub struct ViewAngles {
+    pub x: Option<f32>,
+    pub y: Option<f32>,
+    pub z: Option<f32>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Projection {
+    #[default]
+    Perspective,
+    Orthographic,
+}
+
+/// Which features a view draws.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ShowFlags {
+    pub model: bool,
+    pub points: bool,
+    pub lines: bool,
+    pub mesh: bool,
+    pub annotations: bool,
+}
+
+impl Default for ShowFlags {
+    fn default() -> Self {
+        ShowFlags {
+            model: true,
+            points: true,
+            lines: true,
+            mesh: true,
+            annotations: true,
+        }
+    }
+}
+
+/// A named camera together with the annotations it overlays on the shared
+/// model scene.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct ViewDef {
+    pub name: Option<String>,
+    pub angle: ViewAngles,
+    pub projection: Projection,
+    pub zoom: Option<f32>,
+    pub target: Option<Point>,
+    pub fit: bool,
+    pub show: ShowFlags,
+    pub annotations: Vec<Annotation>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -182,6 +237,7 @@ mod tests {
                     Point::from((1.0, 0.0, 0.0)),
                 ]],
             )],
+            views: Vec::new(),
         };
 
         let serialized: Vec<u8> = render.clone().try_into().unwrap();

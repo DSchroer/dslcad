@@ -16,7 +16,7 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Menu>()
             .add_event::<MenuEvent>()
-            .add_systems(Update, main_ui)
+            .add_systems(Update, main_ui.in_set(super::GuiSet))
             .add_persistent_res_loader::<ResMut<RenderState>>(
                 "points",
                 |value, mut state: ResMut<RenderState>| {

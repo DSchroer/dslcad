@@ -86,6 +86,11 @@ struct Args {
     /// (defaults to 1)
     screenshot: Option<Vec<String>>,
 
+    #[cfg(feature = "preview")]
+    #[arg(long)]
+    /// Named view to render with --screenshot (defaults to the first view)
+    view: Option<String>,
+
     #[arg(short, long)]
     /// Arguments for the script (examples: "foo=5", "name=\"bob\"")
     argument: Vec<String>,
@@ -173,9 +178,14 @@ fn main() {
         let result = parse_screenshot_arguments(values);
         match result {
             Ok((angle, zoom)) => {
-                if let Err(e) =
-                    render_to_screenshot(&source, args.argument, args.deflection, angle, zoom)
-                {
+                if let Err(e) = render_to_screenshot(
+                    &source,
+                    args.argument,
+                    args.deflection,
+                    angle,
+                    zoom,
+                    args.view,
+                ) {
                     fail(e);
                 }
             }
@@ -320,14 +330,50 @@ fn render_to_screenshot(
     deflection: f64,
     angle: dslcad_viewer::AxisAngles,
     zoom: Option<f64>,
+    view: Option<String>,
 ) -> Result<(), CliError> {
-    use dslcad_viewer::{Preview, ScreenshotOptions};
+    use dslcad_storage::protocol::Projection;
+    use dslcad_viewer::{AxisAngles, Preview, ScreenshotOptions};
 
     let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
-    let render = render(eval(load_ast(source)?, arguments)?, deflection)?;
+    let mut render = render(eval(load_ast(source)?, arguments)?, deflection)?;
 
     if !render.stdout.is_empty() {
         print!("{}", render.stdout);
+    }
+
+    let selected = match &view {
+        Some(name) => Some(
+            render
+                .views
+                .iter()
+                .position(|view| view.name.as_deref() == Some(name.as_str()))
+                .ok_or_else(|| CliError::InvalidScreenshot(format!("unknown view '{name}'")))?,
+        ),
+        None if !render.views.is_empty() => Some(0),
+        None => None,
+    };
+
+    let mut angle = angle;
+    let mut zoom = zoom;
+    let mut projection = Projection::Perspective;
+
+    if let Some(index) = selected {
+        let selected = render.views[index].clone();
+        render.annotations.extend(selected.annotations.clone());
+        render.views.clear();
+
+        projection = selected.projection;
+        if angle == AxisAngles::default() {
+            angle = AxisAngles {
+                x: selected.angle.x,
+                y: selected.angle.y,
+                z: selected.angle.z,
+            };
+        }
+        if zoom.is_none() {
+            zoom = selected.zoom.map(f64::from);
+        }
     }
 
     let stem = Path::new(source)
@@ -344,6 +390,7 @@ fn render_to_screenshot(
             path: path.clone(),
             angle,
             zoom: zoom.map(|zoom| zoom as f32),
+            projection,
         })
         .map_err(|e| CliError::Screenshot(e.to_string()))?;
 

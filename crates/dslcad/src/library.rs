@@ -555,7 +555,7 @@ impl Default for Library {
                 "the x, y and z extents of a shape's bounding box"
             ),
             bind!(convert, drawing::convert[value=number, source=text, target=text], Category::Drawing, "convert a value between units (mm, cm, m, in, ft)"),
-            bind!(dimension, drawing::dimension[start=point, end=point, offset=option_number, axis=option_text, text=option_text, units=option_text, precision=option_number, arrow=option_text], Category::Drawing, "a linear dimension between two points"),
+            bind!(dimension, drawing::dimension[start=point, end=point, offset=option_number, axis=option_text, text=option_text, units=option_text, precision=option_number, arrow=option_text, plane=option_text], Category::Drawing, "a linear dimension between two points"),
             bind!(dimension, drawing::dimension_radial[radius=number, center=point, at=option_point, text=option_text, units=option_text, precision=option_number], Category::Drawing, "a radial dimension of a radius around a center"),
             bind!(dimension, drawing::dimension_angular[angle=number, center=point, start=point, end=point, units=option_text, precision=option_number], Category::Drawing, "an angular dimension between two directions"),
             bind!(label, drawing::label[text=text, at=point, anchor=option_point, size=option_number, plane=option_text], Category::Drawing, "a text label with an optional leader"),
@@ -606,6 +606,7 @@ Coordinates are in millimetres.
 - `a -> b()` pipe `a` into the first argument of `b`
 - `a.b` access property `b` of `a` (for example `point.x`, `shape.center`, `shape.volume`)
 - `list[0]` get an item of a list (the index is zero-based)
+- `view "name" (angle="front", projection="orthographic") {{ ... }}` a named view: a camera plus the parts and annotations it draws
 - `{{ ... }}` a scope; `func {{ ... }}` a function that takes its own arguments
 - `if a: b() else: c()` branch on condition `a` (the `else` branch is required)
 - statements may end at a newline instead of a semicolon, like JavaScript automatic semicolon insertion

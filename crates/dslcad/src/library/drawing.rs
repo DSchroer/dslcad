@@ -81,24 +81,22 @@ pub fn dimension(
     units: Option<String>,
     precision: Option<f64>,
     _arrow: Option<String>,
+    plane: Option<String>,
 ) -> Result<Value, RuntimeError> {
     let a = to_v3(start);
     let b = to_v3(end);
     let offset = offset.unwrap_or(DEFAULT_OFFSET);
 
-    let (p0, p1, perpendicular) = match axis.as_deref() {
-        Some("x") => ([a[0], a[1], a[2]], [b[0], a[1], a[2]], [0.0, 1.0, 0.0]),
-        Some("y") => ([a[0], a[1], a[2]], [a[0], b[1], a[2]], [1.0, 0.0, 0.0]),
-        Some("z") => ([a[0], a[1], a[2]], [a[0], a[1], b[2]], [0.0, 1.0, 0.0]),
+    let (p0, p1) = match axis.as_deref() {
+        Some("x") => ([a[0], a[1], a[2]], [b[0], a[1], a[2]]),
+        Some("y") => ([a[0], a[1], a[2]], [a[0], b[1], a[2]]),
+        Some("z") => ([a[0], a[1], a[2]], [a[0], a[1], b[2]]),
         Some(other) => {
             return Err(RuntimeError::UserDefined(format!(
                 "unknown dimension axis '{other}'"
             )))
         }
-        None => {
-            let direction = vsub(b, a);
-            (a, b, perpendicular_of(direction))
-        }
+        None => (a, b),
     };
 
     let direction = vsub(p1, p0);
@@ -111,6 +109,9 @@ pub fn dimension(
     }
 
     let along = vnorm(direction);
+    // The plane decides which way the dimension is offset, so the annotation
+    // lands in the same plane the view shows.
+    let perpendicular = offset_normal(direction, plane.as_deref());
     let shift = vscale(perpendicular, offset);
 
     let d0 = vadd(p0, shift);
@@ -455,6 +456,25 @@ fn perpendicular_of(direction: V3) -> V3 {
         vnorm(vcross(direction, [1.0, 0.0, 0.0]))
     } else {
         vnorm(vcross(direction, [0.0, 0.0, 1.0]))
+    }
+}
+
+/// A unit vector perpendicular to `direction` that stays inside the given
+/// drawing plane (`"xy"`, `"yz"` or `"xz"`). Without a plane it falls back to
+/// [`perpendicular_of`].
+fn offset_normal(direction: V3, plane: Option<&str>) -> V3 {
+    let reference = match plane {
+        Some("xy") => [0.0, 0.0, 1.0],
+        Some("xz") => [0.0, 1.0, 0.0],
+        Some("yz") => [1.0, 0.0, 0.0],
+        _ => return perpendicular_of(direction),
+    };
+
+    let normal = vcross(direction, reference);
+    if vlen(normal) < 1e-9 {
+        perpendicular_of(direction)
+    } else {
+        vnorm(normal)
     }
 }
 

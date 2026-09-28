@@ -183,9 +183,39 @@ impl<R: Reader + 'static> Parser<R> {
         let mut peek = lexer.clone();
         match peek.next() {
             Some(Token::Var) => self.parse_variable_statement(lexer, allow_parameters),
+            Some(Token::View) => self.parse_view_statement(lexer),
             Some(_) => self.parse_return_statement(lexer),
             None => Err(DocumentParseError::UnexpectedEndOfFile()),
         }
+    }
+
+    fn parse_view_statement(&mut self, lexer: &mut Lexer) -> Result<Statement, DocumentParseError> {
+        take!(self, lexer, Token::View = "view");
+        let sb = SpanBuilder::from(lexer);
+
+        let name = match lexer.clone().next() {
+            Some(Token::String) => {
+                lexer.next();
+                Some(escape_string(lexer.slice()))
+            }
+            _ => None,
+        };
+
+        let arguments = match next_significant(lexer) {
+            Some(Token::OpenBracket) => self.parse_call_arguments(lexer)?,
+            _ => VecDeque::new(),
+        };
+
+        let body = self.parse_scope(lexer, false)?;
+
+        Ok(Statement::View(
+            View {
+                name,
+                arguments,
+                body,
+            },
+            sb.to(lexer),
+        ))
     }
 
     fn parse_return_statement(

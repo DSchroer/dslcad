@@ -1,6 +1,6 @@
 use crate::parser::{
     Expression, If, Index, Invocation, Literal, Map, NestedScope, Property, Reduce, Reference,
-    Statement, Variable,
+    Statement, Variable, View,
 };
 use crate::resources::ResourceFactory;
 use logos::Span;
@@ -14,6 +14,7 @@ pub trait StatementVisitor: Sized {
     }
     fn visit_variable(&mut self, variable: &Variable, _span: &Span) -> Self::Result;
     fn visit_create_part(&mut self, expr: &Expression, _span: &Span) -> Self::Result;
+    fn visit_view(&mut self, view: &View, _span: &Span) -> Self::Result;
 }
 
 pub trait ExpressionVisitor: Sized {

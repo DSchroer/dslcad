@@ -3,7 +3,7 @@ use crate::parser::{Ast, DocId, DocumentParseError, Literal, ParseError, Parser,
 use crate::reader::FsReader;
 use crate::resources::ResourceExt;
 use crate::runtime::{Engine, RuntimeError, Value, WithStack};
-use dslcad_storage::protocol::{Part, Render};
+use dslcad_storage::protocol::{Part, Render, ViewDef};
 use log::trace;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -93,9 +93,38 @@ pub fn render_with_cache(
 
     let mut parts = Vec::new();
     let mut annotations = Vec::new();
+    let mut views = Vec::new();
+
     for value in instance.flatten().into_iter().cloned() {
         match value {
             Value::Annotation(annotation) => annotations.push((*annotation).clone()),
+            Value::View(view) => {
+                // The view's geometry joins the shared scene, while its
+                // annotations belong to the view.
+                let mut view_annotations = Vec::new();
+                for layer in &view.layers {
+                    for value in layer.flatten() {
+                        match value {
+                            Value::Annotation(annotation) => {
+                                view_annotations.push((**annotation).clone())
+                            }
+                            Value::View(_) => {}
+                            other => parts.push(other.clone()),
+                        }
+                    }
+                }
+
+                views.push(ViewDef {
+                    name: view.name.clone(),
+                    angle: view.angle,
+                    projection: view.projection,
+                    zoom: view.zoom,
+                    target: view.target,
+                    fit: view.fit,
+                    show: view.show,
+                    annotations: view_annotations,
+                });
+            }
             value => parts.push(value),
         }
     }
@@ -111,6 +140,7 @@ pub fn render_with_cache(
         parts: output,
         stdout: text,
         annotations,
+        views,
     })
 }
 
@@ -422,6 +452,29 @@ mod tests {
         assert!((shape.to_shape().unwrap().volume() - 48.0).abs() < 1e-6);
 
         assert!(try_run("simplify(tolerance=0.1);").is_err());
+    }
+
+    #[test]
+    fn it_collects_views() {
+        use dslcad_storage::protocol::Projection;
+
+        let value = run(r#"
+            var part = cube();
+            view "Front" (angle="front", projection="orthographic") {
+                part;
+                label(text="hi", at=point(x=0,y=0,z=0));
+            }
+            "#);
+
+        let render = render(value, 0.1).unwrap();
+        assert!(!render.parts.is_empty());
+        assert_eq!(1, render.views.len());
+
+        let view = &render.views[0];
+        assert_eq!(Some("Front".to_string()), view.name);
+        assert_eq!(Some(90.0), view.angle.x);
+        assert_eq!(Projection::Orthographic, view.projection);
+        assert_eq!(1, view.annotations.len());
     }
 
     #[test]

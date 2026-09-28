@@ -1,5 +1,5 @@
 use crate::runtime::output::IntoPart;
-use dslcad_storage::protocol::{Annotation, Part};
+use dslcad_storage::protocol::{Annotation, Part, Projection, ShowFlags, ViewAngles};
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
@@ -25,6 +25,8 @@ pub enum Value {
 
     Annotation(Rc<Annotation>),
 
+    View(Rc<ViewValue>),
+
     List(Vec<Value>),
 
     Function(Rc<Function>),
@@ -41,6 +43,19 @@ pub enum Function {
         clojure: Scope,
         statements: Rc<Vec<Statement>>,
     },
+}
+
+/// A resolved `view` statement: a camera plus the values it draws.
+#[derive(Clone)]
+pub struct ViewValue {
+    pub name: Option<String>,
+    pub angle: ViewAngles,
+    pub projection: Projection,
+    pub zoom: Option<f32>,
+    pub target: Option<[f64; 3]>,
+    pub fit: bool,
+    pub show: ShowFlags,
+    pub layers: Vec<Value>,
 }
 
 unsafe impl Send for Value {}
@@ -99,6 +114,12 @@ impl From<Annotation> for Value {
     }
 }
 
+impl From<Rc<ViewValue>> for Value {
+    fn from(value: Rc<ViewValue>) -> Self {
+        Value::View(value)
+    }
+}
+
 impl From<Rc<Function>> for Value {
     fn from(value: Rc<Function>) -> Self {
         Value::Function(value)
@@ -129,6 +150,7 @@ impl Debug for Value {
             Value::Line(_) => f.debug_tuple("Line").finish(),
             Value::Plane(_) => f.debug_tuple("Plane").finish(),
             Value::Annotation(_) => f.debug_tuple("Annotation").finish(),
+            Value::View(_) => f.debug_tuple("View").finish(),
             Value::Function(_) => f.debug_tuple("Func").finish(),
         }
     }
@@ -145,6 +167,7 @@ impl Value {
             Value::Plane(_) => vec![self],
             Value::Shape(_) => vec![self],
             Value::Annotation(_) => vec![self],
+            Value::View(_) => vec![self],
             Value::List(list) => list.iter().flat_map(|l| l.flatten()).collect(),
             Value::Script(s) => s.value().flatten(),
             Value::Function(_) => vec![],
@@ -159,6 +182,7 @@ impl Value {
             Value::Plane(p) => Ok(p.into_part(deflection)?),
             Value::Shape(s) => Ok(s.into_part(deflection)?),
             Value::Annotation(_) => Ok(Part::Empty),
+            Value::View(_) => Ok(Part::Empty),
             _ => {
                 panic!("can not be turned into Part directly, use `flatten` first")
             }

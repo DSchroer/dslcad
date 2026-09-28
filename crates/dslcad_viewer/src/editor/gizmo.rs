@@ -1,3 +1,4 @@
+use crate::editor::rendering::RenderState;
 use crate::editor::{Axis, Palette};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
@@ -6,7 +7,7 @@ use egui::{Align2, Color32, FontId, Id, Order, Sense, Stroke, Vec2};
 
 const GIZMO_SIZE: f32 = 88.0;
 const GIZMO_RADIUS: f32 = 30.0;
-const GIZMO_MARGIN: Vec2 = Vec2::new(-16.0, 44.0);
+const GIZMO_MARGIN: Vec2 = Vec2::new(-8.0, 8.0);
 
 /// Draws a small axis indicator in the corner of the viewport that rotates with
 /// the camera, like the origin gizmo of a CAD application.
@@ -14,14 +15,20 @@ pub struct AxisGizmoPlugin;
 
 impl Plugin for AxisGizmoPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, axis_gizmo);
+        app.add_systems(Update, axis_gizmo.after(crate::editor::gui::GuiSet));
     }
 }
 
 fn axis_gizmo(
     camera: Query<&GlobalTransform, With<Camera3d>>,
+    render_state: Res<RenderState>,
     mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
 ) {
+    // The gizmo is only meaningful for the free camera.
+    if render_state.active_view_index().is_some() {
+        return;
+    }
+
     let Ok(camera) = camera.get_single() else {
         return;
     };
@@ -30,12 +37,21 @@ fn axis_gizmo(
     };
 
     let axes = projected_axes(camera.rotation().inverse());
+    let ctx = context.get_mut();
+
+    // `available_rect` excludes every panel, so the gizmo never overlaps the
+    // views panel or the menu bars.
+    let available = ctx.available_rect();
+    let position = Vec2::new(
+        available.right() + GIZMO_MARGIN.x - GIZMO_SIZE,
+        available.top() + GIZMO_MARGIN.y,
+    );
 
     egui::Area::new(Id::new("axis_gizmo"))
-        .anchor(Align2::RIGHT_TOP, GIZMO_MARGIN)
+        .fixed_pos(egui::pos2(position.x, position.y))
         .order(Order::Foreground)
         .interactable(false)
-        .show(context.get_mut(), |ui| {
+        .show(ctx, |ui| {
             let (rect, _) = ui.allocate_exact_size(Vec2::splat(GIZMO_SIZE), Sense::hover());
             let center = rect.center();
             let painter = ui.painter();

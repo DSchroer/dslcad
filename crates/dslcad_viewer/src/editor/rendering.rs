@@ -8,7 +8,9 @@ use bevy_points::material::PointsShaderSettings;
 use bevy_points::prelude::*;
 use smooth_bevy_cameras::controllers::orbit::OrbitCameraController;
 
-use dslcad_storage::protocol::{Annotation, BoundingBox, Part, Point, TextBlock, TextPlane};
+use dslcad_storage::protocol::{
+    Annotation, BoundingBox, Part, Point, TextBlock, TextPlane, ViewDef,
+};
 
 pub struct ModelRenderingPlugin;
 
@@ -38,13 +40,23 @@ struct BillboardText;
 
 #[derive(Event)]
 pub enum RenderCommand {
-    Draw(Vec<Part>, Vec<Annotation>),
+    Draw(Vec<Part>, Vec<Annotation>, Vec<ViewDef>),
     Redraw,
+}
+
+/// The scene currently on screen: shared geometry, global annotations, the
+/// declared views and the entity that carries the model rotation.
+struct Model {
+    parts: Vec<Part>,
+    annotations: Vec<Annotation>,
+    views: Vec<ViewDef>,
+    entity: Entity,
 }
 
 #[derive(Resource)]
 pub struct RenderState {
-    model: Option<(Vec<Part>, Vec<Annotation>, Entity)>,
+    model: Option<Model>,
+    active_view: Option<usize>,
     pub show_points: bool,
     pub show_lines: bool,
     pub show_mesh: bool,
@@ -57,8 +69,36 @@ impl RenderState {
     /// The bounds of the currently rendered model, if any. Annotations are
     /// overlays and never affect the framing.
     pub fn aabb(&self) -> Option<BoundingBox> {
-        let (parts, _, _) = self.model.as_ref()?;
-        BoundingBox::from_parts(parts)
+        BoundingBox::from_parts(&self.model.as_ref()?.parts)
+    }
+
+    /// The available views, in declaration order.
+    pub fn views(&self) -> &[ViewDef] {
+        self.model
+            .as_ref()
+            .map(|m| m.views.as_slice())
+            .unwrap_or(&[])
+    }
+
+    pub fn set_active_view(&mut self, index: Option<usize>) {
+        self.active_view = index;
+    }
+
+    /// The index of the active view, or `None` for the free camera.
+    pub fn active_view_index(&self) -> Option<usize> {
+        self.active_view
+    }
+
+    /// Global annotations plus the active view's annotations.
+    pub fn annotations(&self) -> Vec<Annotation> {
+        let mut annotations = Vec::new();
+        if let Some(model) = &self.model {
+            annotations.extend(model.annotations.iter().cloned());
+            if let Some(view) = self.active_view.and_then(|index| model.views.get(index)) {
+                annotations.extend(view.annotations.iter().cloned());
+            }
+        }
+        annotations
     }
 }
 
@@ -72,6 +112,7 @@ impl Default for RenderState {
             show_annotations: true,
             part_colors: false,
             model: None,
+            active_view: None,
         }
     }
 }
@@ -97,9 +138,7 @@ fn mesh_renderer(
                 continue;
             }
 
-            let (parts, _, entity) = if let Some(e) = &render_state.model {
-                e
-            } else {
+            let Some(Model { parts, entity, .. }) = &render_state.model else {
                 return;
             };
 
@@ -142,9 +181,7 @@ fn point_renderer(
                 continue;
             }
 
-            let (parts, _, entity) = if let Some(e) = &render_state.model {
-                e
-            } else {
+            let Some(Model { parts, entity, .. }) = &render_state.model else {
                 return;
             };
 
@@ -228,9 +265,7 @@ fn line_renderer(
                 continue;
             }
 
-            let (parts, _, entity) = if let Some(e) = &render_state.model {
-                e
-            } else {
+            let Some(Model { parts, entity, .. }) = &render_state.model else {
                 return;
             };
 
@@ -288,21 +323,44 @@ fn render_controller(
 ) {
     for event in events.read() {
         match event {
-            RenderCommand::Draw(parts, annotations) => {
-                if let Some((_, _, id)) = render_state.model {
-                    commands.entity(id).despawn_recursive();
+            RenderCommand::Draw(parts, annotations, views) => {
+                // Keep the selected view across edits, but start on the free
+                // camera ("Default") when the preview first opens.
+                let previous = render_state
+                    .active_view
+                    .and_then(|index| render_state.model.as_ref()?.views.get(index))
+                    .and_then(|view| view.name.clone());
+
+                if let Some(model) = &render_state.model {
+                    commands.entity(model.entity).despawn_recursive();
                     render_state.model = None;
                 }
 
+                render_state.active_view = previous.and_then(|name| {
+                    views
+                        .iter()
+                        .position(|view| view.name.as_deref() == Some(name.as_str()))
+                });
+
                 let bundle = commands.spawn(Transform::from_rotation(model_rotation()));
-                render_state.model = Some((parts.clone(), annotations.clone(), bundle.id()));
+                render_state.model = Some(Model {
+                    parts: parts.clone(),
+                    annotations: annotations.clone(),
+                    views: views.clone(),
+                    entity: bundle.id(),
+                });
             }
             RenderCommand::Redraw => {
-                if let Some((parts, annotations, id)) = &render_state.model {
-                    commands.entity(*id).despawn_recursive();
+                if let Some(model) = &render_state.model {
+                    commands.entity(model.entity).despawn_recursive();
 
                     let bundle = commands.spawn(Transform::from_rotation(model_rotation()));
-                    render_state.model = Some((parts.clone(), annotations.clone(), bundle.id()));
+                    render_state.model = Some(Model {
+                        parts: model.parts.clone(),
+                        annotations: model.annotations.clone(),
+                        views: model.views.clone(),
+                        entity: bundle.id(),
+                    });
                 }
             }
         }
@@ -328,13 +386,11 @@ fn annotation_renderer(
                 continue;
             }
 
-            let (_, annotations, entity) = if let Some(e) = &render_state.model {
-                e
-            } else {
+            let Some(Model { entity, .. }) = &render_state.model else {
                 return;
             };
 
-            for annotation in annotations {
+            for annotation in render_state.annotations() {
                 if !annotation.lines.is_empty() {
                     spawn_annotation_lines(
                         &mut commands,

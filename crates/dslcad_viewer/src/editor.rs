@@ -241,9 +241,15 @@ fn run(
                             }
                             console.clear();
                             console.print(render.stdout);
-                            re.send(RenderCommand::Draw(render.parts, render.annotations));
+                            re.send(RenderCommand::Draw(
+                                render.parts,
+                                render.annotations,
+                                render.views,
+                            ));
                         }
                         Ok(PreviewEvent::Error(e)) => {
+                            // Surface errors by opening the console.
+                            console.open = true;
                             console.print(e);
                         }
                         _ => {}
@@ -271,7 +277,11 @@ fn run(
                             Ok(PreviewEvent::Render(render)) => {
                                 state.received = true;
                                 state.aabb = render.aabb();
-                                re.send(RenderCommand::Draw(render.parts, render.annotations));
+                                re.send(RenderCommand::Draw(
+                                    render.parts,
+                                    render.annotations,
+                                    render.views,
+                                ));
                             }
                             Ok(PreviewEvent::Error(e)) => {
                                 eprintln!("{}", e);
@@ -304,7 +314,8 @@ struct ScreenshotTarget(Handle<Image>);
 fn setup_screenshot(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
-    mut cameras: Query<&mut Camera, With<OrbitCameraController>>,
+    state: Res<ScreenshotState>,
+    mut cameras: Query<(&mut Camera, &mut Projection), With<OrbitCameraController>>,
 ) {
     let mut image = Image::new_fill(
         Extent3d {
@@ -323,7 +334,13 @@ fn setup_screenshot(
         | TextureUsages::TEXTURE_BINDING;
 
     let handle = images.add(image);
-    cameras.single_mut().target = RenderTarget::Image(handle.clone());
+    let (mut camera, mut projection) = cameras.single_mut();
+    camera.target = RenderTarget::Image(handle.clone());
+
+    if let dslcad_storage::protocol::Projection::Orthographic = state.options.projection {
+        *projection = Projection::Orthographic(OrthographicProjection::default_3d());
+    }
+
     commands.insert_resource(ScreenshotTarget(handle));
 }
 
@@ -418,6 +435,7 @@ mod tests {
             }],
             stdout: String::new(),
             annotations: Vec::new(),
+            views: Vec::new(),
         }
         .aabb()
         .unwrap()

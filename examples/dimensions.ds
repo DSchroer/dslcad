@@ -1,11 +1,24 @@
-// Dimensions and labels over a simple plate.
+// A dimensioned plate with front and top views.
 var plate = cube(x=60, y=40, z=20);
 
-plate;
+view "Front" (angle="front", projection="orthographic") {
+    plate;
 
-// overall width and height, offset clear of the part
-dimension(start=point(x=0, y=0, z=0), end=point(x=60, y=0, z=0), offset=-14);
-dimension(start=point(x=0, y=0, z=0), end=point(x=0, y=0, z=20), offset=-14);
+    // overall depth and height, offset in the plane the view shows
+    dimension(start=point(x=0, y=0, z=0), end=point(x=0, y=40, z=0), offset=10, plane="yz");
+    dimension(start=point(x=0, y=0, z=0), end=point(x=0, y=0, z=20), offset=-20, plane="yz");
 
-// a single note, clear of the dimensions
-label(text="PLATE", at=point(x=85, y=20, z=30), size=5);
+    // a single note, aligned above the part
+    label(text="PLATE", at=point(x=0, y=0, z=30), size=5);
+}
+
+view "Top" (angle="top", projection="orthographic") {
+    plate;
+
+    // overall width and depth, offset in the plane the view shows
+    dimension(start=point(x=0, y=0, z=0), end=point(x=60, y=0, z=0), offset=10, plane="xy");
+    dimension(start=point(x=0, y=0, z=0), end=point(x=0, y=40, z=0), offset=-10, plane="xy");
+
+    // a single note, clear of the part
+    label(text="PLATE", at=point(x=30, y=45, z=0), size=5);
+}

@@ -25,7 +25,8 @@ pub use value::Value;
 use crate::cache::Cache;
 use crate::resources::ResourceFactory;
 use crate::runtime::stack::{Stack, StackFrame};
-use crate::runtime::value::Function;
+use crate::runtime::value::{Function, ViewValue};
+use dslcad_storage::protocol::{Projection, ShowFlags, ViewAngles};
 pub use runtime_error::RuntimeError;
 pub use script_instance::ScriptInstance;
 
@@ -178,6 +179,239 @@ impl StatementVisitor for Engine<'_> {
     fn visit_create_part(&mut self, expr: &Expression, _span: &Span) -> Self::Result {
         Ok(Some(self.visit_expression(expr)?))
     }
+
+    fn visit_view(&mut self, view: &View, _span: &Span) -> Self::Result {
+        let argument_values = view
+            .arguments
+            .iter()
+            .try_fold(Vec::new(), |mut acc, argument| {
+                match argument {
+                    Argument::Named(name, expr) => {
+                        let value = self.visit_expression(expr.deref())?;
+                        acc.push(ArgValue::Named(name, value))
+                    }
+                    Argument::Unnamed(expr) => {
+                        let value = self.visit_expression(expr.deref())?;
+                        acc.push(ArgValue::Unnamed(value));
+                    }
+                }
+                Ok(acc)
+            })?;
+
+        let arguments = Engine::named_argument_values(argument_values)
+            .map_err(|e| WithStack::from_err(e, &self.stack))?;
+
+        let camera = parse_view_camera(view.name.clone(), &arguments)
+            .map_err(|e| WithStack::from_err(e, &self.stack))?;
+
+        let document = self.current_document.as_ref().map(|d| d.to_string());
+        let instance = self.eval_statements(DocId::new_with_path("view", document), &view.body)?;
+        let layers = instance.value().flatten().into_iter().cloned().collect();
+
+        Ok(Some(Value::View(Rc::new(ViewValue {
+            name: camera.name,
+            angle: camera.angle,
+            projection: camera.projection,
+            zoom: camera.zoom,
+            target: camera.target,
+            fit: camera.fit,
+            show: camera.show,
+            layers,
+        }))))
+    }
+}
+
+struct ViewCamera {
+    name: Option<String>,
+    angle: ViewAngles,
+    projection: Projection,
+    zoom: Option<f32>,
+    target: Option<[f64; 3]>,
+    fit: bool,
+    show: ShowFlags,
+}
+
+fn parse_view_camera(
+    default_name: Option<String>,
+    arguments: &HashMap<&str, Value>,
+) -> Result<ViewCamera, RuntimeError> {
+    let mut camera = ViewCamera {
+        name: default_name,
+        angle: ViewAngles::default(),
+        projection: Projection::Perspective,
+        zoom: None,
+        target: None,
+        fit: true,
+        show: ShowFlags::default(),
+    };
+
+    for (key, value) in arguments {
+        match *key {
+            "name" => camera.name = Some(value.to_text()?),
+            "angle" => camera.angle = parse_view_angles(&value.to_text()?)?,
+            "projection" => camera.projection = parse_projection(&value.to_text()?)?,
+            "zoom" => camera.zoom = Some(value.to_number()? as f32),
+            "target" => {
+                let point = value.to_point()?;
+                camera.target = Some([point.x(), point.y(), point.z()]);
+            }
+            "fit" => camera.fit = value.to_bool()?,
+            "show" => camera.show = parse_show(value)?,
+            other => {
+                return Err(RuntimeError::UserDefined(format!(
+                    "unknown view argument '{other}'"
+                )))
+            }
+        }
+    }
+
+    Ok(camera)
+}
+
+fn parse_view_angles(input: &str) -> Result<ViewAngles, RuntimeError> {
+    let text = input.trim().to_ascii_lowercase();
+
+    match text.as_str() {
+        "iso" => {
+            return Ok(ViewAngles {
+                x: Some(54.736),
+                y: Some(45.0),
+                z: Some(0.0),
+            })
+        }
+        "top" => {
+            // Rolled so the top view is a straight upward tilt from `front`:
+            // the camera keeps the same heading and does not spin.
+            return Ok(ViewAngles {
+                x: Some(0.0),
+                y: Some(0.0),
+                z: Some(90.0),
+            });
+        }
+        "bottom" => {
+            return Ok(ViewAngles {
+                x: Some(180.0),
+                y: Some(0.0),
+                z: Some(90.0),
+            })
+        }
+        "front" => {
+            return Ok(ViewAngles {
+                x: Some(90.0),
+                y: Some(0.0),
+                ..Default::default()
+            })
+        }
+        "back" => {
+            return Ok(ViewAngles {
+                x: Some(90.0),
+                y: Some(180.0),
+                ..Default::default()
+            })
+        }
+        "right" => {
+            return Ok(ViewAngles {
+                x: Some(90.0),
+                y: Some(90.0),
+                ..Default::default()
+            })
+        }
+        "left" => {
+            return Ok(ViewAngles {
+                x: Some(90.0),
+                y: Some(-90.0),
+                ..Default::default()
+            })
+        }
+        "" => return Err(RuntimeError::UserDefined("empty view angle".to_string())),
+        _ => {}
+    }
+
+    if text.starts_with(|c: char| c.is_ascii_digit() || matches!(c, '-' | '+' | '.')) {
+        let y = text
+            .parse()
+            .map_err(|_| RuntimeError::UserDefined(format!("invalid view angle '{text}'")))?;
+        return Ok(ViewAngles {
+            y: Some(y),
+            ..Default::default()
+        });
+    }
+
+    let mut angles = ViewAngles::default();
+    let bytes = text.as_bytes();
+    let mut index = 0;
+
+    while index < bytes.len() {
+        let axis = bytes[index] as char;
+        index += 1;
+
+        let start = index;
+        while index < bytes.len() && !bytes[index].is_ascii_alphabetic() {
+            index += 1;
+        }
+
+        let value: f32 = text[start..index]
+            .parse()
+            .map_err(|_| RuntimeError::UserDefined(format!("invalid view angle '{text}'")))?;
+
+        match axis {
+            'x' => angles.x = Some(value),
+            'y' => angles.y = Some(value),
+            'z' => angles.z = Some(value),
+            _ => {
+                return Err(RuntimeError::UserDefined(format!(
+                    "unknown view angle axis '{axis}'"
+                )))
+            }
+        }
+    }
+
+    Ok(angles)
+}
+
+fn parse_projection(input: &str) -> Result<Projection, RuntimeError> {
+    match input.trim().to_ascii_lowercase().as_str() {
+        "perspective" => Ok(Projection::Perspective),
+        "orthographic" | "ortho" => Ok(Projection::Orthographic),
+        other => Err(RuntimeError::UserDefined(format!(
+            "unknown projection '{other}'"
+        ))),
+    }
+}
+
+fn parse_show(value: &Value) -> Result<ShowFlags, RuntimeError> {
+    let names = match value {
+        Value::List(values) => values
+            .iter()
+            .map(|value| value.to_text())
+            .collect::<Result<Vec<_>, _>>()?,
+        value => vec![value.to_text()?],
+    };
+
+    let mut show = ShowFlags {
+        model: false,
+        points: false,
+        lines: false,
+        mesh: false,
+        annotations: false,
+    };
+
+    for name in names {
+        match name.as_str() {
+            "model" => show.model = true,
+            "points" => show.points = true,
+            "lines" => show.lines = true,
+            "mesh" => show.mesh = true,
+            "annotations" => show.annotations = true,
+            other => {
+                return Err(RuntimeError::UserDefined(format!(
+                    "unknown show flag '{other}'"
+                )))
+            }
+        }
+    }
+
+    Ok(show)
 }
 
 impl ExpressionVisitor for Engine<'_> {

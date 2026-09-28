@@ -70,6 +70,7 @@ impl Ast {
 pub enum Statement {
     Variable(Variable, Span),
     CreatePart(Expression, Span),
+    View(View, Span),
 }
 
 #[derive(Debug)]
@@ -78,11 +79,21 @@ pub struct Variable {
     pub value: Option<Expression>,
 }
 
+/// A `view "Name" (camera) { layers }` statement. Views are top level and group
+/// a camera with the geometry and annotations they draw.
+#[derive(Debug)]
+pub struct View {
+    pub name: Option<String>,
+    pub arguments: VecDeque<Argument>,
+    pub body: Vec<Statement>,
+}
+
 impl Statement {
     pub fn walk_statement<T: StatementVisitor>(&self, visitor: &mut T) -> T::Result {
         match self {
             Statement::Variable(v, s) => visitor.visit_variable(v, s),
             Statement::CreatePart(v, s) => visitor.visit_create_part(v, s),
+            Statement::View(v, s) => visitor.visit_view(v, s),
         }
     }
 }
@@ -92,6 +103,7 @@ impl Statement {
         match self {
             Statement::Variable(_, s) => s,
             Statement::CreatePart(_, s) => s,
+            Statement::View(_, s) => s,
         }
     }
 }

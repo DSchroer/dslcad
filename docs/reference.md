@@ -27,6 +27,7 @@ Coordinates are in millimetres.
 - `a -> b()` pipe `a` into the first argument of `b`
 - `a.b` access property `b` of `a` (for example `point.x`, `shape.center`, `shape.volume`)
 - `list[0]` get an item of a list (the index is zero-based)
+- `view "name" (angle="front", projection="orthographic") { ... }` a named view: a camera plus the parts and annotations it draws
 - `{ ... }` a scope; `func { ... }` a function that takes its own arguments
 - `if a: b() else: c()` branch on condition `a` (the `else` branch is required)
 - statements may end at a newline instead of a semicolon, like JavaScript automatic semicolon insertion
@@ -140,7 +141,7 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 - `measure(start=point, end=point)` distance between two points, in mm
 - `measure(shape=shape)` the x, y and z extents of a shape's bounding box
 - `convert(value=number, source=text, target=text)` convert a value between units (mm, cm, m, in, ft)
-- `dimension(start=point, end=point, offset=[number], axis=[text], text=[text], units=[text], precision=[number], arrow=[text])` a linear dimension between two points
+- `dimension(start=point, end=point, offset=[number], axis=[text], text=[text], units=[text], precision=[number], arrow=[text], plane=[text])` a linear dimension between two points
 - `dimension(radius=number, center=point, at=[point], text=[text], units=[text], precision=[number])` a radial dimension of a radius around a center
 - `dimension(angle=number, center=point, start=point, end=point, units=[text], precision=[number])` an angular dimension between two directions
 - `label(text=text, at=point, anchor=[point], size=[number], plane=[text])` a text label with an optional leader

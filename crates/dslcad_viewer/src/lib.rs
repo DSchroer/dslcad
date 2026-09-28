@@ -2,7 +2,7 @@ mod editor;
 mod settings;
 
 use crate::settings::Settings;
-use dslcad_storage::protocol::Render;
+use dslcad_storage::protocol::{Projection, Render};
 use std::error::Error;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -111,6 +111,8 @@ pub struct ScreenshotOptions {
     /// Zoom factor applied to the fit-to-view distance. Larger values move
     /// the camera closer. Defaults to 1.
     pub zoom: Option<f32>,
+    /// Camera projection to render with.
+    pub projection: Projection,
 }
 
 impl Preview {
