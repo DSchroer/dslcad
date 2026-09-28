@@ -99,7 +99,7 @@ pub enum Token {
     Path,
 
     #[error]
-    #[regex(r"([ \t\r\f]+|//.*)", logos::skip)]
+    #[regex(r"([ \t\r\f]+|//.*|/\*[^*]*\*+([^/*][^*]*\*+)*/)", logos::skip)]
     Error,
 }
 
@@ -140,6 +140,22 @@ mod tests {
         assert_eq!(
             vec![Identifier, Newline, Identifier],
             tokens("foo // comment\nbar")
+        );
+    }
+
+    #[test]
+    fn it_can_lex_block_comments() {
+        assert_eq!(
+            vec![Identifier, Identifier],
+            tokens("foo /* comment */ bar")
+        );
+        assert_eq!(
+            vec![Identifier, Newline, Identifier],
+            tokens("foo /* multi\nline */\nbar")
+        );
+        assert_eq!(
+            vec![Identifier, Identifier],
+            tokens("foo /* has * stars ** here */ bar")
         );
     }
 
