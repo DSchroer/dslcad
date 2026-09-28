@@ -484,6 +484,20 @@ mod tests {
     }
 
     #[test]
+    fn it_allows_views_without_values() {
+        let value = run(r#"
+            cube();
+            view top {}
+            "#);
+
+        let render = render(value, 0.1).unwrap();
+        assert!(!render.parts.is_empty());
+        assert_eq!(1, render.views.len());
+        assert_eq!(Some("top".to_string()), render.views[0].name);
+        assert!(render.views[0].annotations.is_empty());
+    }
+
+    #[test]
     fn it_supports_arguments() {
         let args = parse_arguments(vec!["a=\"5\""].into_iter()).unwrap();
 

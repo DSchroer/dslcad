@@ -106,6 +106,20 @@ impl<'a> Engine<'a> {
         id: DocId,
         statements: &[Statement],
     ) -> Result<ScriptInstance, WithStack<RuntimeError>> {
+        let values = self.eval_block(id, statements)?;
+
+        ScriptInstance::from_scope(values, self.scope.clone())
+            .map_err(|e| WithStack::from_err(e, &self.stack))
+    }
+
+    /// Evaluates a list of statements and returns the values they produced.
+    /// Unlike [`Self::eval_statements`], a block that produces no value is
+    /// allowed, which is what a view with no geometry needs.
+    fn eval_block(
+        &mut self,
+        id: DocId,
+        statements: &[Statement],
+    ) -> Result<Vec<Value>, WithStack<RuntimeError>> {
         let mut ret = Vec::new();
 
         for statement in statements {
@@ -125,8 +139,7 @@ impl<'a> Engine<'a> {
             self.stack.pop();
         }
 
-        ScriptInstance::from_scope(ret, self.scope.clone())
-            .map_err(|e| WithStack::from_err(e, &self.stack))
+        Ok(ret)
     }
 
     fn named_argument_values(
@@ -286,8 +299,12 @@ impl StatementVisitor for Engine<'_> {
             .map_err(|e| WithStack::from_err(e, &self.stack))?;
 
         let document = self.current_document.as_ref().map(|d| d.to_string());
-        let instance = self.eval_statements(DocId::new_with_path("view", document), &view.body)?;
-        let layers = instance.value().flatten().into_iter().cloned().collect();
+        let values = self.eval_block(DocId::new_with_path("view", document), &view.body)?;
+        let layers = values
+            .iter()
+            .flat_map(|value| value.flatten())
+            .cloned()
+            .collect();
 
         Ok(Some(Value::View(Rc::new(ViewValue {
             name: camera.name,
