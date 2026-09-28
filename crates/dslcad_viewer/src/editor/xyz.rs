@@ -110,7 +110,7 @@ fn update_grid(
     state.visible = render_state.show_grid;
 
     if let Some(root) = state.root.take() {
-        commands.entity(root).despawn_recursive();
+        commands.entity(root).despawn();
     }
 
     let Some(bounds) = bounds else {

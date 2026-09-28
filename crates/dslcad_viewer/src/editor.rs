@@ -7,11 +7,11 @@ mod stl;
 mod xyz;
 
 use bevy::app::ScheduleRunnerPlugin;
+use bevy::asset::RenderAssetUsages;
+use bevy::camera::RenderTarget;
 use bevy::prelude::*;
-use bevy::render::camera::RenderTarget;
-use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
-use bevy::render::view::screenshot::{save_to_disk, Screenshot, ScreenshotCaptured};
+use bevy::render::view::window::screenshot::{save_to_disk, Screenshot, ScreenshotCaptured};
 use bevy::window::ExitCondition;
 use bevy::winit::WinitPlugin;
 use smooth_bevy_cameras::controllers::orbit::OrbitCameraController;
@@ -233,8 +233,8 @@ fn run(
         .add_systems(
             Update,
             move |mut console: ResMut<gui::Console>,
-                  mut re: EventWriter<RenderCommand>,
-                  mut ca: EventWriter<CameraCommand>| {
+                  mut re: MessageWriter<RenderCommand>,
+                  mut ca: MessageWriter<CameraCommand>| {
                 let rx = rx.lock().unwrap();
                 match rx.try_recv() {
                     Ok(PreviewEvent::Rendering) => {
@@ -243,11 +243,11 @@ fn run(
                     }
                     Ok(PreviewEvent::Render(render)) => {
                         if let Some(aabb) = render.aabb() {
-                            ca.send(CameraCommand::Focus(aabb));
+                            ca.write(CameraCommand::Focus(aabb));
                         }
                         console.clear();
                         console.print(render.stdout);
-                        re.send(RenderCommand::Draw(
+                        re.write(RenderCommand::Draw(
                             render.parts,
                             render.annotations,
                             render.views,
@@ -277,14 +277,14 @@ fn run(
             .add_systems(
                 Update,
                 (
-                    move |mut re: EventWriter<RenderCommand>,
+                    move |mut re: MessageWriter<RenderCommand>,
                           mut state: ResMut<ScreenshotState>| {
                         let rx = rx.lock().unwrap();
                         match rx.try_recv() {
                             Ok(PreviewEvent::Render(render)) => {
                                 state.received = true;
                                 state.aabb = render.aabb();
-                                re.send(RenderCommand::Draw(
+                                re.write(RenderCommand::Draw(
                                     render.parts,
                                     render.annotations,
                                     render.views,
@@ -323,7 +323,7 @@ fn setup_screenshot(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
     state: Res<ScreenshotState>,
-    mut cameras: Query<(&mut Camera, &mut Projection), With<OrbitCameraController>>,
+    mut cameras: Query<(Entity, &mut Projection), With<OrbitCameraController>>,
 ) {
     let mut image = Image::new_fill(
         Extent3d {
@@ -342,8 +342,12 @@ fn setup_screenshot(
         | TextureUsages::TEXTURE_BINDING;
 
     let handle = images.add(image);
-    let (mut camera, mut projection) = cameras.single_mut();
-    camera.target = RenderTarget::Image(handle.clone());
+    let Ok((camera, mut projection)) = cameras.single_mut() else {
+        return;
+    };
+    commands
+        .entity(camera)
+        .insert(RenderTarget::Image(handle.clone().into()));
 
     if let dslcad_storage::protocol::Projection::Orthographic = state.options.projection {
         *projection = Projection::Orthographic(OrthographicProjection::default_3d());
@@ -366,7 +370,7 @@ fn capture_screenshot(
     }
 
     if let (Some(aabb), Ok((mut look, mut transform, mut smoother))) =
-        (state.aabb.as_ref(), cameras.get_single_mut())
+        (state.aabb.as_ref(), cameras.single_mut())
     {
         let (target_position, eye, up) =
             screenshot_view(aabb, state.options.angle, state.options.zoom);
@@ -388,8 +392,8 @@ fn capture_screenshot(
         .spawn(Screenshot::image(target.0.clone()))
         .observe(save_to_disk(path))
         .observe(
-            |_: Trigger<ScreenshotCaptured>, mut exit: EventWriter<AppExit>| {
-                exit.send(AppExit::Success);
+            |_: On<ScreenshotCaptured>, mut exit: MessageWriter<AppExit>| {
+                exit.write(AppExit::Success);
             },
         );
 }

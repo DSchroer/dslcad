@@ -1,6 +1,6 @@
 use bevy::prelude::Resource;
-use bevy::utils::HashMap;
 use simple_home_dir::home_dir;
+use std::collections::HashMap;
 use std::fmt::Write;
 use std::fs;
 use std::path::Path;

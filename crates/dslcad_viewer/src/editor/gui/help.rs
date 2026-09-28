@@ -1,8 +1,7 @@
 use crate::editor::gui::menu::MenuAppExt;
 use crate::editor::gui::CheatSheet;
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContext, EguiPrimaryContextPass, PrimaryEguiContext};
 
 #[derive(Resource, Clone, Default)]
 pub struct HelpPlugin {
@@ -19,17 +18,17 @@ impl Plugin for HelpPlugin {
             .add_res_menu_button("Help/About", |state: &mut HelpPlugin| {
                 state.about_window = true
             })
-            .add_systems(Update, (about, cheatsheet));
+            .add_systems(EguiPrimaryContextPass, (about, cheatsheet));
     }
 }
 
 fn about(
-    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
     mut state: ResMut<HelpPlugin>,
 ) {
     egui::Window::new("About")
         .open(&mut state.about_window)
-        .show(egui_ctx.single_mut().get_mut(), |ui| {
+        .show(egui_ctx.single_mut().unwrap().get_mut(), |ui| {
             ui.label(dslcad_storage::constants::FULL_NAME);
             ui.separator();
             ui.label(format!("Version: {}", env!("CARGO_PKG_VERSION")));
@@ -38,14 +37,14 @@ fn about(
 }
 
 fn cheatsheet(
-    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
     mut state: ResMut<HelpPlugin>,
     cheetsheet: Res<CheatSheet>,
 ) {
     if !cheetsheet.cheetsheet.is_empty() {
         egui::Window::new("Cheat Sheet")
             .open(&mut state.cheatsheet_window)
-            .show(egui_ctx.single_mut().get_mut(), |ui| {
+            .show(egui_ctx.single_mut().unwrap().get_mut(), |ui| {
                 egui::ScrollArea::vertical()
                     .max_height(512.)
                     .show(ui, |ui| ui.monospace(&cheetsheet.cheetsheet));

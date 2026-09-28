@@ -4,15 +4,14 @@
 use crate::editor::camera::CameraCommand;
 use crate::editor::rendering::{RenderCommand, RenderState};
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContext, EguiPrimaryContextPass, PrimaryEguiContext};
 
 pub struct ViewsPanelPlugin;
 
 impl Plugin for ViewsPanelPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ViewsPanel>()
-            .add_systems(Update, views_panel.in_set(super::GuiSet));
+            .add_systems(EguiPrimaryContextPass, views_panel.in_set(super::GuiSet));
     }
 }
 
@@ -29,11 +28,11 @@ impl Default for ViewsPanel {
 }
 
 fn views_panel(
-    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
     mut state: ResMut<RenderState>,
     panel: Res<ViewsPanel>,
-    mut render_events: EventWriter<RenderCommand>,
-    mut camera_events: EventWriter<CameraCommand>,
+    mut render_events: MessageWriter<RenderCommand>,
+    mut camera_events: MessageWriter<CameraCommand>,
 ) {
     let views: Vec<String> = state
         .views()
@@ -53,7 +52,7 @@ fn views_panel(
     egui::SidePanel::right("Views")
         .resizable(true)
         .default_width(160.0)
-        .show_animated(egui_ctx.single_mut().get_mut(), panel.open, |ui| {
+        .show_animated(egui_ctx.single_mut().unwrap().get_mut(), panel.open, |ui| {
             ui.label(
                 egui::RichText::new("Views")
                     .heading()
@@ -65,15 +64,15 @@ fn views_panel(
 
             if view_entry(ui, active.is_none(), "Default").clicked() {
                 state.set_active_view(None);
-                render_events.send(RenderCommand::Redraw);
+                render_events.write(RenderCommand::Redraw);
             }
 
             for (index, name) in views.iter().enumerate() {
                 if view_entry(ui, active == Some(index), name).clicked() {
                     let view = state.views()[index].clone();
                     state.set_active_view(Some(index));
-                    render_events.send(RenderCommand::Redraw);
-                    camera_events.send(CameraCommand::View {
+                    render_events.write(RenderCommand::Redraw);
+                    camera_events.write(CameraCommand::View {
                         angles: view.angle,
                         projection: view.projection,
                         zoom: view.zoom,

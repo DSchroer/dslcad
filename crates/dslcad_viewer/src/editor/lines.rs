@@ -2,18 +2,21 @@
 // dead code (with the field spans), so dead code analysis is disabled here.
 #![allow(dead_code)]
 
-use bevy::asset::load_internal_asset;
+use bevy::asset::{load_internal_asset, RenderAssetUsages};
+use bevy::mesh::{
+    Indices, MeshVertexAttribute, MeshVertexBufferLayoutRef, PrimitiveTopology, VertexFormat,
+};
 use bevy::pbr::{Material, MaterialPipeline, MaterialPipelineKey};
 use bevy::prelude::*;
-use bevy::render::mesh::{Indices, MeshVertexAttribute, MeshVertexBufferLayoutRef};
-use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{
-    AsBindGroup, CompareFunction, PrimitiveTopology, RenderPipelineDescriptor, ShaderRef,
-    ShaderType, SpecializedMeshPipelineError, VertexFormat,
+    AsBindGroup, CompareFunction, RenderPipelineDescriptor, ShaderType,
+    SpecializedMeshPipelineError,
 };
+use bevy::shader::ShaderRef;
 use dslcad_storage::protocol::Point;
 
-const LINE_SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(14785120311401321627);
+const LINE_SHADER_HANDLE: Handle<Shader> =
+    bevy::asset::uuid_handle!("0000000000000000cd2f4c969a7d149b");
 
 const ATTRIBUTE_OTHER: MeshVertexAttribute = MeshVertexAttribute::new(
     "Vertex_Other",
@@ -32,16 +35,8 @@ impl Plugin for LineMaterialPlugin {
     fn build(&self, app: &mut App) {
         load_internal_asset!(app, LINE_SHADER_HANDLE, "lines.wgsl", Shader::from_wgsl);
 
-        app.add_plugins(MaterialPlugin::<LineMaterial> {
-            prepass_enabled: false,
-            shadows_enabled: false,
-            ..default()
-        });
-        app.add_plugins(MaterialPlugin::<AnnotationLineMaterial> {
-            prepass_enabled: false,
-            shadows_enabled: false,
-            ..default()
-        });
+        app.add_plugins(MaterialPlugin::<LineMaterial>::default());
+        app.add_plugins(MaterialPlugin::<AnnotationLineMaterial>::default());
     }
 }
 
@@ -88,7 +83,7 @@ impl Material for LineMaterial {
     }
 
     fn specialize(
-        _pipeline: &MaterialPipeline<Self>,
+        _pipeline: &MaterialPipeline,
         descriptor: &mut RenderPipelineDescriptor,
         layout: &MeshVertexBufferLayoutRef,
         _key: MaterialPipelineKey<Self>,
@@ -140,7 +135,7 @@ impl Material for AnnotationLineMaterial {
     }
 
     fn specialize(
-        _pipeline: &MaterialPipeline<Self>,
+        _pipeline: &MaterialPipeline,
         descriptor: &mut RenderPipelineDescriptor,
         layout: &MeshVertexBufferLayoutRef,
         _key: MaterialPipelineKey<Self>,

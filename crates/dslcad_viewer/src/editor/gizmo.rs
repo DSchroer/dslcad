@@ -1,8 +1,7 @@
 use crate::editor::rendering::RenderState;
 use crate::editor::{Axis, Palette};
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContext, EguiPrimaryContextPass, PrimaryEguiContext};
 use egui::{Align2, Color32, FontId, Id, Order, Sense, Stroke, Vec2};
 
 const GIZMO_SIZE: f32 = 88.0;
@@ -15,24 +14,27 @@ pub struct AxisGizmoPlugin;
 
 impl Plugin for AxisGizmoPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, axis_gizmo.after(crate::editor::gui::GuiSet));
+        app.add_systems(
+            EguiPrimaryContextPass,
+            axis_gizmo.after(crate::editor::gui::GuiSet),
+        );
     }
 }
 
 fn axis_gizmo(
     camera: Query<&GlobalTransform, With<Camera3d>>,
     render_state: Res<RenderState>,
-    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
 ) {
     // The gizmo is only meaningful for the free camera.
     if render_state.active_view_index().is_some() {
         return;
     }
 
-    let Ok(camera) = camera.get_single() else {
+    let Ok(camera) = camera.single() else {
         return;
     };
-    let Ok(mut context) = egui_ctx.get_single_mut() else {
+    let Ok(mut context) = egui_ctx.single_mut() else {
         return;
     };
 

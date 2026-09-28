@@ -1,13 +1,12 @@
 use crate::editor::rendering::{RenderCommand, RenderState};
 use crate::editor::Palette;
+use bevy::camera::ScalingMode;
 use bevy::input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
-use bevy::render::camera::ScalingMode;
-use bevy::window::PrimaryWindow;
-use bevy_egui::EguiContext;
+use bevy_egui::{EguiContext, PrimaryEguiContext};
 use dslcad_storage::protocol::{BoundingBox, Projection as ViewProjection, ViewAngles};
 use smooth_bevy_cameras::controllers::orbit::{
-    ControlEvent, OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
+    ControlMessage, OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
 };
 use smooth_bevy_cameras::{LookTransform, LookTransformPlugin, Smoother};
 
@@ -20,7 +19,7 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(LookTransformPlugin)
-            .add_event::<CameraCommand>()
+            .add_message::<CameraCommand>()
             .insert_resource(CameraState::default())
             .add_plugins(OrbitCameraPlugin::new(true))
             .add_systems(Startup, camera_system)
@@ -37,7 +36,7 @@ struct CameraState {
     focus: Option<BoundingBox>,
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub enum CameraCommand {
     Refocus(),
     Reset(),
@@ -56,7 +55,9 @@ fn camera_light(
     query: Query<&Transform, With<OrbitCameraController>>,
     mut light: Query<&mut Transform, (With<DirectionalLight>, Without<OrbitCameraController>)>,
 ) {
-    let gxf = query.single();
+    let Ok(gxf) = query.single() else {
+        return;
+    };
     for mut transform in light.iter_mut() {
         transform.clone_from(gxf);
         // Tilt the light off the view direction so faces shade differently
@@ -91,14 +92,15 @@ pub(crate) fn camera_system(mut commands: Commands) {
         Transform::from_translation(Vec3::splat(100.)).looking_at(Vec3::default(), Vec3::Y),
     ));
 
-    commands.insert_resource(AmbientLight {
+    commands.insert_resource(GlobalAmbientLight {
         color: Palette::ambient(),
         brightness: 0.35,
+        affects_lightmapped_meshes: true,
     });
 }
 
 fn camera_handler(
-    mut camera_commands: EventReader<CameraCommand>,
+    mut camera_commands: MessageReader<CameraCommand>,
     mut projection: Query<&mut Projection>,
     mut camera: Query<&mut LookTransform, With<OrbitCameraController>>,
     mut state: ResMut<CameraState>,
@@ -116,18 +118,24 @@ fn camera_handler(
                 if let Some(aabb) = &state.focus {
                     focus_on(&mut camera, aabb);
                 } else {
-                    let mut transform = camera.single_mut();
+                    let Ok(mut transform) = camera.single_mut() else {
+                        return;
+                    };
                     transform.target = Vec3::default();
                     transform.eye = Vec3::splat(100.);
                 }
             }
             CameraCommand::Reset() => {
-                let mut transform = camera.single_mut();
+                let Ok(mut transform) = camera.single_mut() else {
+                    return;
+                };
                 transform.target = Vec3::default();
                 transform.eye = Vec3::splat(100.);
             }
             CameraCommand::UseOrthographic(orthographic) => {
-                let mut projection = projection.single_mut();
+                let Ok(mut projection) = projection.single_mut() else {
+                    return;
+                };
                 if *orthographic {
                     *projection = Projection::Orthographic(OrthographicProjection::default_3d());
                 } else {
@@ -140,7 +148,10 @@ fn camera_handler(
                 zoom,
                 target,
             } => {
-                *projection.single_mut() = match kind {
+                let Ok(mut current_projection) = projection.single_mut() else {
+                    return;
+                };
+                *current_projection = match kind {
                     ViewProjection::Perspective => {
                         Projection::Perspective(PerspectiveProjection::default())
                     }
@@ -182,7 +193,9 @@ fn camera_handler(
                 };
                 let up = Quat::from_axis_angle(direction, roll) * up;
 
-                let mut transform = camera.single_mut();
+                let Ok(mut transform) = camera.single_mut() else {
+                    return;
+                };
                 transform.target = look;
                 transform.eye = look + direction * distance;
                 transform.up = up;
@@ -196,8 +209,13 @@ fn orthographic_zoom(
     look: Query<&LookTransform>,
     smoother: Query<&Smoother>,
 ) {
-    let transform = look.single();
-    let mut smoother = *smoother.single();
+    let Ok(transform) = look.single() else {
+        return;
+    };
+    let Ok(smoother) = smoother.single() else {
+        return;
+    };
+    let mut smoother = *smoother;
     let transform = smoother.smooth_transform(transform);
     let d = transform.target.distance(transform.eye);
     for mut projection in &mut projections {
@@ -233,7 +251,9 @@ fn focus_on(
     camera: &mut Query<&mut LookTransform, With<OrbitCameraController>>,
     aabb: &BoundingBox,
 ) {
-    let mut transform = camera.single_mut();
+    let Ok(mut transform) = camera.single_mut() else {
+        return;
+    };
     let center = aabb.center();
     transform.target = Vec3::new(center[1] as f32, center[2] as f32, center[0] as f32);
     transform.eye = transform.target + Vec3::splat(f32::max(aabb.max_len() as f32 * 2., 1.));
@@ -241,12 +261,12 @@ fn focus_on(
 
 #[allow(clippy::too_many_arguments)]
 pub fn input_map(
-    mut events: EventWriter<ControlEvent>,
-    mut mouse_wheel_reader: EventReader<MouseWheel>,
-    mut mouse_motion_events: EventReader<MouseMotion>,
-    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut events: MessageWriter<ControlMessage>,
+    mut mouse_wheel_reader: MessageReader<MouseWheel>,
+    mut mouse_motion_events: MessageReader<MouseMotion>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
     mut render_state: ResMut<RenderState>,
-    mut render_events: EventWriter<RenderCommand>,
+    mut render_events: MessageWriter<RenderCommand>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     controllers: Query<&OrbitCameraController>,
@@ -265,7 +285,7 @@ pub fn input_map(
         ..
     } = *controller;
 
-    let Ok(mut binding) = egui_ctx.get_single_mut() else {
+    let Ok(mut binding) = egui_ctx.single_mut() else {
         return;
     };
     let ctx = binding.get_mut();
@@ -286,66 +306,76 @@ pub fn input_map(
 
     if mouse_buttons.pressed(MouseButton::Left) {
         adjusted |= cursor_delta != Vec2::ZERO;
-        events.send(ControlEvent::Orbit(mouse_rotate_sensitivity * cursor_delta));
+        events.write(ControlMessage::Orbit(
+            mouse_rotate_sensitivity * cursor_delta,
+        ));
     }
 
-    let camera_pos = camera_pos.single();
+    let Ok(camera_pos) = camera_pos.single() else {
+        return;
+    };
     let zoom_amount = camera_pos.translation.distance(Vec3::ZERO);
     if mouse_buttons.pressed(MouseButton::Right) {
         adjusted |= cursor_delta != Vec2::ZERO;
-        events.send(ControlEvent::TranslateTarget(
+        events.write(ControlMessage::TranslateTarget(
             mouse_translate_sensitivity * cursor_delta * zoom_amount,
         ));
     }
 
     if keyboard.pressed(KeyCode::Equal) {
         adjusted = true;
-        events.send(ControlEvent::Zoom(0.9));
+        events.write(ControlMessage::Zoom(0.9));
     }
     if keyboard.pressed(KeyCode::Minus) {
         adjusted = true;
-        events.send(ControlEvent::Zoom(1.1));
+        events.write(ControlMessage::Zoom(1.1));
     }
 
     if keyboard.pressed(KeyCode::ShiftLeft) {
         if keyboard.pressed(KeyCode::ArrowLeft) {
             adjusted = true;
-            events.send(ControlEvent::TranslateTarget(Vec2::new(
+            events.write(ControlMessage::TranslateTarget(Vec2::new(
                 1. * zoom_amount,
                 0.0,
             )));
         }
         if keyboard.pressed(KeyCode::ArrowRight) {
             adjusted = true;
-            events.send(ControlEvent::TranslateTarget(Vec2::new(-zoom_amount, 0.0)));
+            events.write(ControlMessage::TranslateTarget(Vec2::new(
+                -zoom_amount,
+                0.0,
+            )));
         }
         if keyboard.pressed(KeyCode::ArrowUp) {
             adjusted = true;
-            events.send(ControlEvent::TranslateTarget(Vec2::new(
+            events.write(ControlMessage::TranslateTarget(Vec2::new(
                 0.0,
                 1. * zoom_amount,
             )));
         }
         if keyboard.pressed(KeyCode::ArrowDown) {
             adjusted = true;
-            events.send(ControlEvent::TranslateTarget(Vec2::new(0.0, -zoom_amount)));
+            events.write(ControlMessage::TranslateTarget(Vec2::new(
+                0.0,
+                -zoom_amount,
+            )));
         }
     } else {
         if keyboard.pressed(KeyCode::ArrowLeft) {
             adjusted = true;
-            events.send(ControlEvent::Orbit(Vec2::new(1., 0.0)));
+            events.write(ControlMessage::Orbit(Vec2::new(1., 0.0)));
         }
         if keyboard.pressed(KeyCode::ArrowRight) {
             adjusted = true;
-            events.send(ControlEvent::Orbit(Vec2::new(-1., 0.0)));
+            events.write(ControlMessage::Orbit(Vec2::new(-1., 0.0)));
         }
         if keyboard.pressed(KeyCode::ArrowUp) {
             adjusted = true;
-            events.send(ControlEvent::Orbit(Vec2::new(0., 1.0)));
+            events.write(ControlMessage::Orbit(Vec2::new(0., 1.0)));
         }
         if keyboard.pressed(KeyCode::ArrowDown) {
             adjusted = true;
-            events.send(ControlEvent::Orbit(Vec2::new(0., -1.0)));
+            events.write(ControlMessage::Orbit(Vec2::new(0., -1.0)));
         }
     }
 
@@ -359,10 +389,10 @@ pub fn input_map(
         };
         scalar *= 1.0 - scroll_amount * mouse_wheel_zoom_sensitivity;
     }
-    events.send(ControlEvent::Zoom(scalar));
+    events.write(ControlMessage::Zoom(scalar));
 
     if adjusted && render_state.active_view_index().is_some() {
         render_state.set_active_view(None);
-        render_events.send(RenderCommand::Redraw);
+        render_events.write(RenderCommand::Redraw);
     }
 }

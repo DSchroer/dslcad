@@ -1,6 +1,6 @@
 use bevy::asset::RenderAssetUsages;
+use bevy::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 use bevy::prelude::Mesh;
-use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 
 pub fn stl_to_triangle_mesh(stl: &dslcad_storage::protocol::Mesh) -> Mesh {
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all());

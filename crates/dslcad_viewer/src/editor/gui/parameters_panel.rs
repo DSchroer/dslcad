@@ -5,8 +5,7 @@
 use crate::editor::rendering::RenderState;
 use crate::ParameterHandle;
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContext, EguiPrimaryContextPass, PrimaryEguiContext};
 use dslcad_storage::protocol::{Parameter, ParameterType, ParameterValue};
 use std::collections::HashMap;
 
@@ -16,7 +15,10 @@ impl Plugin for ParametersPanelPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ParametersPanel>()
             .init_resource::<ParameterEditor>()
-            .add_systems(Update, parameters_panel.in_set(super::GuiSet));
+            .add_systems(
+                EguiPrimaryContextPass,
+                parameters_panel.in_set(super::GuiSet),
+            );
     }
 }
 
@@ -40,7 +42,7 @@ struct ParameterEditor {
 }
 
 fn parameters_panel(
-    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
     state: Res<RenderState>,
     panel: Res<ParametersPanel>,
     handle: Res<ParameterHandle>,
@@ -54,7 +56,7 @@ fn parameters_panel(
     egui::SidePanel::left("Parameters")
         .resizable(true)
         .default_width(220.0)
-        .show_animated(egui_ctx.single_mut().get_mut(), panel.open, |ui| {
+        .show_animated(egui_ctx.single_mut().unwrap().get_mut(), panel.open, |ui| {
             ui.label(
                 egui::RichText::new("Parameters")
                     .heading()

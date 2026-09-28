@@ -6,11 +6,10 @@ mod view_menu;
 mod views_panel;
 
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
 
 use crate::editor::camera::CameraCommand;
 use crate::editor::gizmo::AxisGizmoPlugin;
-use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_egui::{egui, EguiContext, EguiPlugin, EguiPrimaryContextPass, PrimaryEguiContext};
 
 use crate::editor::gui::help::HelpPlugin;
 use crate::editor::gui::menu::{MenuAppExt, MenuPlugin};
@@ -49,17 +48,17 @@ impl Plugin for GuiPlugin {
             text: None,
             open: true,
         })
-        .add_plugins(EguiPlugin)
+        .add_plugins(EguiPlugin::default())
         .add_plugins(AxisGizmoPlugin)
         .add_plugins(MenuPlugin)
         .add_plugins(ViewMenuPlugin)
         .add_plugins(ViewsPanelPlugin)
         .add_plugins(ParametersPanelPlugin)
-        .add_event_menu_button("Camera/Focus", |c: &mut EventWriter<CameraCommand>| {
-            c.send(CameraCommand::Refocus());
+        .add_event_menu_button("Camera/Focus", |c: &mut MessageWriter<CameraCommand>| {
+            c.write(CameraCommand::Refocus());
         })
-        .add_event_menu_button("Camera/Reset", |c: &mut EventWriter<CameraCommand>| {
-            c.send(CameraCommand::Reset());
+        .add_event_menu_button("Camera/Reset", |c: &mut MessageWriter<CameraCommand>| {
+            c.write(CameraCommand::Reset());
         })
         .add_persistent_res_menu_button::<ResMut<ViewsPanel>>(
             "View/Views Panel",
@@ -104,15 +103,19 @@ impl Plugin for GuiPlugin {
             },
         )
         .add_plugins(HelpPlugin::default())
-        .configure_sets(Update, GuiSet)
-        .add_systems(Startup, dark_theme)
-        .add_systems(Update, (toolbar, console_panel).chain().in_set(GuiSet));
+        .configure_sets(EguiPrimaryContextPass, GuiSet)
+        .add_systems(
+            EguiPrimaryContextPass,
+            (dark_theme, (toolbar, console_panel).chain())
+                .chain()
+                .in_set(GuiSet),
+        );
     }
 }
 
 /// Matches the egui panels to the dark CAD viewport.
-fn dark_theme(mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>) {
-    if let Ok(mut context) = egui_ctx.get_single_mut() {
+fn dark_theme(mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>) {
+    if let Ok(mut context) = egui_ctx.single_mut() {
         theme::apply(context.get_mut());
     }
 }
@@ -141,46 +144,50 @@ struct CheatSheet {
 
 fn console_panel(
     console: Res<Console>,
-    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
 ) {
     egui::TopBottomPanel::bottom("Console")
         .resizable(true)
         .default_height(180.0)
-        .show_animated(egui_ctx.single_mut().get_mut(), console.open, |ui| {
-            ui.label(
-                egui::RichText::new("Console")
-                    .heading()
-                    .color(theme::heading_color()),
-            );
-            ui.separator();
+        .show_animated(
+            egui_ctx.single_mut().unwrap().get_mut(),
+            console.open,
+            |ui| {
+                ui.label(
+                    egui::RichText::new("Console")
+                        .heading()
+                        .color(theme::heading_color()),
+                );
+                ui.separator();
 
-            egui::ScrollArea::vertical()
-                .max_height(256.)
-                .max_width(f32::INFINITY)
-                .auto_shrink([false, true])
-                .show(ui, |ui| match &console.text {
-                    None => ui.monospace(""),
-                    Some(t) => ui.monospace(t),
-                });
-        });
+                egui::ScrollArea::vertical()
+                    .max_height(256.)
+                    .max_width(f32::INFINITY)
+                    .auto_shrink([false, true])
+                    .show(ui, |ui| match &console.text {
+                        None => ui.monospace(""),
+                        Some(t) => ui.monospace(t),
+                    });
+            },
+        );
 }
 
 /// A quick access toolbar at the very bottom of the window that toggles the
 /// auxiliary panels. It is added before the console so it sits below it.
 fn toolbar(
-    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
     mut views: ResMut<ViewsPanel>,
     mut parameters: ResMut<ParametersPanel>,
     mut console: ResMut<Console>,
     mut store: ResMut<Settings>,
 ) {
-    egui::TopBottomPanel::bottom("Toolbar").show(egui_ctx.single_mut().get_mut(), |ui| {
+    egui::TopBottomPanel::bottom("Toolbar").show(egui_ctx.single_mut().unwrap().get_mut(), |ui| {
         ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
             ui.horizontal(|ui| {
                 let icon = |ui: &mut egui::Ui, open: bool, glyph: &str| {
-                    ui.add_sized(
-                        egui::vec2(20.0, 18.0),
-                        egui::SelectableLabel::new(open, egui::RichText::new(glyph).size(12.0)),
+                    ui.add(
+                        egui::Button::selectable(open, egui::RichText::new(glyph).size(12.0))
+                            .min_size(egui::vec2(28.0, 20.0)),
                     )
                 };
 

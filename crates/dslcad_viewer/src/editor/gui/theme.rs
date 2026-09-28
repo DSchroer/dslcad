@@ -4,8 +4,8 @@
 
 use bevy_egui::egui::style::{HandleShape, ScrollStyle, WidgetVisuals};
 use bevy_egui::egui::{
-    self, Color32, FontFamily, FontId, Margin, Rounding, Shadow, Stroke, Style, TextStyle, Vec2,
-    Visuals,
+    self, Color32, CornerRadius, FontFamily, FontId, Margin, Shadow, Stroke, Style, TextStyle,
+    Vec2, Visuals,
 };
 
 /// Panel, widget and signal colors used by the theme.
@@ -86,7 +86,7 @@ fn style() -> Style {
 
 fn visuals() -> Visuals {
     let mut visuals = Visuals::dark();
-    let rounding = Rounding::same(4.0);
+    let corner_radius = CornerRadius::same(4);
     let border = Stroke::new(1.0_f32, Colors::border());
 
     visuals.dark_mode = true;
@@ -96,15 +96,15 @@ fn visuals() -> Visuals {
     visuals.panel_fill = Colors::panel();
     visuals.window_fill = Colors::panel();
     visuals.window_stroke = border;
-    visuals.window_rounding = Rounding::same(6.0);
-    visuals.menu_rounding = Rounding::same(4.0);
+    visuals.window_corner_radius = CornerRadius::same(6);
+    visuals.menu_corner_radius = CornerRadius::same(4);
     visuals.faint_bg_color = Colors::widget();
     visuals.extreme_bg_color = Colors::recessed();
     visuals.code_bg_color = Colors::recessed();
     visuals.window_shadow = Shadow {
-        offset: Vec2::new(0.0, 6.0),
-        blur: 16.0,
-        spread: 0.0,
+        offset: [0, 6],
+        blur: 16,
+        spread: 0,
         color: Color32::from_black_alpha(180),
     };
     visuals.popup_shadow = visuals.window_shadow;
@@ -121,7 +121,7 @@ fn visuals() -> Visuals {
         bg_fill: Colors::panel(),
         weak_bg_fill: Colors::panel(),
         bg_stroke: border,
-        rounding,
+        corner_radius,
         fg_stroke: Stroke::new(1.0_f32, Colors::text()),
         expansion: 0.0,
     };
@@ -129,7 +129,7 @@ fn visuals() -> Visuals {
         bg_fill: Colors::widget(),
         weak_bg_fill: Colors::widget(),
         bg_stroke: border,
-        rounding,
+        corner_radius,
         fg_stroke: Stroke::new(1.0_f32, Colors::text()),
         expansion: 0.0,
     };
@@ -137,7 +137,7 @@ fn visuals() -> Visuals {
         bg_fill: Colors::widget_hovered(),
         weak_bg_fill: Colors::widget_hovered(),
         bg_stroke: Stroke::new(1.0_f32, Colors::accent().gamma_multiply(0.7)),
-        rounding,
+        corner_radius,
         fg_stroke: Stroke::new(1.0_f32, Color32::WHITE),
         expansion: 0.0,
     };
@@ -145,7 +145,7 @@ fn visuals() -> Visuals {
         bg_fill: Colors::widget_active(),
         weak_bg_fill: Colors::widget_active(),
         bg_stroke: Stroke::new(1.0_f32, Colors::accent()),
-        rounding,
+        corner_radius,
         fg_stroke: Stroke::new(1.0_f32, Color32::WHITE),
         expansion: 0.0,
     };
@@ -167,8 +167,8 @@ fn spacing() -> egui::Spacing {
     egui::Spacing {
         item_spacing: Vec2::new(8.0, 6.0),
         button_padding: Vec2::new(8.0, 4.0),
-        menu_margin: Margin::same(6.0),
-        window_margin: Margin::same(10.0),
+        menu_margin: Margin::same(6),
+        window_margin: Margin::same(10),
         indent: 16.0,
         slider_width: 150.0,
         scroll: ScrollStyle {

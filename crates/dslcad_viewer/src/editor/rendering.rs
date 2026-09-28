@@ -17,8 +17,8 @@ pub struct ModelRenderingPlugin;
 impl Plugin for ModelRenderingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((PointsPlugin, LineMaterialPlugin))
-            .add_event::<RenderCommand>()
-            .add_event::<RenderEvents>()
+            .add_message::<RenderCommand>()
+            .add_message::<RenderEvents>()
             .insert_resource(RenderState::default())
             .add_systems(
                 Update,
@@ -38,7 +38,7 @@ impl Plugin for ModelRenderingPlugin {
 #[derive(Component)]
 struct BillboardText;
 
-#[derive(Event)]
+#[derive(Message)]
 pub enum RenderCommand {
     Draw(Vec<Part>, Vec<Annotation>, Vec<ViewDef>, Vec<Parameter>),
     Redraw,
@@ -127,7 +127,7 @@ impl Default for RenderState {
     }
 }
 
-#[derive(Event)]
+#[derive(Message)]
 enum RenderEvents {
     Points,
     Lines,
@@ -138,7 +138,7 @@ enum RenderEvents {
 fn mesh_renderer(
     mut commands: Commands,
     render_state: Res<RenderState>,
-    mut events: EventReader<RenderEvents>,
+    mut events: MessageReader<RenderEvents>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -171,7 +171,7 @@ fn mesh_renderer(
                                 ..Default::default()
                             })),
                         ))
-                        .set_parent(*entity);
+                        .insert(ChildOf(*entity));
                 }
             }
         }
@@ -181,7 +181,7 @@ fn mesh_renderer(
 fn point_renderer(
     mut commands: Commands,
     render_state: Res<RenderState>,
-    mut events: EventReader<RenderEvents>,
+    mut events: MessageReader<RenderEvents>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut point_materials: ResMut<Assets<PointsMaterial>>,
 ) {
@@ -259,13 +259,13 @@ fn render_points(
                 ..Default::default()
             })),
         ))
-        .set_parent(parent);
+        .insert(ChildOf(parent));
 }
 
 fn line_renderer(
     mut commands: Commands,
     render_state: Res<RenderState>,
-    mut events: EventReader<RenderEvents>,
+    mut events: MessageReader<RenderEvents>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LineMaterial>>,
 ) {
@@ -322,14 +322,14 @@ fn render_lines(
             Mesh3d(meshes.add(lines_to_mesh(lines))),
             MeshMaterial3d(materials.add(LineMaterial::new(color, 2.0))),
         ))
-        .set_parent(parent);
+        .insert(ChildOf(parent));
 }
 
 fn render_controller(
     mut commands: Commands,
-    mut events: EventReader<RenderCommand>,
+    mut events: MessageReader<RenderCommand>,
     mut render_state: ResMut<RenderState>,
-    mut render_events: EventWriter<RenderEvents>,
+    mut render_events: MessageWriter<RenderEvents>,
 ) {
     for event in events.read() {
         match event {
@@ -342,7 +342,7 @@ fn render_controller(
                     .and_then(|view| view.name.clone());
 
                 if let Some(model) = &render_state.model {
-                    commands.entity(model.entity).despawn_recursive();
+                    commands.entity(model.entity).despawn();
                     render_state.model = None;
                 }
 
@@ -363,7 +363,7 @@ fn render_controller(
             }
             RenderCommand::Redraw => {
                 if let Some(model) = &render_state.model {
-                    commands.entity(model.entity).despawn_recursive();
+                    commands.entity(model.entity).despawn();
 
                     let bundle = commands.spawn(Transform::from_rotation(model_rotation()));
                     render_state.model = Some(Model {
@@ -377,17 +377,17 @@ fn render_controller(
             }
         }
 
-        render_events.send(RenderEvents::Annotations);
-        render_events.send(RenderEvents::Points);
-        render_events.send(RenderEvents::Lines);
-        render_events.send(RenderEvents::Mesh);
+        render_events.write(RenderEvents::Annotations);
+        render_events.write(RenderEvents::Points);
+        render_events.write(RenderEvents::Lines);
+        render_events.write(RenderEvents::Mesh);
     }
 }
 
 fn annotation_renderer(
     mut commands: Commands,
     render_state: Res<RenderState>,
-    mut events: EventReader<RenderEvents>,
+    mut events: MessageReader<RenderEvents>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<AnnotationLineMaterial>>,
     mut point_materials: ResMut<Assets<PointsMaterial>>,
@@ -452,7 +452,10 @@ fn spawn_annotation_lines(
     lines: &[Vec<Point>],
     parent: Entity,
 ) -> Entity {
-    let wrapper = commands.spawn(Transform::default()).set_parent(parent).id();
+    let wrapper = commands
+        .spawn(Transform::default())
+        .insert(ChildOf(parent))
+        .id();
 
     commands
         .spawn((
@@ -463,7 +466,7 @@ fn spawn_annotation_lines(
                 2.2,
             ))),
         ))
-        .set_parent(wrapper);
+        .insert(ChildOf(wrapper));
 
     wrapper
 }
@@ -487,7 +490,7 @@ fn spawn_text_block(
             ))
             .with_rotation(plane_rotation(text.plane)),
         )
-        .set_parent(parent)
+        .insert(ChildOf(parent))
         .id();
 
     if !text.outline.is_empty() {
@@ -500,7 +503,7 @@ fn spawn_text_block(
                     2.4,
                 ))),
             ))
-            .set_parent(wrapper);
+            .insert(ChildOf(wrapper));
     }
 
     if !text.lines.is_empty() {
@@ -513,7 +516,7 @@ fn spawn_text_block(
                     1.8,
                 ))),
             ))
-            .set_parent(wrapper);
+            .insert(ChildOf(wrapper));
     }
 
     wrapper
@@ -538,7 +541,7 @@ fn billboard_text(
     camera: Query<&Transform, With<OrbitCameraController>>,
     mut texts: Query<&mut Transform, (With<BillboardText>, Without<OrbitCameraController>)>,
 ) {
-    let Ok(camera) = camera.get_single() else {
+    let Ok(camera) = camera.single() else {
         return;
     };
 

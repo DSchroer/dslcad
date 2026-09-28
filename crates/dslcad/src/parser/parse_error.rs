@@ -41,7 +41,7 @@ pub enum DocumentParseError {
     UnknownParameterArgument(String, Span),
     #[error("expected {0} but found {1}")]
     Expected(&'static str, String, Span),
-    #[error("expected one of {} but found {1}", one_of_list(.0))]
+    #[error("expected one of {} but found {}", one_of_list(.0), .1)]
     ExpectedOneOf(Vec<&'static str>, String, Span),
 }
 

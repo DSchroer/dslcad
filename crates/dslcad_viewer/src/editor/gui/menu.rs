@@ -3,9 +3,8 @@ use crate::editor::rendering::{RenderCommand, RenderState};
 use crate::settings::{Settings, Store};
 use bevy::ecs::system::{StaticSystemParam, SystemParam};
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
 use bevy_egui::egui::Id;
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContext, EguiPrimaryContextPass, PrimaryEguiContext};
 use std::collections::BTreeMap;
 use std::str::FromStr;
 use strum_macros::{Display, EnumString, IntoStaticStr};
@@ -15,8 +14,8 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Menu>()
-            .add_event::<MenuEvent>()
-            .add_systems(Update, main_ui.in_set(super::GuiSet))
+            .add_message::<MenuEvent>()
+            .add_systems(EguiPrimaryContextPass, main_ui.in_set(super::GuiSet))
             .add_persistent_res_loader::<ResMut<RenderState>>(
                 "points",
                 |value, mut state: ResMut<RenderState>| {
@@ -51,10 +50,10 @@ impl Plugin for MenuPlugin {
 }
 
 pub trait MenuAppExt {
-    fn add_event_menu_button<T: Event>(
+    fn add_event_menu_button<T: Message>(
         &mut self,
         path: &'static str,
-        action: impl Fn(&mut EventWriter<T>) + Send + Sync + 'static,
+        action: impl Fn(&mut MessageWriter<T>) + Send + Sync + 'static,
     ) -> &mut App;
 
     fn add_res_menu_button<T: Resource>(
@@ -78,10 +77,10 @@ pub trait MenuAppExt {
 }
 
 impl MenuAppExt for App {
-    fn add_event_menu_button<T: Event>(
+    fn add_event_menu_button<T: Message>(
         &mut self,
         path: &'static str,
-        action: impl Fn(&mut EventWriter<T>) + Send + Sync + 'static,
+        action: impl Fn(&mut MessageWriter<T>) + Send + Sync + 'static,
     ) -> &mut App {
         let mut path = path.split('/');
         let menu_name = TopLevelMenu::from_str(path.next().expect("menu must have top level"))
@@ -94,7 +93,7 @@ impl MenuAppExt for App {
 
         self.add_systems(
             Update,
-            move |mut events: EventReader<MenuEvent>, mut event: EventWriter<T>| {
+            move |mut events: MessageReader<MenuEvent>, mut event: MessageWriter<T>| {
                 for click in events.read() {
                     if click.action() == action_name {
                         action(&mut event);
@@ -121,7 +120,7 @@ impl MenuAppExt for App {
 
         self.add_systems(
             Update,
-            move |mut events: EventReader<MenuEvent>, mut state: ResMut<T>| {
+            move |mut events: MessageReader<MenuEvent>, mut state: ResMut<T>| {
                 for click in events.read() {
                     if click.action() == action_name {
                         action(&mut state);
@@ -149,7 +148,7 @@ impl MenuAppExt for App {
 
         self.add_systems(
             Update,
-            move |mut events: EventReader<MenuEvent>,
+            move |mut events: MessageReader<MenuEvent>,
                   state: StaticSystemParam<T>,
                   mut store: ResMut<Settings>| {
                 if let Some(click) = events.read().next() {
@@ -179,7 +178,7 @@ impl MenuAppExt for App {
     }
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct MenuEvent(&'static str);
 
 impl MenuEvent {
@@ -211,23 +210,23 @@ impl Menu {
 }
 
 fn main_ui(
-    mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
-    mut render_events: EventWriter<RenderCommand>,
-    mut menu_events: EventWriter<MenuEvent>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
+    mut render_events: MessageWriter<RenderCommand>,
+    mut menu_events: MessageWriter<MenuEvent>,
     mut render_state: ResMut<RenderState>,
-    mut camera_events: EventWriter<CameraCommand>,
+    mut camera_events: MessageWriter<CameraCommand>,
     mut store: ResMut<Settings>,
     menu: Res<Menu>,
 ) {
-    egui::TopBottomPanel::top("Tools").show(egui_ctx.single_mut().get_mut(), |ui| {
-        egui::menu::bar(ui, |ui| {
+    egui::TopBottomPanel::top("Tools").show(egui_ctx.single_mut().unwrap().get_mut(), |ui| {
+        egui::MenuBar::new().ui(ui, |ui| {
             for (menu, actions) in &menu.tree {
                 let str: &'static str = menu.into();
                 ui.menu_button(str, |ui| {
                     for action in actions {
                         if ui.button(*action).clicked() {
-                            menu_events.send(MenuEvent(action));
-                            ui.close_menu();
+                            menu_events.write(MenuEvent(action));
+                            ui.close();
                         }
                     }
 
@@ -236,7 +235,7 @@ fn main_ui(
                         let mut ortho = ui.memory(|m| m.data.get_temp(id)).unwrap_or_default();
 
                         if ui.checkbox(&mut ortho, "Orthographic").clicked() {
-                            camera_events.send(CameraCommand::UseOrthographic(ortho));
+                            camera_events.write(CameraCommand::UseOrthographic(ortho));
                             ui.memory_mut(|m| m.data.insert_temp(id, ortho))
                         }
                     }
@@ -247,26 +246,26 @@ fn main_ui(
                             .clicked()
                         {
                             store.store("points", &render_state.show_points.to_string());
-                            render_events.send(RenderCommand::Redraw);
+                            render_events.write(RenderCommand::Redraw);
                         }
                         if ui.checkbox(&mut render_state.show_lines, "Lines").clicked() {
                             store.store("lines", &render_state.show_lines.to_string());
-                            render_events.send(RenderCommand::Redraw);
+                            render_events.write(RenderCommand::Redraw);
                         }
                         if ui.checkbox(&mut render_state.show_mesh, "Mesh").clicked() {
                             store.store("mesh", &render_state.show_mesh.to_string());
-                            render_events.send(RenderCommand::Redraw);
+                            render_events.write(RenderCommand::Redraw);
                         }
                         if ui.checkbox(&mut render_state.show_grid, "Grid").clicked() {
                             store.store("grid", &render_state.show_grid.to_string());
-                            render_events.send(RenderCommand::Redraw);
+                            render_events.write(RenderCommand::Redraw);
                         }
                         if ui
                             .checkbox(&mut render_state.part_colors, "Part Colors")
                             .clicked()
                         {
                             store.store("colors", &render_state.part_colors.to_string());
-                            render_events.send(RenderCommand::Redraw);
+                            render_events.write(RenderCommand::Redraw);
                         }
                     }
                 });

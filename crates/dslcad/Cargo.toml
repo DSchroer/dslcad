@@ -5,22 +5,22 @@ edition = "2021"
 default-run = "dslcad"
 
 [dependencies]
-clap = { version = "4.4.2", features = ["derive"]}
+clap = { version = "4.5", features = ["derive"]}
 logos = "0.12.1"
 serde = "1.0"
-thiserror = "1.0.38"
+thiserror = "2.0"
 dslcad-occt = { path = "../dslcad_occt" }
 dslcad-storage = { path = "../dslcad_storage" }
-indexmap = "2.0.0"
+indexmap = "2"
 stl_io = "0.7.0"
 quick-xml = "0.37.2"
-log = "0.4.20"
-env_logger = "0.10.0"
+log = "0.4"
+env_logger = "0.11"
 
 notify = { version = "6.0.1", optional = true }
 dslcad-viewer = { path = "../dslcad_viewer", optional = true  }
 rayon = { version = "1.10.0", optional = true  }
-ttf-parser = "0.25.1"
+ttf-parser = "0.25"
 
 [dev-dependencies]
 walkdir = "2"

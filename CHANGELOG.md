@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `view "name" (angle=..., projection=..., zoom=...) { ... }` statement to author named views that group a camera with the annotations they draw; `--screenshot` renders the first view or a `--view <name>` one
 - `var name(type, min=0, max=100, step=1) = value;` parameter metadata and a parameters panel in the preview that edits them live
 
+### Modified
+- Updated the preview to Bevy 0.18 (from 0.15), together with `bevy_egui`, `bevy_points` and the orbit camera controller
+- Updated `thiserror`, `clap`, `indexmap`, `env_logger` and other dependencies
+
 ## [v0.0.6]
 
 ### Added
