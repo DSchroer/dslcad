@@ -1,5 +1,5 @@
 use crate::runtime::output::IntoPart;
-use dslcad_storage::protocol::Part;
+use dslcad_storage::protocol::{Annotation, Part};
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
@@ -22,6 +22,8 @@ pub enum Value {
     Line(Rc<Wire>),
     Plane(Rc<Wire>),
     Shape(Rc<Shape>),
+
+    Annotation(Rc<Annotation>),
 
     List(Vec<Value>),
 
@@ -91,6 +93,12 @@ impl From<Rc<Shape>> for Value {
     }
 }
 
+impl From<Annotation> for Value {
+    fn from(value: Annotation) -> Self {
+        Value::Annotation(Rc::new(value))
+    }
+}
+
 impl From<Rc<Function>> for Value {
     fn from(value: Rc<Function>) -> Self {
         Value::Function(value)
@@ -120,6 +128,7 @@ impl Debug for Value {
                 .finish(),
             Value::Line(_) => f.debug_tuple("Line").finish(),
             Value::Plane(_) => f.debug_tuple("Plane").finish(),
+            Value::Annotation(_) => f.debug_tuple("Annotation").finish(),
             Value::Function(_) => f.debug_tuple("Func").finish(),
         }
     }
@@ -135,6 +144,7 @@ impl Value {
             Value::Line(_) => vec![self],
             Value::Plane(_) => vec![self],
             Value::Shape(_) => vec![self],
+            Value::Annotation(_) => vec![self],
             Value::List(list) => list.iter().flat_map(|l| l.flatten()).collect(),
             Value::Script(s) => s.value().flatten(),
             Value::Function(_) => vec![],
@@ -148,6 +158,7 @@ impl Value {
             Value::Line(l) => Ok(l.into_part(deflection)?),
             Value::Plane(p) => Ok(p.into_part(deflection)?),
             Value::Shape(s) => Ok(s.into_part(deflection)?),
+            Value::Annotation(_) => Ok(Part::Empty),
             _ => {
                 panic!("can not be turned into Part directly, use `flatten` first")
             }
@@ -292,6 +303,15 @@ impl Value {
         }
     }
 
+    pub fn to_annotation(&self) -> Result<Rc<Annotation>> {
+        match self {
+            Value::Annotation(s) => Ok(s.clone()),
+            Value::Script(i) => i.value().to_annotation(),
+            Value::List(l) if l.len() == 1 => l[0].to_annotation(),
+            _ => Err(RuntimeError::UnexpectedType()),
+        }
+    }
+
     pub fn to_function(&self) -> Result<Rc<Function>> {
         match self {
             Value::Function(s) => Ok(s.clone()),
@@ -310,6 +330,7 @@ impl Value {
             Type::Line => self.to_line().is_ok(),
             Type::Plane => self.to_plane().is_ok(),
             Type::Shape => self.to_shape().is_ok(),
+            Type::Annotation => self.to_annotation().is_ok(),
             Type::Function => self.to_function().is_ok(),
         }
     }
@@ -324,6 +345,7 @@ impl Value {
             Type::Line => Ok(Value::Line(self.to_line()?)),
             Type::Plane => Ok(Value::Plane(self.to_plane()?)),
             Type::Shape => Ok(self.to_shape()?.into()),
+            Type::Annotation => Ok(Value::Annotation(self.to_annotation()?)),
             Type::Function => Ok(self.to_function()?.into()),
         }
     }

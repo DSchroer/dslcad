@@ -8,8 +8,8 @@ use bevy::prelude::*;
 use bevy::render::mesh::{Indices, MeshVertexAttribute, MeshVertexBufferLayoutRef};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{
-    AsBindGroup, PrimitiveTopology, RenderPipelineDescriptor, ShaderRef, ShaderType,
-    SpecializedMeshPipelineError, VertexFormat,
+    AsBindGroup, CompareFunction, PrimitiveTopology, RenderPipelineDescriptor, ShaderRef,
+    ShaderType, SpecializedMeshPipelineError, VertexFormat,
 };
 use dslcad_storage::protocol::Point;
 
@@ -37,12 +37,18 @@ impl Plugin for LineMaterialPlugin {
             shadows_enabled: false,
             ..default()
         });
+        app.add_plugins(MaterialPlugin::<AnnotationLineMaterial> {
+            prepass_enabled: false,
+            shadows_enabled: false,
+            ..default()
+        });
     }
 }
 
 #[derive(ShaderType, Debug, Clone, Copy)]
 pub struct LineSettings {
     pub color: Vec4,
+    pub border_color: Vec4,
     pub width: f32,
     pub depth_bias: f32,
 }
@@ -55,9 +61,11 @@ pub struct LineMaterial {
 
 impl LineMaterial {
     pub fn new(color: Color, width: f32) -> Self {
+        let color = color.to_linear().to_vec4();
         Self {
             settings: LineSettings {
-                color: color.to_linear().to_vec4(),
+                color,
+                border_color: color,
                 width,
                 depth_bias: 0.0,
             },
@@ -91,6 +99,64 @@ impl Material for LineMaterial {
             ATTRIBUTE_OTHER.at_shader_location(1),
             ATTRIBUTE_SIDE.at_shader_location(2),
         ])?];
+        Ok(())
+    }
+}
+
+/// A line material that ignores depth testing, so drawing annotations are
+/// always visible on top of the model and background.
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
+pub struct AnnotationLineMaterial {
+    #[uniform(0)]
+    pub settings: LineSettings,
+}
+
+impl AnnotationLineMaterial {
+    pub fn new(color: Color, border: Color, width: f32) -> Self {
+        Self {
+            settings: LineSettings {
+                color: color.to_linear().to_vec4(),
+                border_color: border.to_linear().to_vec4(),
+                width,
+                depth_bias: 0.0,
+            },
+        }
+    }
+}
+
+impl Material for AnnotationLineMaterial {
+    fn vertex_shader() -> ShaderRef {
+        LINE_SHADER_HANDLE.into()
+    }
+
+    fn fragment_shader() -> ShaderRef {
+        LINE_SHADER_HANDLE.into()
+    }
+
+    /// Render annotations in the transparent pass so they are always drawn
+    /// after the opaque parts and therefore always sit on top of the model.
+    fn alpha_mode(&self) -> AlphaMode {
+        AlphaMode::Blend
+    }
+
+    fn specialize(
+        _pipeline: &MaterialPipeline<Self>,
+        descriptor: &mut RenderPipelineDescriptor,
+        layout: &MeshVertexBufferLayoutRef,
+        _key: MaterialPipelineKey<Self>,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        descriptor.primitive.cull_mode = None;
+        descriptor.vertex.buffers = vec![layout.0.get_layout(&[
+            Mesh::ATTRIBUTE_POSITION.at_shader_location(0),
+            ATTRIBUTE_OTHER.at_shader_location(1),
+            ATTRIBUTE_SIDE.at_shader_location(2),
+        ])?];
+
+        if let Some(depth) = descriptor.depth_stencil.as_mut() {
+            depth.depth_compare = CompareFunction::Always;
+            depth.depth_write_enabled = false;
+        }
+
         Ok(())
     }
 }

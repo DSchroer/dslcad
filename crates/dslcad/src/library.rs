@@ -1,4 +1,5 @@
 mod boolean;
+mod drawing;
 mod faces;
 mod lists;
 mod math;
@@ -136,6 +137,7 @@ macro_rules! arguments {
     (option_text) => {Access::Optional(Type::Text)};
     (any) => {Access::RequiredAny()};
     (point) => {Access::Required(Type::Point)};
+    (option_point) => {Access::Optional(Type::Point)};
     (line) => {Access::Required(Type::Line)};
     (plane) => {Access::Required(Type::Plane)};
     (shape2d) => {Access::Required2d()};
@@ -197,6 +199,12 @@ macro_rules! invoke {
         &value
             .to_point()?
     }};
+    ($map: ident, $name: ident=option_point) => {{
+        match $map.get(stringify!($name)) {
+            Some(value) => Some(value.to_point()?),
+            None => None,
+        }
+    }};
     ($map: ident, $name: ident=shape) => {{
         let value = $map
             .get(stringify!($name))
@@ -245,6 +253,7 @@ pub enum Category {
     Math,
     TwoD,
     ThreeD,
+    Drawing,
     Resources,
     Lists,
     Text,
@@ -257,6 +266,7 @@ impl Display for Category {
             Category::Math => f.write_str("Math"),
             Category::TwoD => f.write_str("2D"),
             Category::ThreeD => f.write_str("3D"),
+            Category::Drawing => f.write_str("Drawing"),
             Category::Resources => f.write_str("Resources"),
             Category::Lists => f.write_str("Lists"),
             Category::Text => f.write_str("Text"),
@@ -536,6 +546,24 @@ impl Default for Library {
                 Category::ThreeD,
                 "cut one shape out of another"
             ),
+            // Drawing
+            bind!(measure, drawing::measure_points[start=point, end=point], Category::Drawing, "distance between two points, in mm"),
+            bind!(
+                measure,
+                drawing::measure_shape[shape = shape],
+                Category::Drawing,
+                "the x, y and z extents of a shape's bounding box"
+            ),
+            bind!(convert, drawing::convert[value=number, source=text, target=text], Category::Drawing, "convert a value between units (mm, cm, m, in, ft)"),
+            bind!(dimension, drawing::dimension[start=point, end=point, offset=option_number, axis=option_text, text=option_text, units=option_text, precision=option_number, arrow=option_text], Category::Drawing, "a linear dimension between two points"),
+            bind!(dimension, drawing::dimension_radial[radius=number, center=point, at=option_point, text=option_text, units=option_text, precision=option_number], Category::Drawing, "a radial dimension of a radius around a center"),
+            bind!(dimension, drawing::dimension_angular[angle=number, center=point, start=point, end=point, units=option_text, precision=option_number], Category::Drawing, "an angular dimension between two directions"),
+            bind!(label, drawing::label[text=text, at=point, anchor=option_point, size=option_number, plane=option_text], Category::Drawing, "a text label with an optional leader"),
+            bind!(leader, drawing::leader[text=text, at=point, to=point], Category::Drawing, "a leader line with a note"),
+            bind!(level, drawing::level[z=number, text=option_text, at=option_point], Category::Drawing, "an elevation datum marker"),
+            bind!(north, drawing::north[angle=option_number, at=option_point], Category::Drawing, "a plan north arrow"),
+            bind!(centerline, drawing::centerline[start=point, end=point], Category::Drawing, "a dashed center line"),
+            bind!(title, drawing::title[text=text, subtitle=option_text, scale=option_text], Category::Drawing, "a drawing title with an optional subtitle and scale"),
             // Lists
             bind!(
                 length,

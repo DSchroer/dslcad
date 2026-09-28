@@ -10,6 +10,7 @@ pub enum Type {
     Line,
     Plane,
     Shape,
+    Annotation,
     Function,
 }
 
@@ -24,6 +25,7 @@ impl Display for Type {
             Type::Line => f.write_str("line"),
             Type::Plane => f.write_str("plane"),
             Type::Shape => f.write_str("shape"),
+            Type::Annotation => f.write_str("annotation"),
             Type::Function => f.write_str("function"),
         }
     }

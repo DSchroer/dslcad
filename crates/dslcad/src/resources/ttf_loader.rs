@@ -10,6 +10,94 @@ use ttf_parser::{Face, OutlineBuilder};
 /// Em size, in model units, used when the `size` argument is not given.
 const DEFAULT_SIZE: f64 = 10.0;
 
+/// The font used for drawing annotations when the model does not supply one.
+/// IBM Plex Mono is embedded in the binary at build time; it has tabular
+/// figures and a technical look that suits dimension labels. Licensed under the
+/// SIL Open Font License, see `fonts/OFL.txt`.
+pub(crate) const DEFAULT_FONT: &[u8] = include_bytes!("fonts/IBMPlexMono-Regular.ttf");
+
+/// Outline `text` into polylines in model units, laid out on a horizontal
+/// baseline in the XY plane. Used to turn labels into annotation geometry.
+pub(crate) fn text_to_lines(text: &str, size: f64) -> Result<Vec<Vec<[f64; 3]>>, RuntimeError> {
+    if text.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let face = Face::parse(DEFAULT_FONT, 0)
+        .map_err(|error| RuntimeError::UserDefined(error.to_string()))?;
+
+    if face.units_per_em() == 0 {
+        return Err(RuntimeError::UserDefined(
+            "font has an invalid units per em".into(),
+        ));
+    }
+
+    let scale = size / f64::from(face.units_per_em());
+    let path = outline_text(&face, text, scale);
+    let svg = Svg::from_paths([path]).map_err(RuntimeError::UserDefined)?;
+
+    let wire = match svg.to_instance()? {
+        Value::Plane(wire) | Value::Line(wire) => wire,
+        _ => return Ok(Vec::new()),
+    };
+
+    let deflection = (size * 0.02).max(1e-3);
+    Ok(wire.points(deflection)?)
+}
+
+/// Fill `text` with closely spaced horizontal scanlines so it reads as solid
+/// rather than hollow. The result is in the local XY plane.
+pub(crate) fn text_fill_lines(text: &str, size: f64) -> Result<Vec<Vec<[f64; 3]>>, RuntimeError> {
+    let contours = text_to_lines(text, size)?;
+
+    let mut segments: Vec<([f64; 2], [f64; 2])> = Vec::new();
+    let mut min_y = f64::MAX;
+    let mut max_y = f64::MIN;
+
+    for line in &contours {
+        for window in line.windows(2) {
+            let a = [window[0][0], window[0][1]];
+            let b = [window[1][0], window[1][1]];
+            min_y = min_y.min(a[1]).min(b[1]);
+            max_y = max_y.max(a[1]).max(b[1]);
+            segments.push((a, b));
+        }
+    }
+
+    if segments.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let spacing = (size * 0.025).max(1e-3);
+    let mut filled = Vec::new();
+    let mut y = min_y + spacing * 0.5;
+
+    while y < max_y {
+        let mut crossings = Vec::new();
+
+        for (a, b) in &segments {
+            let (start, end) = (a[1], b[1]);
+            if (start <= y && end > y) || (end <= y && start > y) {
+                let t = (y - start) / (end - start);
+                crossings.push(a[0] + t * (b[0] - a[0]));
+            }
+        }
+
+        crossings
+            .sort_by(|left, right| left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal));
+
+        for pair in crossings.chunks_exact(2) {
+            if pair[1] - pair[0] > 1e-6 {
+                filled.push(vec![[pair[0], y, 0.0], [pair[1], y, 0.0]]);
+            }
+        }
+
+        y += spacing;
+    }
+
+    Ok(filled)
+}
+
 pub struct TtfLoader;
 
 impl ResourceLoader for TtfLoader {

@@ -4,6 +4,7 @@
 
 struct LineSettings {
     color: vec4<f32>,
+    border_color: vec4<f32>,
     width: f32,
     depth_bias: f32,
 };
@@ -20,6 +21,7 @@ struct Vertex {
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) color: vec4<f32>,
+    @location(1) side: f32,
 };
 
 fn clip_near_plane(a: vec4<f32>, b: vec4<f32>) -> vec4<f32> {
@@ -65,10 +67,18 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     return VertexOutput(
         vec4(clip0.w * ((2.0 * pt) / resolution - 1.0), depth, clip0.w),
         settings.color,
+        vertex.side,
     );
 }
 
 @fragment
 fn fragment(input: VertexOutput) -> @location(0) vec4<f32> {
-    return input.color;
+    // `side` interpolates from -1 to 1 across the width of the stroke, so the
+    // outer band becomes the border and the middle stays the line color. The
+    // transition is smoothed by its screen-space derivative so the border does
+    // not alias or shimmer.
+    let edge = abs(input.side);
+    let width = fwidth(edge);
+    let border = smoothstep(0.55 - width, 0.55 + width, edge);
+    return mix(input.color, settings.border_color, border);
 }

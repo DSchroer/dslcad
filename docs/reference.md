@@ -136,6 +136,20 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 - `slice(left=shape, right=line|plane)` cut a 2D cross-section out of a shape
 - `slice(left=shape, right=shape)` cut one shape out of another
 
+## Drawing
+- `measure(start=point, end=point)` distance between two points, in mm
+- `measure(shape=shape)` the x, y and z extents of a shape's bounding box
+- `convert(value=number, source=text, target=text)` convert a value between units (mm, cm, m, in, ft)
+- `dimension(start=point, end=point, offset=[number], axis=[text], text=[text], units=[text], precision=[number], arrow=[text])` a linear dimension between two points
+- `dimension(radius=number, center=point, at=[point], text=[text], units=[text], precision=[number])` a radial dimension of a radius around a center
+- `dimension(angle=number, center=point, start=point, end=point, units=[text], precision=[number])` an angular dimension between two directions
+- `label(text=text, at=point, anchor=[point], size=[number], plane=[text])` a text label with an optional leader
+- `leader(text=text, at=point, to=point)` a leader line with a note
+- `level(z=number, text=[text], at=[point])` an elevation datum marker
+- `north(angle=[number], at=[point])` a plan north arrow
+- `centerline(start=point, end=point)` a dashed center line
+- `title(text=text, subtitle=[text], scale=[text])` a drawing title with an optional subtitle and scale
+
 ## Lists
 - `length(list=list)` get the length of a list
 - `range(start=[number], end=number)` create a list of whole numbers from start (default 0) up to but not including end

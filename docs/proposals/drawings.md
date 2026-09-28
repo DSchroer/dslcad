@@ -149,7 +149,7 @@ dimension(angle=number, center=point, start=point, end=point, units=[text])  // 
 
 `measure(...)` always returns millimetres, so the number stays canonical and
 units only affect presentation. To print a converted value yourself, use the
-`convert(value=number, from=[text], to=[text])` helper with `format`:
+`convert(value=number, source=[text], target=[text])` helper with `format`:
 
 ```dslcad
 dimension(start=point(0, 0, 0), end=point(60, 0, 0), offset=-8, units="in");
@@ -162,8 +162,7 @@ project several offsets over `range(...)`.
 ## 3. Labels and components
 
 ```dslcad
-label(text=text, at=point, anchor=[point], size=[number],
-      plane=[text], billboard=[bool])
+label(text=text, at=point, anchor=[point], size=[number], plane=[text])
 leader(text=text, at=point, to=point)       // arrow plus note
 level(z=number, text=[text], at=[point])    // elevation datum triangle
 north(angle=[number], at=[point])           // plan north arrow
@@ -173,9 +172,7 @@ title(text=text, subtitle=[text], scale=[text])
 
 - `anchor=[point]` — point on the leader; defaults to `at`.
 - `size=[number]` — cap height in mm (default 4).
-- `plane=[text]` — text plane `"xy"`, `"yz"` or `"xz"` (default `"xz"`, facing
-  the viewer).
-- `billboard=[bool]` — keep text facing the camera (default `true`).
+- `plane=[text]` — text plane `"xy"`, `"yz"` or `"xz"` (default `"xz"`).
 
 Labels are rendered as world-space geometry in phase 1 (the font importer in
 `crates/dslcad/src/resources/ttf_loader.rs` already turns text into a plane),

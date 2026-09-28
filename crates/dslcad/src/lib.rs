@@ -91,7 +91,15 @@ pub fn render_with_cache(
 
     let text = instance.to_text().unwrap_or_default();
 
-    let parts: Vec<_> = instance.flatten().into_iter().cloned().collect();
+    let mut parts = Vec::new();
+    let mut annotations = Vec::new();
+    for value in instance.flatten().into_iter().cloned() {
+        match value {
+            Value::Annotation(annotation) => annotations.push((*annotation).clone()),
+            value => parts.push(value),
+        }
+    }
+
     let output = match cache {
         Some(cache) => values_to_output_cached(parts, deflection, cache)?,
         None => values_to_output(parts, deflection)?,
@@ -102,6 +110,7 @@ pub fn render_with_cache(
     Ok(Render {
         parts: output,
         stdout: text,
+        annotations,
     })
 }
 

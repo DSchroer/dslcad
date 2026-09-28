@@ -64,7 +64,10 @@ pub(crate) fn camera_system(mut commands: Commands) {
             Vec3::new(100.0, 100.0, 100.0),
             Vec3::new(0., 0., 0.),
             Vec3::new(0., 1., 0.),
-        ));
+        ))
+        // Antialias the thin, screen-space line quads so drawing outlines do
+        // not shimmer while the camera moves.
+        .insert(Msaa::Sample4);
 
     commands.spawn((
         DirectionalLight {

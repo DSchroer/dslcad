@@ -1,11 +1,14 @@
-use crate::editor::lines::{lines_to_mesh, LineMaterial, LineMaterialPlugin};
+use crate::editor::lines::{
+    lines_to_mesh, AnnotationLineMaterial, LineMaterial, LineMaterialPlugin,
+};
 use crate::editor::stl::stl_to_triangle_mesh;
 use crate::editor::{model_rotation, Palette};
 use bevy::prelude::*;
 use bevy_points::material::PointsShaderSettings;
 use bevy_points::prelude::*;
+use smooth_bevy_cameras::controllers::orbit::OrbitCameraController;
 
-use dslcad_storage::protocol::{BoundingBox, Part, Point};
+use dslcad_storage::protocol::{Annotation, BoundingBox, Part, Point, TextBlock, TextPlane};
 
 pub struct ModelRenderingPlugin;
 
@@ -22,31 +25,39 @@ impl Plugin for ModelRenderingPlugin {
                     mesh_renderer,
                     point_renderer,
                     line_renderer,
+                    annotation_renderer,
+                    billboard_text,
                 ),
             );
     }
 }
 
+/// Marks a text annotation that should always face the camera.
+#[derive(Component)]
+struct BillboardText;
+
 #[derive(Event)]
 pub enum RenderCommand {
-    Draw(Vec<Part>),
+    Draw(Vec<Part>, Vec<Annotation>),
     Redraw,
 }
 
 #[derive(Resource)]
 pub struct RenderState {
-    model: Option<(Vec<Part>, Entity)>,
+    model: Option<(Vec<Part>, Vec<Annotation>, Entity)>,
     pub show_points: bool,
     pub show_lines: bool,
     pub show_mesh: bool,
     pub show_grid: bool,
+    pub show_annotations: bool,
     pub part_colors: bool,
 }
 
 impl RenderState {
-    /// The bounds of the currently rendered model, if any.
+    /// The bounds of the currently rendered model, if any. Annotations are
+    /// overlays and never affect the framing.
     pub fn aabb(&self) -> Option<BoundingBox> {
-        let (parts, _) = self.model.as_ref()?;
+        let (parts, _, _) = self.model.as_ref()?;
         BoundingBox::from_parts(parts)
     }
 }
@@ -58,6 +69,7 @@ impl Default for RenderState {
             show_lines: true,
             show_mesh: true,
             show_grid: true,
+            show_annotations: true,
             part_colors: false,
             model: None,
         }
@@ -69,6 +81,7 @@ enum RenderEvents {
     Points,
     Lines,
     Mesh,
+    Annotations,
 }
 
 fn mesh_renderer(
@@ -84,7 +97,7 @@ fn mesh_renderer(
                 continue;
             }
 
-            let (parts, entity) = if let Some(e) = &render_state.model {
+            let (parts, _, entity) = if let Some(e) = &render_state.model {
                 e
             } else {
                 return;
@@ -129,7 +142,7 @@ fn point_renderer(
                 continue;
             }
 
-            let (parts, entity) = if let Some(e) = &render_state.model {
+            let (parts, _, entity) = if let Some(e) = &render_state.model {
                 e
             } else {
                 return;
@@ -215,7 +228,7 @@ fn line_renderer(
                 continue;
             }
 
-            let (parts, entity) = if let Some(e) = &render_state.model {
+            let (parts, _, entity) = if let Some(e) = &render_state.model {
                 e
             } else {
                 return;
@@ -275,32 +288,199 @@ fn render_controller(
 ) {
     for event in events.read() {
         match event {
-            RenderCommand::Draw(render) => {
-                if let Some((_, id)) = render_state.model {
+            RenderCommand::Draw(parts, annotations) => {
+                if let Some((_, _, id)) = render_state.model {
                     commands.entity(id).despawn_recursive();
                     render_state.model = None;
                 }
 
                 let bundle = commands.spawn(Transform::from_rotation(model_rotation()));
-                render_state.model = Some((render.clone(), bundle.id()));
-
-                render_events.send(RenderEvents::Points);
-                render_events.send(RenderEvents::Lines);
-                render_events.send(RenderEvents::Mesh);
+                render_state.model = Some((parts.clone(), annotations.clone(), bundle.id()));
             }
             RenderCommand::Redraw => {
-                if let Some((render, id)) = &render_state.model {
+                if let Some((parts, annotations, id)) = &render_state.model {
                     commands.entity(*id).despawn_recursive();
 
                     let bundle = commands.spawn(Transform::from_rotation(model_rotation()));
-                    render_state.model = Some((render.clone(), bundle.id()));
+                    render_state.model = Some((parts.clone(), annotations.clone(), bundle.id()));
                 }
-
-                render_events.send(RenderEvents::Points);
-                render_events.send(RenderEvents::Lines);
-                render_events.send(RenderEvents::Mesh);
             }
         }
+
+        render_events.send(RenderEvents::Annotations);
+        render_events.send(RenderEvents::Points);
+        render_events.send(RenderEvents::Lines);
+        render_events.send(RenderEvents::Mesh);
+    }
+}
+
+fn annotation_renderer(
+    mut commands: Commands,
+    render_state: Res<RenderState>,
+    mut events: EventReader<RenderEvents>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<AnnotationLineMaterial>>,
+    mut point_materials: ResMut<Assets<PointsMaterial>>,
+) {
+    for event in events.read() {
+        if let RenderEvents::Annotations = event {
+            if !render_state.show_annotations {
+                continue;
+            }
+
+            let (_, annotations, entity) = if let Some(e) = &render_state.model {
+                e
+            } else {
+                return;
+            };
+
+            for annotation in annotations {
+                if !annotation.lines.is_empty() {
+                    spawn_annotation_lines(
+                        &mut commands,
+                        &mut meshes,
+                        &mut materials,
+                        &annotation.lines,
+                        *entity,
+                    );
+                }
+
+                if !annotation.points.is_empty() {
+                    render_points(
+                        &mut commands,
+                        &mut meshes,
+                        &mut point_materials,
+                        &annotation.points,
+                        *entity,
+                        Palette::annotation(),
+                    );
+                }
+
+                for text in &annotation.texts {
+                    if text.lines.is_empty() && text.outline.is_empty() {
+                        continue;
+                    }
+
+                    let text_entity =
+                        spawn_text_block(&mut commands, &mut meshes, &mut materials, text, *entity);
+
+                    if let TextPlane::Billboard = text.plane {
+                        commands.entity(text_entity).insert(BillboardText);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Draw annotation strokes with a dark border baked into the same material, so
+/// they stay readable over the light part, dark background and colored parts.
+/// Returns the entity that carries the stroke transform so callers can place
+/// text.
+fn spawn_annotation_lines(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<AnnotationLineMaterial>>,
+    lines: &[Vec<Point>],
+    parent: Entity,
+) -> Entity {
+    let wrapper = commands.spawn(Transform::default()).set_parent(parent).id();
+
+    commands
+        .spawn((
+            Mesh3d(meshes.add(lines_to_mesh(lines))),
+            MeshMaterial3d(materials.add(AnnotationLineMaterial::new(
+                Palette::annotation(),
+                Palette::edge(),
+                2.2,
+            ))),
+        ))
+        .set_parent(wrapper);
+
+    wrapper
+}
+
+/// Draw a text block as a dark glyph outline under a solid colored fill. The
+/// two do not overlap much, so the order they draw in does not matter and the
+/// text stays readable over any part color.
+fn spawn_text_block(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<AnnotationLineMaterial>>,
+    text: &TextBlock,
+    parent: Entity,
+) -> Entity {
+    let wrapper = commands
+        .spawn(
+            Transform::from_translation(Vec3::new(
+                text.origin[0] as f32,
+                text.origin[1] as f32,
+                text.origin[2] as f32,
+            ))
+            .with_rotation(plane_rotation(text.plane)),
+        )
+        .set_parent(parent)
+        .id();
+
+    if !text.outline.is_empty() {
+        commands
+            .spawn((
+                Mesh3d(meshes.add(lines_to_mesh(&text.outline))),
+                MeshMaterial3d(materials.add(AnnotationLineMaterial::new(
+                    Palette::edge(),
+                    Palette::edge(),
+                    2.4,
+                ))),
+            ))
+            .set_parent(wrapper);
+    }
+
+    if !text.lines.is_empty() {
+        commands
+            .spawn((
+                Mesh3d(meshes.add(lines_to_mesh(&text.lines))),
+                MeshMaterial3d(materials.add(AnnotationLineMaterial::new(
+                    Palette::annotation(),
+                    Palette::annotation(),
+                    1.8,
+                ))),
+            ))
+            .set_parent(wrapper);
+    }
+
+    wrapper
+}
+
+/// The local rotation that lays text out on a fixed drawing plane. Text is
+/// outlined in the XY plane, so the plane selects the local x and y axes.
+fn plane_rotation(plane: TextPlane) -> Quat {
+    let (right, up) = match plane {
+        TextPlane::Xy | TextPlane::Billboard => (Vec3::X, Vec3::Y),
+        TextPlane::Yz => (Vec3::Y, Vec3::Z),
+        TextPlane::Xz => (Vec3::X, Vec3::Z),
+    };
+
+    Quat::from_mat3(&Mat3::from_cols(right, up, right.cross(up)))
+}
+
+/// Rotate billboarded text so it faces the camera. Text is a child of the model
+/// root, which is rotated by [`model_rotation`], so the desired world rotation
+/// is converted back into the root's local space.
+fn billboard_text(
+    camera: Query<&Transform, With<OrbitCameraController>>,
+    mut texts: Query<&mut Transform, (With<BillboardText>, Without<OrbitCameraController>)>,
+) {
+    let Ok(camera) = camera.get_single() else {
+        return;
+    };
+
+    let right = *camera.right();
+    let up = *camera.up();
+    let world = Quat::from_mat3(&Mat3::from_cols(right, up, right.cross(up)));
+    let local = model_rotation().inverse() * world;
+
+    for mut transform in &mut texts {
+        transform.rotation = local;
     }
 }
 

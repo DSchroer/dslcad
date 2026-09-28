@@ -1,0 +1,11 @@
+// Dimensions and labels over a simple plate.
+var plate = cube(x=60, y=40, z=20);
+
+plate;
+
+// overall width and height, offset clear of the part
+dimension(start=point(x=0, y=0, z=0), end=point(x=60, y=0, z=0), offset=-14);
+dimension(start=point(x=0, y=0, z=0), end=point(x=0, y=0, z=20), offset=-14);
+
+// a single note, clear of the dimensions
+label(text="PLATE", at=point(x=85, y=20, z=30), size=5);

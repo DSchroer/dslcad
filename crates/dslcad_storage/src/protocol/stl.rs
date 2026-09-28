@@ -79,6 +79,7 @@ mod tests {
                 mesh,
             }],
             stdout: String::new(),
+            annotations: Vec::new(),
         }
     }
 

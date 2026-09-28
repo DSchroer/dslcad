@@ -12,6 +12,8 @@ use std::rc::Rc;
 use crate::resources::ini_loader::IniLoader;
 pub use stl_loader::StlLoader;
 pub use svg_loader::SvgLoader;
+pub(crate) use ttf_loader::text_fill_lines;
+pub(crate) use ttf_loader::text_to_lines;
 pub use ttf_loader::TtfLoader;
 
 pub trait ResourceLoader {

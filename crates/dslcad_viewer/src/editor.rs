@@ -63,6 +63,11 @@ impl Palette {
         Srgba::hex("E8EDF5").unwrap().into()
     }
 
+    /// Drawing annotations (dimensions, labels and markers) overlaid on a part.
+    fn annotation() -> Color {
+        Srgba::hex("F5C24B").unwrap().into()
+    }
+
     /// Minor grid lines.
     fn grid_minor() -> Color {
         Srgba::hex("4C5563").unwrap().into()
@@ -236,7 +241,7 @@ fn run(
                             }
                             console.clear();
                             console.print(render.stdout);
-                            re.send(RenderCommand::Draw(render.parts));
+                            re.send(RenderCommand::Draw(render.parts, render.annotations));
                         }
                         Ok(PreviewEvent::Error(e)) => {
                             console.print(e);
@@ -266,7 +271,7 @@ fn run(
                             Ok(PreviewEvent::Render(render)) => {
                                 state.received = true;
                                 state.aabb = render.aabb();
-                                re.send(RenderCommand::Draw(render.parts));
+                                re.send(RenderCommand::Draw(render.parts, render.annotations));
                             }
                             Ok(PreviewEvent::Error(e)) => {
                                 eprintln!("{}", e);
@@ -412,6 +417,7 @@ mod tests {
                 lines: vec![],
             }],
             stdout: String::new(),
+            annotations: Vec::new(),
         }
         .aabb()
         .unwrap()
