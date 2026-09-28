@@ -54,7 +54,11 @@ fn views_panel(
         .resizable(true)
         .default_width(160.0)
         .show_animated(egui_ctx.single_mut().get_mut(), panel.open, |ui| {
-            ui.heading("Views");
+            ui.label(
+                egui::RichText::new("Views")
+                    .heading()
+                    .color(super::theme::heading_color()),
+            );
             ui.separator();
 
             let active = state.active_view_index();

@@ -55,7 +55,11 @@ fn parameters_panel(
         .resizable(true)
         .default_width(220.0)
         .show_animated(egui_ctx.single_mut().get_mut(), panel.open, |ui| {
-            ui.heading("Parameters");
+            ui.label(
+                egui::RichText::new("Parameters")
+                    .heading()
+                    .color(super::theme::heading_color()),
+            );
             ui.separator();
 
             egui::ScrollArea::vertical()

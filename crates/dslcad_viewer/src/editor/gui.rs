@@ -1,6 +1,7 @@
 mod help;
 mod menu;
 mod parameters_panel;
+mod theme;
 mod view_menu;
 mod views_panel;
 
@@ -112,7 +113,7 @@ impl Plugin for GuiPlugin {
 /// Matches the egui panels to the dark CAD viewport.
 fn dark_theme(mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>) {
     if let Ok(mut context) = egui_ctx.get_single_mut() {
-        context.get_mut().set_visuals(egui::Visuals::dark());
+        theme::apply(context.get_mut());
     }
 }
 
@@ -146,7 +147,11 @@ fn console_panel(
         .resizable(true)
         .default_height(180.0)
         .show_animated(egui_ctx.single_mut().get_mut(), console.open, |ui| {
-            ui.heading("Console");
+            ui.label(
+                egui::RichText::new("Console")
+                    .heading()
+                    .color(theme::heading_color()),
+            );
             ui.separator();
 
             egui::ScrollArea::vertical()
