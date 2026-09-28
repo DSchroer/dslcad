@@ -9,7 +9,7 @@ use bevy_points::prelude::*;
 use smooth_bevy_cameras::controllers::orbit::OrbitCameraController;
 
 use dslcad_storage::protocol::{
-    Annotation, BoundingBox, Part, Point, TextBlock, TextPlane, ViewDef,
+    Annotation, BoundingBox, Parameter, Part, Point, TextBlock, TextPlane, ViewDef,
 };
 
 pub struct ModelRenderingPlugin;
@@ -40,16 +40,18 @@ struct BillboardText;
 
 #[derive(Event)]
 pub enum RenderCommand {
-    Draw(Vec<Part>, Vec<Annotation>, Vec<ViewDef>),
+    Draw(Vec<Part>, Vec<Annotation>, Vec<ViewDef>, Vec<Parameter>),
     Redraw,
 }
 
 /// The scene currently on screen: shared geometry, global annotations, the
-/// declared views and the entity that carries the model rotation.
+/// declared views, the declared parameters and the entity that carries the
+/// model rotation.
 struct Model {
     parts: Vec<Part>,
     annotations: Vec<Annotation>,
     views: Vec<ViewDef>,
+    parameters: Vec<Parameter>,
     entity: Entity,
 }
 
@@ -77,6 +79,14 @@ impl RenderState {
         self.model
             .as_ref()
             .map(|m| m.views.as_slice())
+            .unwrap_or(&[])
+    }
+
+    /// The declared parameters, in declaration order.
+    pub fn parameters(&self) -> &[Parameter] {
+        self.model
+            .as_ref()
+            .map(|m| m.parameters.as_slice())
             .unwrap_or(&[])
     }
 
@@ -323,7 +333,7 @@ fn render_controller(
 ) {
     for event in events.read() {
         match event {
-            RenderCommand::Draw(parts, annotations, views) => {
+            RenderCommand::Draw(parts, annotations, views, parameters) => {
                 // Keep the selected view across edits, but start on the free
                 // camera ("Default") when the preview first opens.
                 let previous = render_state
@@ -347,6 +357,7 @@ fn render_controller(
                     parts: parts.clone(),
                     annotations: annotations.clone(),
                     views: views.clone(),
+                    parameters: parameters.clone(),
                     entity: bundle.id(),
                 });
             }
@@ -359,6 +370,7 @@ fn render_controller(
                         parts: model.parts.clone(),
                         annotations: model.annotations.clone(),
                         views: model.views.clone(),
+                        parameters: model.parameters.clone(),
                         entity: bundle.id(),
                     });
                 }

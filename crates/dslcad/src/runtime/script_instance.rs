@@ -1,12 +1,14 @@
 use super::{Access, Value};
 use crate::runtime::scope::Scope;
 use crate::runtime::RuntimeError;
+use dslcad_storage::protocol::Parameter;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct ScriptInstance {
     variables: HashMap<String, Value>,
     parts: Value,
+    parameters: Vec<Parameter>,
 }
 
 impl ScriptInstance {
@@ -27,11 +29,21 @@ impl ScriptInstance {
         Ok(ScriptInstance {
             variables,
             parts: reduced_parts,
+            parameters: Vec::new(),
         })
     }
 
     pub fn value(&self) -> &Value {
         &self.parts
+    }
+
+    /// The top level parameters the script declared, in declaration order.
+    pub fn parameters(&self) -> &[Parameter] {
+        &self.parameters
+    }
+
+    pub(crate) fn set_parameters(&mut self, parameters: Vec<Parameter>) {
+        self.parameters = parameters;
     }
 }
 

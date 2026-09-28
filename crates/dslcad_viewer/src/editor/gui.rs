@@ -1,5 +1,6 @@
 mod help;
 mod menu;
+mod parameters_panel;
 mod view_menu;
 mod views_panel;
 
@@ -12,9 +13,11 @@ use bevy_egui::{egui, EguiContext, EguiPlugin};
 
 use crate::editor::gui::help::HelpPlugin;
 use crate::editor::gui::menu::{MenuAppExt, MenuPlugin};
+use crate::editor::gui::parameters_panel::{ParametersPanel, ParametersPanelPlugin};
 use crate::editor::gui::view_menu::ViewMenuPlugin;
 use crate::editor::gui::views_panel::{ViewsPanel, ViewsPanelPlugin};
 use crate::settings::{Settings, Store};
+use crate::ParameterHandle;
 
 /// Every egui panel is added in this set, so the axis gizmo can run after all
 /// of them and use the remaining central rectangle.
@@ -22,20 +25,25 @@ use crate::settings::{Settings, Store};
 pub(crate) struct GuiSet;
 
 pub struct GuiPlugin {
-    cheetsheet: String,
+    cheatsheet: String,
+    parameters: ParameterHandle,
 }
 
 impl GuiPlugin {
-    pub fn new(cheetsheet: String) -> Self {
-        Self { cheetsheet }
+    pub fn new(cheatsheet: String, parameters: ParameterHandle) -> Self {
+        Self {
+            cheatsheet,
+            parameters,
+        }
     }
 }
 
 impl Plugin for GuiPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CheatSheet {
-            cheetsheet: self.cheetsheet.clone(),
+            cheetsheet: self.cheatsheet.clone(),
         })
+        .insert_resource(self.parameters.clone())
         .insert_resource(Console {
             text: None,
             open: true,
@@ -45,6 +53,7 @@ impl Plugin for GuiPlugin {
         .add_plugins(MenuPlugin)
         .add_plugins(ViewMenuPlugin)
         .add_plugins(ViewsPanelPlugin)
+        .add_plugins(ParametersPanelPlugin)
         .add_event_menu_button("Camera/Focus", |c: &mut EventWriter<CameraCommand>| {
             c.send(CameraCommand::Refocus());
         })
@@ -55,6 +64,14 @@ impl Plugin for GuiPlugin {
             "View/Views Panel",
             "views",
             |mut panel: ResMut<ViewsPanel>| {
+                panel.open = !panel.open;
+                panel.open.to_string()
+            },
+        )
+        .add_persistent_res_menu_button::<ResMut<ParametersPanel>>(
+            "View/Parameters Panel",
+            "parameters",
+            |mut panel: ResMut<ParametersPanel>| {
                 panel.open = !panel.open;
                 panel.open.to_string()
             },
@@ -70,6 +87,12 @@ impl Plugin for GuiPlugin {
         .add_persistent_res_loader::<ResMut<ViewsPanel>>(
             "views",
             |value, mut panel: ResMut<ViewsPanel>| {
+                panel.open = value.unwrap_or("true") == "true";
+            },
+        )
+        .add_persistent_res_loader::<ResMut<ParametersPanel>>(
+            "parameters",
+            |value, mut panel: ResMut<ParametersPanel>| {
                 panel.open = value.unwrap_or("true") == "true";
             },
         )
@@ -142,6 +165,7 @@ fn console_panel(
 fn toolbar(
     mut egui_ctx: Query<&mut EguiContext, With<PrimaryWindow>>,
     mut views: ResMut<ViewsPanel>,
+    mut parameters: ResMut<ParametersPanel>,
     mut console: ResMut<Console>,
     mut store: ResMut<Settings>,
 ) {
@@ -155,12 +179,12 @@ fn toolbar(
                     )
                 };
 
-                if icon(ui, views.open, "👁")
-                    .on_hover_text("Toggle the views panel")
+                if icon(ui, parameters.open, "⚙")
+                    .on_hover_text("Toggle the parameters panel")
                     .clicked()
                 {
-                    views.open = !views.open;
-                    store.store("views", &views.open.to_string());
+                    parameters.open = !parameters.open;
+                    store.store("parameters", &parameters.open.to_string());
                 }
 
                 if icon(ui, console.open, ">_")
@@ -169,6 +193,14 @@ fn toolbar(
                 {
                     console.open = !console.open;
                     store.store("console", &console.open.to_string());
+                }
+
+                if icon(ui, views.open, "👁")
+                    .on_hover_text("Toggle the views panel")
+                    .clicked()
+                {
+                    views.open = !views.open;
+                    store.store("views", &views.open.to_string());
                 }
             });
         });

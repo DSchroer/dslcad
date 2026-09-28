@@ -22,7 +22,7 @@ use std::time::Duration;
 use crate::editor::camera::CameraCommand;
 use crate::editor::rendering::RenderCommand;
 use crate::settings::Settings;
-use crate::{AxisAngles, PreviewEvent, ScreenshotOptions};
+use crate::{AxisAngles, ParameterHandle, PreviewEvent, ScreenshotOptions};
 use bevy::log::LogPlugin;
 use dslcad_storage::protocol::BoundingBox;
 use std::sync::mpsc::Receiver;
@@ -156,8 +156,9 @@ pub(crate) fn main(
     cheatsheet: String,
     rx: Receiver<PreviewEvent>,
     store: Settings,
+    parameters: ParameterHandle,
 ) -> Result<(), Box<dyn Error>> {
-    run(cheatsheet, rx, store, None)
+    run(cheatsheet, rx, store, None, Some(parameters))
 }
 
 pub(crate) fn screenshot(
@@ -169,6 +170,7 @@ pub(crate) fn screenshot(
         rx,
         Settings::default(),
         Some(options.clone()),
+        None,
     )?;
 
     if !options.path.exists() {
@@ -183,6 +185,7 @@ fn run(
     rx: Receiver<PreviewEvent>,
     store: Settings,
     screenshot: Option<ScreenshotOptions>,
+    parameters: Option<ParameterHandle>,
 ) -> Result<(), Box<dyn Error>> {
     let interactive = screenshot.is_none();
     let mut app = App::new();
@@ -223,39 +226,43 @@ fn run(
         ));
 
     if interactive {
-        app.add_plugins(gui::GuiPlugin::new(cheatsheet))
-            .add_systems(
-                Update,
-                move |mut console: ResMut<gui::Console>,
-                      mut re: EventWriter<RenderCommand>,
-                      mut ca: EventWriter<CameraCommand>| {
-                    let rx = rx.lock().unwrap();
-                    match rx.try_recv() {
-                        Ok(PreviewEvent::Rendering) => {
-                            console.clear();
-                            console.print("Rendering...".to_string());
-                        }
-                        Ok(PreviewEvent::Render(render)) => {
-                            if let Some(aabb) = render.aabb() {
-                                ca.send(CameraCommand::Focus(aabb));
-                            }
-                            console.clear();
-                            console.print(render.stdout);
-                            re.send(RenderCommand::Draw(
-                                render.parts,
-                                render.annotations,
-                                render.views,
-                            ));
-                        }
-                        Ok(PreviewEvent::Error(e)) => {
-                            // Surface errors by opening the console.
-                            console.open = true;
-                            console.print(e);
-                        }
-                        _ => {}
+        app.add_plugins(gui::GuiPlugin::new(
+            cheatsheet,
+            parameters.expect("interactive mode requires a parameter handle"),
+        ))
+        .add_systems(
+            Update,
+            move |mut console: ResMut<gui::Console>,
+                  mut re: EventWriter<RenderCommand>,
+                  mut ca: EventWriter<CameraCommand>| {
+                let rx = rx.lock().unwrap();
+                match rx.try_recv() {
+                    Ok(PreviewEvent::Rendering) => {
+                        console.clear();
+                        console.print("Rendering...".to_string());
                     }
-                },
-            );
+                    Ok(PreviewEvent::Render(render)) => {
+                        if let Some(aabb) = render.aabb() {
+                            ca.send(CameraCommand::Focus(aabb));
+                        }
+                        console.clear();
+                        console.print(render.stdout);
+                        re.send(RenderCommand::Draw(
+                            render.parts,
+                            render.annotations,
+                            render.views,
+                            render.parameters,
+                        ));
+                    }
+                    Ok(PreviewEvent::Error(e)) => {
+                        // Surface errors by opening the console.
+                        console.open = true;
+                        console.print(e);
+                    }
+                    _ => {}
+                }
+            },
+        );
     } else {
         let options = screenshot.unwrap();
         app.add_plugins(ScheduleRunnerPlugin::run_loop(Duration::from_millis(16)))
@@ -281,6 +288,7 @@ fn run(
                                     render.parts,
                                     render.annotations,
                                     render.views,
+                                    render.parameters,
                                 ));
                             }
                             Ok(PreviewEvent::Error(e)) => {
@@ -436,6 +444,7 @@ mod tests {
             stdout: String::new(),
             annotations: Vec::new(),
             views: Vec::new(),
+            parameters: Vec::new(),
         }
         .aabb()
         .unwrap()

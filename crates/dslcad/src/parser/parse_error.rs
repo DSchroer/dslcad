@@ -37,6 +37,8 @@ pub enum DocumentParseError {
     DuplicateVariableName(String, Span),
     #[error("parameters are not allowed in scopes")]
     ParametersNotAllowedInScopes(Span),
+    #[error("unknown parameter argument {0} (expected type, min, max or step)")]
+    UnknownParameterArgument(String, Span),
     #[error("expected {0} but found {1}")]
     Expected(&'static str, String, Span),
     #[error("expected one of {} but found {1}", one_of_list(.0))]
@@ -61,6 +63,7 @@ impl DocumentParseError {
             | DocumentParseError::UndeclaredIdentifier(_, span)
             | DocumentParseError::DuplicateVariableName(_, span)
             | DocumentParseError::ParametersNotAllowedInScopes(span)
+            | DocumentParseError::UnknownParameterArgument(_, span)
             | DocumentParseError::Expected(_, _, span)
             | DocumentParseError::ExpectedOneOf(_, _, span) => span.line_col(text),
         }

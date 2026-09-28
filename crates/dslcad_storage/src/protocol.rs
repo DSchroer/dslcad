@@ -18,6 +18,10 @@ pub struct Render {
     /// Named views that group a camera with the annotations it draws.
     #[serde(default)]
     pub views: Vec<ViewDef>,
+    /// Top level parameters a script declares, so an editor can offer widgets
+    /// for them. Empty when a model has no parameters.
+    #[serde(default)]
+    pub parameters: Vec<Parameter>,
 }
 
 impl TryFrom<&[u8]> for Render {
@@ -206,6 +210,41 @@ pub struct ViewDef {
     pub annotations: Vec<Annotation>,
 }
 
+/// The type a script parameter declares, used to pick an editor widget.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ParameterType {
+    Number,
+    Integer,
+    Bool,
+    Text,
+}
+
+/// The current value of a script parameter.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum ParameterValue {
+    Number(f64),
+    Bool(bool),
+    Text(String),
+}
+
+/// A top level `var name(...) = value;` parameter with the metadata an editor
+/// needs to build a control for it.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct Parameter {
+    pub name: String,
+    pub kind: ParameterType,
+    pub value: ParameterValue,
+    /// Lower bound, when declared.
+    #[serde(default)]
+    pub min: Option<f64>,
+    /// Upper bound, when declared.
+    #[serde(default)]
+    pub max: Option<f64>,
+    /// Increment used by a slider, when declared.
+    #[serde(default)]
+    pub step: Option<f64>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -238,6 +277,7 @@ mod tests {
                 ]],
             )],
             views: Vec::new(),
+            parameters: Vec::new(),
         };
 
         let serialized: Vec<u8> = render.clone().try_into().unwrap();

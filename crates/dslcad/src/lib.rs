@@ -91,6 +91,11 @@ pub fn render_with_cache(
 
     let text = instance.to_text().unwrap_or_default();
 
+    let parameters = match &instance {
+        Value::Script(script) => script.parameters().to_vec(),
+        _ => Vec::new(),
+    };
+
     let mut parts = Vec::new();
     let mut annotations = Vec::new();
     let mut views = Vec::new();
@@ -141,6 +146,7 @@ pub fn render_with_cache(
         stdout: text,
         annotations,
         views,
+        parameters,
     })
 }
 
@@ -485,6 +491,77 @@ mod tests {
         let res = render(eval(ast, args).unwrap(), 0.001).unwrap();
 
         assert_eq!("5", &res.stdout);
+    }
+
+    #[test]
+    fn it_collects_parameters() {
+        use dslcad_storage::protocol::{ParameterType, ParameterValue};
+
+        let value = run("var size(int, 0, 100) = 42; cube(x=size);");
+        let render = render(value, 0.1).unwrap();
+
+        assert_eq!(1, render.parameters.len());
+        let parameter = &render.parameters[0];
+        assert_eq!("size", parameter.name);
+        assert_eq!(ParameterType::Integer, parameter.kind);
+        assert_eq!(ParameterValue::Number(42.0), parameter.value);
+        assert_eq!(Some(0.0), parameter.min);
+        assert_eq!(Some(100.0), parameter.max);
+    }
+
+    #[test]
+    fn it_only_collects_declared_parameters() {
+        let value = run("var label = \"hi\"; cube();");
+        let parameters = match &value {
+            Value::Script(script) => script.parameters(),
+            other => panic!("expected a script, got {other:?}"),
+        };
+
+        assert!(parameters.is_empty());
+    }
+
+    #[test]
+    fn it_infers_parameter_type_from_the_value() {
+        use dslcad_storage::protocol::{ParameterType, ParameterValue};
+
+        let value = run("var label() = \"hi\"; var flag() = true; label; flag;");
+        let parameters = match &value {
+            Value::Script(script) => script.parameters(),
+            other => panic!("expected a script, got {other:?}"),
+        };
+
+        assert_eq!(2, parameters.len());
+        assert_eq!(ParameterType::Text, parameters[0].kind);
+        assert_eq!(ParameterValue::Text("hi".to_string()), parameters[0].value);
+        assert_eq!(ParameterType::Bool, parameters[1].kind);
+        assert_eq!(ParameterValue::Bool(true), parameters[1].value);
+    }
+
+    #[test]
+    fn it_applies_argument_overrides_to_parameters() {
+        use dslcad_storage::protocol::ParameterValue;
+
+        let arguments = parse_arguments(vec!["size=25"].into_iter()).unwrap();
+        let value = eval(
+            parse_str("var size(int, 0, 100) = 10; cube(x=size);"),
+            arguments,
+        )
+        .unwrap();
+
+        let parameters = match &value {
+            Value::Script(script) => script.parameters(),
+            other => panic!("expected a script, got {other:?}"),
+        };
+
+        assert_eq!(ParameterValue::Number(25.0), parameters[0].value);
+    }
+
+    #[test]
+    fn it_validates_parameters() {
+        assert!(try_run("var size(int, 0, 10) = 42; cube(x=size);").is_err());
+        assert!(try_run("var size(int) = 1.5; cube(x=size);").is_err());
+        assert!(try_run("var size(number) = true; cube(x=size);").is_err());
+        assert!(try_run("var size(int, 0, 10) = 5; cube(x=size);").is_ok());
     }
 
     #[test]

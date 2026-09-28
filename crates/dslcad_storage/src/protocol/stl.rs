@@ -81,6 +81,7 @@ mod tests {
             stdout: String::new(),
             annotations: Vec::new(),
             views: Vec::new(),
+            parameters: Vec::new(),
         }
     }
 

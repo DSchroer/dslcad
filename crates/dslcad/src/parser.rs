@@ -17,6 +17,7 @@ use std::str::FromStr;
 use crate::library::Library;
 use crate::parser::span_builder::SpanBuilder;
 use crate::resources::{ResourceFactory, ResourceLoader};
+use dslcad_storage::protocol::ParameterType;
 pub use parse_error::{DocumentParseError, ParseError};
 pub use reader::Reader;
 pub use syntax_tree::*;
@@ -275,6 +276,17 @@ impl<R: Reader + 'static> Parser<R> {
             ));
         }
 
+        let parameter = match next_significant(lexer) {
+            Some(Token::OpenBracket) => Some(self.parse_parameter_spec(lexer)?),
+            _ => None,
+        };
+
+        if parameter.is_some() && !allow_parameters {
+            return Err(DocumentParseError::ParametersNotAllowedInScopes(
+                sb.to(lexer),
+            ));
+        }
+
         let expr = match lexer.clone().next() {
             Some(Token::Equal) => {
                 lexer.next();
@@ -298,9 +310,124 @@ impl<R: Reader + 'static> Parser<R> {
             Variable {
                 name: name.to_string(),
                 value: expr,
+                parameter,
             },
             sb.to(lexer),
         ))
+    }
+
+    /// Parses the optional `(type, min=..., max=..., step=...)` metadata on a
+    /// parameter declaration. The first positional argument is the type, the
+    /// rest fill `min`, `max` and `step` in order. Metadata can also be named.
+    fn parse_parameter_spec(
+        &mut self,
+        lexer: &mut Lexer,
+    ) -> Result<ParameterSpec, DocumentParseError> {
+        take!(self, lexer, Token::OpenBracket = "(");
+        let mut spec = ParameterSpec::default();
+        let mut positional = 0usize;
+
+        loop {
+            skip_newlines(lexer);
+            match lexer.clone().next() {
+                Some(Token::CloseBracket) => {
+                    lexer.next();
+                    break;
+                }
+                Some(Token::Comma) => {
+                    lexer.next();
+                    continue;
+                }
+                _ => {}
+            }
+
+            // A named argument looks like `name=value`.
+            let mut named = None;
+            {
+                let mut peek = lexer.clone();
+                if let Some(Token::Identifier) = peek.next() {
+                    if let Some(Token::Equal) = peek.next() {
+                        lexer.next();
+                        named = Some(lexer.slice().to_string());
+                        lexer.next();
+                    }
+                }
+            }
+
+            match named.as_deref() {
+                Some("type") => spec.kind = Some(self.parse_parameter_kind(lexer)?),
+                Some("min") => spec.min = Some(self.parse_parameter_number(lexer)?),
+                Some("max") => spec.max = Some(self.parse_parameter_number(lexer)?),
+                Some("step") => spec.step = Some(self.parse_parameter_number(lexer)?),
+                Some(other) => {
+                    return Err(DocumentParseError::UnknownParameterArgument(
+                        other.to_string(),
+                        lexer.span(),
+                    ))
+                }
+                None => {
+                    match positional {
+                        0 => spec.kind = Some(self.parse_parameter_kind(lexer)?),
+                        1 => spec.min = Some(self.parse_parameter_number(lexer)?),
+                        2 => spec.max = Some(self.parse_parameter_number(lexer)?),
+                        3 => spec.step = Some(self.parse_parameter_number(lexer)?),
+                        _ => {
+                            return Err(DocumentParseError::Expected(
+                                "parameter metadata",
+                                lexer.slice().to_string(),
+                                lexer.span(),
+                            ))
+                        }
+                    }
+                    positional += 1;
+                }
+            }
+
+            skip_newlines(lexer);
+            take!(self, lexer,
+                Token::Comma = "," => {},
+                Token::CloseBracket = ")" => break
+            );
+        }
+
+        Ok(spec)
+    }
+
+    fn parse_parameter_kind(
+        &mut self,
+        lexer: &mut Lexer,
+    ) -> Result<ParameterType, DocumentParseError> {
+        let name = take!(self, lexer, Token::Identifier = "parameter type" => lexer.slice());
+        match name {
+            "number" | "float" => Ok(ParameterType::Number),
+            "int" | "integer" => Ok(ParameterType::Integer),
+            "bool" | "boolean" => Ok(ParameterType::Bool),
+            "text" | "string" => Ok(ParameterType::Text),
+            _ => Err(DocumentParseError::Expected(
+                "number, int, bool or text",
+                name.to_string(),
+                lexer.span(),
+            )),
+        }
+    }
+
+    fn parse_parameter_number(&mut self, lexer: &mut Lexer) -> Result<f64, DocumentParseError> {
+        match lexer.clone().next() {
+            Some(Token::Minus) => {
+                lexer.next();
+                let number = take!(self, lexer, Token::Number = "number" => lexer.slice());
+                Ok(-number.parse::<f64>().unwrap())
+            }
+            Some(Token::Number) => {
+                lexer.next();
+                Ok(lexer.slice().parse::<f64>().unwrap())
+            }
+            _ => Err(DocumentParseError::Expected(
+                "number",
+                lexer.slice().to_string(),
+                lexer.span(),
+            )),
+        }
     }
 
     fn parse_call(&mut self, lexer: &mut Lexer) -> Result<Expression, DocumentParseError> {
@@ -1006,6 +1133,39 @@ pub mod tests {
         parse!("var x = 5;");
         parse!("var x;");
         parse!("var x = true;");
+    }
+
+    #[test]
+    fn it_can_parse_parameter_metadata() {
+        parse("var x(number, 0, 100) = 5;", |a| {
+            a.unwrap();
+        });
+        parse("var x(int, min=0, max=10, step=2) = 4;", |a| {
+            a.unwrap();
+        });
+        parse("var x(text) = \"hi\";", |a| {
+            a.unwrap();
+        });
+        parse("var x(bool) = true;", |a| {
+            a.unwrap();
+        });
+    }
+
+    #[test]
+    fn it_rejects_unknown_parameter_arguments() {
+        parse("var x(number, foo=5) = 1;", |a| {
+            assert!(a.is_err());
+        });
+        parse("var x(notatype) = 1;", |a| {
+            assert!(a.is_err());
+        });
+    }
+
+    #[test]
+    fn it_rejects_parameters_in_scopes() {
+        parse("{ var x(int, 0, 10) = 1; };", |a| {
+            assert!(a.is_err());
+        });
     }
 
     #[test]

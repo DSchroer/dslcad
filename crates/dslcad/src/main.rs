@@ -424,13 +424,15 @@ fn render_to_preview(
 
     fn render_with_watcher(
         source: &str,
-        arguments: &[String],
+        arguments: &Arc<Mutex<Vec<String>>>,
         deflection: f64,
         watch: Arc<Mutex<Option<RecommendedWatcher>>>,
         cache: Arc<Mutex<Cache>>,
     ) -> Result<Render, CliError> {
         let ast = load_ast(source)?;
         add_files_to_watch(watch, &ast);
+
+        let arguments = arguments.lock().unwrap().clone();
         let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
 
         let mut cache = cache.lock().unwrap();
@@ -449,13 +451,13 @@ fn render_to_preview(
     fn render_to_handle(
         handle: PreviewHandle,
         source: &str,
-        arguments: &[String],
+        arguments: Arc<Mutex<Vec<String>>>,
         deflection: f64,
         watch: Arc<Mutex<Option<RecommendedWatcher>>>,
         cache: Arc<Mutex<Cache>>,
     ) {
         handle.show_rendering();
-        match render_with_watcher(source, arguments, deflection, watch, cache) {
+        match render_with_watcher(source, &arguments, deflection, watch, cache) {
             Ok(render) => handle.show_render(render),
             Err(err) => {
                 let mut buffer = Vec::new();
@@ -466,13 +468,13 @@ fn render_to_preview(
     }
 
     let (preview, handle) = Preview::new();
+    *handle.arguments().lock().unwrap() = arguments;
     let watch = Arc::new(Mutex::new(None));
     let cache = Arc::new(Mutex::new(Cache::new()));
 
     let watcher = {
-        let (source, arguments, watch, handle, cache) = (
+        let (source, watch, handle, cache) = (
             source.to_string(),
-            arguments.clone(),
             watch.clone(),
             handle.clone(),
             cache.clone(),
@@ -486,7 +488,7 @@ fn render_to_preview(
                 render_to_handle(
                     handle.clone(),
                     &source,
-                    &arguments,
+                    handle.arguments(),
                     deflection,
                     watch.clone(),
                     cache.clone(),
@@ -501,16 +503,37 @@ fn render_to_preview(
     }
 
     let source = source.to_string();
-    std::thread::spawn(move || {
-        render_to_handle(
-            handle,
-            &source,
-            &arguments,
-            deflection,
-            watch.clone(),
-            cache,
-        )
-    });
+
+    {
+        let (handle, watch, cache, source) =
+            (handle.clone(), watch.clone(), cache.clone(), source.clone());
+        let arguments = handle.arguments();
+        std::thread::spawn(move || {
+            render_to_handle(handle, &source, arguments, deflection, watch, cache)
+        });
+    }
+
+    // Parameter edits from the editor re-render with the updated arguments,
+    // without waiting for the file to change.
+    {
+        let (handle, watch, cache, source) =
+            (handle.clone(), watch.clone(), cache.clone(), source.clone());
+        let arguments = handle.arguments();
+        let rerender = handle.rerender();
+        std::thread::spawn(move || loop {
+            if rerender.lock().unwrap().recv().is_err() {
+                break;
+            }
+            render_to_handle(
+                handle.clone(),
+                &source,
+                arguments.clone(),
+                deflection,
+                watch.clone(),
+                cache.clone(),
+            );
+        });
+    }
 
     preview.open(Library::default().to_string());
     Ok(())

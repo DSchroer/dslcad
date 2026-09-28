@@ -7,6 +7,8 @@ pub enum RuntimeError {
     UnknownIdentifier(String),
     #[error("unset parameter {0}")]
     UnsetParameter(String),
+    #[error("parameter '{name}' {message}")]
+    InvalidParameter { name: String, message: String },
     #[error("could not find property {0}")]
     MissingProperty(String),
     #[error("mismatched types")]

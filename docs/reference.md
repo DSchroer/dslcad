@@ -19,6 +19,7 @@ Coordinates are in millimetres.
 - `var name = value;` declare a variable called name that stores value
 - `name = value;` reassign an existing variable
 - `var name;` declare a parameter, set from the CLI with `--argument name=value`
+- `var name(type, min=0, max=100, step=1) = value;` declare a parameter with metadata for the editor panel
 - `value;` draw the value; each top-level value is a separate part
 - `123`, `1.5` numbers; `true` / `false` booleans; `"text"` strings (escapes `\n`, `\t`, `"`, `\`)
 - `b(name=a)` pass the value of `a` as the named argument `name` of function `b`

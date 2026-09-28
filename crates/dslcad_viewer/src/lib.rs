@@ -2,11 +2,13 @@ mod editor;
 mod settings;
 
 use crate::settings::Settings;
+use bevy::prelude::Resource;
 use dslcad_storage::protocol::{Projection, Render};
 use std::error::Error;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::{Arc, Mutex};
 
 enum PreviewEvent {
     Rendering,
@@ -17,6 +19,8 @@ enum PreviewEvent {
 #[derive(Clone)]
 pub struct PreviewHandle {
     tx: Sender<PreviewEvent>,
+    arguments: Arc<Mutex<Vec<String>>>,
+    rerender: Arc<Mutex<Receiver<()>>>,
 }
 
 impl PreviewHandle {
@@ -31,10 +35,47 @@ impl PreviewHandle {
     pub fn show_error(&self, error: String) {
         self.tx.send(PreviewEvent::Error(error)).unwrap()
     }
+
+    /// The shared list of `name=value` script arguments. The editor updates it
+    /// when a parameter changes.
+    pub fn arguments(&self) -> Arc<Mutex<Vec<String>>> {
+        self.arguments.clone()
+    }
+
+    /// Receives one signal for every parameter edit that needs a re-render.
+    pub fn rerender(&self) -> Arc<Mutex<Receiver<()>>> {
+        self.rerender.clone()
+    }
+}
+
+/// Pushes parameter edits from the editor back to the evaluator. It updates the
+/// shared argument list and wakes the evaluator to re-render.
+#[derive(Clone, Resource)]
+pub struct ParameterHandle {
+    arguments: Arc<Mutex<Vec<String>>>,
+    rerender: Sender<()>,
+}
+
+impl ParameterHandle {
+    /// Overrides the script argument `name` with `value` and triggers a render.
+    /// `value` uses the same syntax as `--argument` (for example `5`, `true` or
+    /// `"text"`).
+    pub fn set(&self, name: &str, value: &str) {
+        let mut arguments = self.arguments.lock().unwrap();
+        let prefix = format!("{name}=");
+        match arguments.iter_mut().find(|a| a.starts_with(&prefix)) {
+            Some(slot) => *slot = format!("{name}={value}"),
+            None => arguments.push(format!("{name}={value}")),
+        }
+        drop(arguments);
+        let _ = self.rerender.send(());
+    }
 }
 
 pub struct Preview {
     rx: Receiver<PreviewEvent>,
+    arguments: Arc<Mutex<Vec<String>>>,
+    rerender: Sender<()>,
 }
 
 /// Camera rotations around the part axes, in degrees. Unset axes keep their
@@ -118,11 +159,28 @@ pub struct ScreenshotOptions {
 impl Preview {
     pub fn new() -> (Self, PreviewHandle) {
         let (tx, rx) = channel();
-        (Self { rx }, PreviewHandle { tx })
+        let (rerender, rerender_rx) = channel();
+        let arguments = Arc::new(Mutex::new(Vec::new()));
+        (
+            Self {
+                rx,
+                arguments: arguments.clone(),
+                rerender,
+            },
+            PreviewHandle {
+                tx,
+                arguments,
+                rerender: Arc::new(Mutex::new(rerender_rx)),
+            },
+        )
     }
 
     pub fn open(self, cheetsheet: String) {
-        editor::main(cheetsheet, self.rx, Settings::default()).unwrap();
+        let parameters = ParameterHandle {
+            arguments: self.arguments,
+            rerender: self.rerender,
+        };
+        editor::main(cheetsheet, self.rx, Settings::default(), parameters).unwrap();
     }
 
     /// Render a single view to the image described by the options and exit.

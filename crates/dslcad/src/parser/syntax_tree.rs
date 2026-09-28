@@ -1,5 +1,6 @@
 use crate::parser::syntax_visitor::{ExpressionVisitor, LiteralVisitor, StatementVisitor};
 use crate::resources::ResourceFactory;
+use dslcad_storage::protocol::ParameterType;
 use logos::Span;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
@@ -77,6 +78,18 @@ pub enum Statement {
 pub struct Variable {
     pub name: String,
     pub value: Option<Expression>,
+    /// Metadata for a `var name(type, min=..., max=..., step=...)` parameter.
+    pub parameter: Option<ParameterSpec>,
+}
+
+/// The optional `(...)` metadata on a parameter declaration. Values are
+/// literals so the metadata is known without evaluating the model.
+#[derive(Debug, Default)]
+pub struct ParameterSpec {
+    pub kind: Option<ParameterType>,
+    pub min: Option<f64>,
+    pub max: Option<f64>,
+    pub step: Option<f64>,
 }
 
 /// A `view "Name" (camera) { layers }` statement. Views are top level and group

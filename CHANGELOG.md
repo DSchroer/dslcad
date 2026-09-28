@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Drawing annotations: `measure`, `convert`, `dimension` (linear, radial and angular), `label`, `leader`, `level`, `north`, `centerline` and `title`, rendered in the preview and screenshot
 - Embedded IBM Plex Mono (SIL OFL) as the annotation font, compiled into the binary at build time
 - `view "name" (angle=..., projection=..., zoom=...) { ... }` statement to author named views that group a camera with the annotations they draw; `--screenshot` renders the first view or a `--view <name>` one
+- `var name(type, min=0, max=100, step=1) = value;` parameter metadata and a parameters panel in the preview that edits them live
 
 ## [v0.0.6]
 

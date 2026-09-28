@@ -1,20 +1,18 @@
+var height(int) = 20;
 // A dimensioned plate with front and top views.
-var plate = cube(x=60, y=40, z=20);
+cube(x=60, y=40, z=height);
 
 view "Front" (angle="front", projection="orthographic") {
-    plate;
 
     // overall depth and height, offset in the plane the view shows
     dimension(start=point(x=0, y=0, z=0), end=point(x=0, y=40, z=0), offset=10, plane="yz");
-    dimension(start=point(x=0, y=0, z=0), end=point(x=0, y=0, z=20), offset=-20, plane="yz");
+    dimension(start=point(x=0, y=0, z=0), end=point(x=0, y=0, z=height), offset=-20, plane="yz");
 
     // a single note, aligned above the part
     label(text="PLATE", at=point(x=0, y=0, z=30), size=5);
 }
 
 view "Top" (angle="top", projection="orthographic") {
-    plate;
-
     // overall width and depth, offset in the plane the view shows
     dimension(start=point(x=0, y=0, z=0), end=point(x=60, y=0, z=0), offset=10, plane="xy");
     dimension(start=point(x=0, y=0, z=0), end=point(x=0, y=40, z=0), offset=-10, plane="xy");

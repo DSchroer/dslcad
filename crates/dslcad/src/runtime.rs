@@ -26,7 +26,9 @@ use crate::cache::Cache;
 use crate::resources::ResourceFactory;
 use crate::runtime::stack::{Stack, StackFrame};
 use crate::runtime::value::{Function, ViewValue};
-use dslcad_storage::protocol::{Projection, ShowFlags, ViewAngles};
+use dslcad_storage::protocol::{
+    Parameter, ParameterType, ParameterValue, Projection, ShowFlags, ViewAngles,
+};
 pub use runtime_error::RuntimeError;
 pub use script_instance::ScriptInstance;
 
@@ -39,6 +41,8 @@ pub struct Engine<'a> {
     scope: Scope,
     current_document: Option<DocId>,
     cache: Option<&'a mut Cache>,
+    /// Parameters declared at the root document, collected during evaluation.
+    parameters: Vec<Parameter>,
 }
 
 impl<'a> Engine<'a> {
@@ -50,6 +54,7 @@ impl<'a> Engine<'a> {
             scope: Scope::default(),
             current_document: None,
             cache: None,
+            parameters: Vec::new(),
         }
     }
 
@@ -73,9 +78,10 @@ impl<'a> Engine<'a> {
                 )
             })
             .collect();
-        Ok(self
-            .with_scope(Scope::new(arguments), |e| e.eval(root))?
-            .into())
+        self.parameters.clear();
+        let mut instance = self.with_scope(Scope::new(arguments), |e| e.eval(root))?;
+        instance.set_parameters(std::mem::take(&mut self.parameters));
+        Ok(instance.into())
     }
 
     fn eval(&mut self, id: DocId) -> Result<ScriptInstance, WithStack<RuntimeError>> {
@@ -144,35 +150,110 @@ impl<'a> Engine<'a> {
     }
 }
 
+/// Turns a declared parameter and its evaluated value into the protocol type
+/// the editor displays, validating it against the declared metadata.
+fn resolve_parameter(
+    name: &str,
+    spec: &ParameterSpec,
+    value: &Value,
+) -> Result<Parameter, RuntimeError> {
+    let invalid = |message: String| RuntimeError::InvalidParameter {
+        name: name.to_string(),
+        message,
+    };
+
+    let kind = spec.kind.unwrap_or(match value {
+        Value::Bool(_) => ParameterType::Bool,
+        Value::Text(_) => ParameterType::Text,
+        _ => ParameterType::Number,
+    });
+
+    let parameter_value = match kind {
+        ParameterType::Number | ParameterType::Integer => {
+            let number = value
+                .to_number()
+                .map_err(|_| invalid("must be a number".to_string()))?;
+            if kind == ParameterType::Integer && number.fract() != 0.0 {
+                return Err(invalid("must be a whole number".to_string()));
+            }
+            ParameterValue::Number(number)
+        }
+        ParameterType::Bool => ParameterValue::Bool(
+            value
+                .to_bool()
+                .map_err(|_| invalid("must be true or false".to_string()))?,
+        ),
+        ParameterType::Text => ParameterValue::Text(
+            value
+                .to_text()
+                .map_err(|_| invalid("must be text".to_string()))?,
+        ),
+    };
+
+    if let ParameterValue::Number(number) = &parameter_value {
+        if let Some(min) = spec.min {
+            if *number < min {
+                return Err(invalid(format!("must be at least {min}")));
+            }
+        }
+        if let Some(max) = spec.max {
+            if *number > max {
+                return Err(invalid(format!("must be at most {max}")));
+            }
+        }
+    }
+
+    Ok(Parameter {
+        name: name.to_string(),
+        kind,
+        value: parameter_value,
+        min: spec.min,
+        max: spec.max,
+        step: spec.step,
+    })
+}
+
 impl StatementVisitor for Engine<'_> {
     type Result = Result<Option<Value>, WithStack<RuntimeError>>;
 
     fn visit_variable(
         &mut self,
-        Variable { value, name }: &Variable,
+        Variable {
+            value,
+            name,
+            parameter,
+        }: &Variable,
         _span: &Span,
     ) -> Self::Result {
-        match value {
+        let resolved = match value {
             Some(value) => {
-                let value = if let Some(value) = self.scope.get(name.as_str()).cloned() {
+                if let Some(value) = self.scope.get(name.as_str()).cloned() {
                     value
                 } else {
                     value.walk_expression(self)?
-                };
-                self.scope.set(name.to_string(), value);
+                }
             }
             None => {
-                let value = if let Some(value) = self.scope.get(name.as_str()).cloned() {
+                if let Some(value) = self.scope.get(name.as_str()).cloned() {
                     value
                 } else {
                     return Err(WithStack::from_err(
                         RuntimeError::UnsetParameter(name.to_string()),
                         &self.stack,
                     ));
-                };
-                self.scope.set(name.to_string(), value);
+                }
+            }
+        };
+
+        if let Some(spec) = parameter {
+            if self.current_document.as_ref() == Some(self.ast.root()) {
+                let parameter = resolve_parameter(name, spec, &resolved)
+                    .map_err(|e| WithStack::from_err(e, &self.stack))?;
+                self.parameters.push(parameter);
             }
         }
+
+        self.scope.set(name.to_string(), resolved);
         Ok(None)
     }
 
