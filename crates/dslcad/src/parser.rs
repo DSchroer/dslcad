@@ -194,12 +194,16 @@ impl<R: Reader + 'static> Parser<R> {
         take!(self, lexer, Token::View = "view");
         let sb = SpanBuilder::from(lexer);
 
-        let name = match lexer.clone().next() {
-            Some(Token::String) => {
-                lexer.next();
-                Some(escape_string(lexer.slice()))
+        let name = match lexer.next() {
+            Some(Token::Identifier) => lexer.slice().to_string(),
+            Some(_) => {
+                return Err(DocumentParseError::Expected(
+                    "identifier",
+                    lexer.slice().to_string(),
+                    lexer.span(),
+                ))
             }
-            _ => None,
+            None => return Err(DocumentParseError::UnexpectedEndOfFile()),
         };
 
         let arguments = match next_significant(lexer) {

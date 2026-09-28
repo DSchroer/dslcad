@@ -466,7 +466,7 @@ mod tests {
 
         let value = run(r#"
             var part = cube();
-            view "Front" (angle="front", projection="orthographic") {
+            view front(angle="front", projection="orthographic") {
                 part;
                 label(text="hi", at=point(x=0,y=0,z=0));
             }
@@ -477,7 +477,7 @@ mod tests {
         assert_eq!(1, render.views.len());
 
         let view = &render.views[0];
-        assert_eq!(Some("Front".to_string()), view.name);
+        assert_eq!(Some("front".to_string()), view.name);
         assert_eq!(Some(90.0), view.angle.x);
         assert_eq!(Projection::Orthographic, view.projection);
         assert_eq!(1, view.annotations.len());

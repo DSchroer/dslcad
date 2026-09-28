@@ -282,7 +282,7 @@ impl StatementVisitor for Engine<'_> {
         let arguments = Engine::named_argument_values(argument_values)
             .map_err(|e| WithStack::from_err(e, &self.stack))?;
 
-        let camera = parse_view_camera(view.name.clone(), &arguments)
+        let camera = parse_view_camera(Some(view.name.clone()), &arguments)
             .map_err(|e| WithStack::from_err(e, &self.stack))?;
 
         let document = self.current_document.as_ref().map(|d| d.to_string());

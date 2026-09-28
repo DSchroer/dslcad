@@ -62,7 +62,7 @@ fn views_panel(
 
             let active = state.active_view_index();
 
-            if view_entry(ui, active.is_none(), "Default").clicked() {
+            if view_entry(ui, active.is_none(), "default").clicked() {
                 state.set_active_view(None);
                 render_events.write(RenderCommand::Redraw);
             }

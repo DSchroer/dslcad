@@ -335,7 +335,7 @@ fn render_controller(
         match event {
             RenderCommand::Draw(parts, annotations, views, parameters) => {
                 // Keep the selected view across edits, but start on the free
-                // camera ("Default") when the preview first opens.
+                // camera ("default") when the preview first opens.
                 let previous = render_state
                     .active_view
                     .and_then(|index| render_state.model.as_ref()?.views.get(index))

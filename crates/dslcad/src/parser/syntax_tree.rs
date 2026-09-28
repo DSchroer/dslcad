@@ -92,11 +92,11 @@ pub struct ParameterSpec {
     pub step: Option<f64>,
 }
 
-/// A `view "Name" (camera) { layers }` statement. Views are top level and group
+/// A `view name(camera) { layers }` statement. Views are top level and group
 /// a camera with the geometry and annotations they draw.
 #[derive(Debug)]
 pub struct View {
-    pub name: Option<String>,
+    pub name: String,
     pub arguments: VecDeque<Argument>,
     pub body: Vec<Statement>,
 }
