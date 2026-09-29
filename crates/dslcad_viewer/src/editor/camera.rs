@@ -27,6 +27,7 @@ impl Plugin for CameraPlugin {
             .add_systems(Update, camera_handler)
             .add_systems(Update, orthographic_zoom)
             .add_systems(Update, normalize_free_camera_up)
+            .add_systems(Update, view_shortcuts)
             .add_systems(Update, input_map);
     }
 }
@@ -244,6 +245,67 @@ fn normalize_free_camera_up(
         if direction.y.abs() < 0.98 {
             look.up = Vec3::Y;
         }
+    }
+}
+
+/// Number keys switch to a declared view: `1` selects the first view, `2` the
+/// second, and so on, while `0` returns to the free camera.
+fn view_shortcuts(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
+    mut state: ResMut<RenderState>,
+    mut render_events: MessageWriter<RenderCommand>,
+    mut camera_events: MessageWriter<CameraCommand>,
+) {
+    if let Ok(mut binding) = egui_ctx.single_mut() {
+        if binding.get_mut().wants_keyboard_input() {
+            return;
+        }
+    }
+
+    let pressed = |key: KeyCode| {
+        keyboard.just_pressed(key)
+            && !keyboard.pressed(KeyCode::ControlLeft)
+            && !keyboard.pressed(KeyCode::ControlRight)
+            && !keyboard.pressed(KeyCode::AltLeft)
+            && !keyboard.pressed(KeyCode::AltRight)
+    };
+
+    if pressed(KeyCode::Digit0) {
+        state.set_active_view(None);
+        render_events.write(RenderCommand::Redraw);
+        return;
+    }
+
+    const DIGITS: [KeyCode; 9] = [
+        KeyCode::Digit1,
+        KeyCode::Digit2,
+        KeyCode::Digit3,
+        KeyCode::Digit4,
+        KeyCode::Digit5,
+        KeyCode::Digit6,
+        KeyCode::Digit7,
+        KeyCode::Digit8,
+        KeyCode::Digit9,
+    ];
+
+    for (index, key) in DIGITS.into_iter().enumerate() {
+        if !pressed(key) {
+            continue;
+        }
+
+        let Some(view) = state.views().get(index).cloned() else {
+            return;
+        };
+
+        state.set_active_view(Some(index));
+        render_events.write(RenderCommand::Redraw);
+        camera_events.write(CameraCommand::View {
+            angles: view.angle,
+            projection: view.projection,
+            zoom: view.zoom,
+            target: view.target,
+        });
     }
 }
 
