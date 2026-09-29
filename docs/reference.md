@@ -155,6 +155,11 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 - `center(shape=shape, x=[bool], y=[bool], z=[bool])` center a shape on the given axes (each axis defaults to true; pass false to leave it in place)
 - `slice(left=shape, right=line|plane)` cut a 2D cross-section out of a shape
 - `slice(left=shape, right=shape)` cut one shape out of another
+- `distance(left=shape, right=shape)` minimum distance between two shapes
+- `contains(shape=shape, at=point)` whether a point is inside a shape
+- `split(left=shape, right=plane)` split a shape with a plane into a list of pieces
+- `defeature(shape=shape, radius=number)` remove cylindrical features with the given radius
+- `hole(shape=shape, radius=number, at=point, axis=[text], depth=[number])` drill a hole through a shape at a point (depth defaults to through all)
 
 ## Drawing
 - `measure(start=point, end=point)` distance between two points, in mm

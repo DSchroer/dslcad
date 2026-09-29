@@ -578,6 +578,11 @@ impl Default for Library {
                 Category::ThreeD,
                 "cut one shape out of another"
             ),
+            bind!(distance, shapes::distance[left=shape, right=shape], Category::ThreeD, "minimum distance between two shapes"),
+            bind!(contains, shapes::contains[shape=shape, at=point], Category::ThreeD, "whether a point is inside a shape"),
+            bind!(split, shapes::split[left=shape, right=plane], Category::ThreeD, "split a shape with a plane into a list of pieces"),
+            bind!(defeature, shapes::defeature[shape=shape, radius=number], Category::ThreeD, "remove cylindrical features with the given radius"),
+            bind!(hole, shapes::hole[shape=shape, radius=number, at=point, axis=option_text, depth=option_number], Category::ThreeD, "drill a hole through a shape at a point (depth defaults to through all)"),
             // Drawing
             bind!(measure, drawing::measure_points[start=point, end=point], Category::Drawing, "distance between two points, in mm"),
             bind!(
