@@ -28,6 +28,7 @@ Examples:
   dslcad ./part.ds --preview        open part.ds in the interactive preview
   dslcad ./part.ds -o stl           render to an STL instead of a 3MF
   dslcad ./part.ds -o step          render to a STEP instead of a 3MF
+  dslcad ./part.ds -o iges          render to an IGES instead of a 3MF
   dslcad ./part.ds -o png           render every declared view to a png
   dslcad ./part.ds -a size=5        render with the `size` script argument set to 5
   dslcad cheatsheet                 print the full syntax and function reference
@@ -41,6 +42,7 @@ Examples:
   dslcad ./part.ds                  render part.ds to part.3mf
   dslcad ./part.ds -o stl           render to an STL instead of a 3MF
   dslcad ./part.ds -o step          render to a STEP instead of a 3MF
+  dslcad ./part.ds -o iges          render to an IGES instead of a 3MF
   dslcad ./part.ds -a size=5        render with the `size` script argument set to 5
   dslcad cheatsheet                 print the full syntax and function reference
 
@@ -106,6 +108,7 @@ enum Output {
     Raw,
     Stl,
     Step,
+    Iges,
     /// Render every declared view to a png (preview feature only)
     Png,
 }
@@ -268,6 +271,13 @@ fn render_to_file(
 
             let outpath = cwd.join(format!("{}.step", file));
             shape.write_step(&outpath).map_err(RuntimeError::from)?;
+            outpath
+        }
+        Output::Iges => {
+            let shape = eval_result.to_shape()?;
+
+            let outpath = cwd.join(format!("{}.iges", file));
+            shape.write_iges(&outpath).map_err(RuntimeError::from)?;
             outpath
         }
         // `png` is rendered through the screenshot path in `main`, before this

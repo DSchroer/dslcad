@@ -5,21 +5,24 @@ use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
 use log::debug;
 use opencascade_sys::ffi::{
-    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_list_of_shape, new_vec, transfer_shape,
-    write_step, BRepAlgoAPI_Common, BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse, BRepAlgoAPI_Section,
-    BRepBuilderAPI_GTransform, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
-    BRepBuilderAPI_Transform, BRepGProp_SurfaceProperties, BRepGProp_VolumeProperties,
-    BRepMesh_IncrementalMesh_ctor, BRepOffsetAPI_MakeThickSolid_ctor, BRepOffsetAPI_ThruSections,
-    BRepOffsetAPI_ThruSections_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
-    BRepPrimAPI_MakeCone, BRepPrimAPI_MakeCone_ctor, BRepPrimAPI_MakeCylinder,
-    BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
-    BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
-    BRepPrimAPI_MakeSphere_ctor, BRepPrimAPI_MakeTorus, BRepPrimAPI_MakeTorus_ctor, BRep_Tool_Pnt,
-    BRep_Tool_Triangulation, GProp_GProps_CentreOfMass, GProp_GProps_ctor,
-    HandlePoly_Triangulation_Get, IFSelect_ReturnStatus, MakeThickSolidByJoin,
-    Poly_Triangulation_Node, STEPControl_Writer_ctor, ShapeUpgrade_UnifySameDomain_ctor,
-    TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge,
-    TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Vertex, TopoDS_cast_to_face,
+    add_shape, compute_model, gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_list_of_shape, new_vec,
+    one_shape_iges, one_shape_step, read_iges, read_step, transfer_shape,
+    write_iges as write_iges_file, write_step, BRepAlgoAPI_Common, BRepAlgoAPI_Cut,
+    BRepAlgoAPI_Fuse, BRepAlgoAPI_Section, BRepBuilderAPI_GTransform, BRepBuilderAPI_MakeFace,
+    BRepBuilderAPI_MakeFace_wire, BRepBuilderAPI_Transform, BRepGProp_SurfaceProperties,
+    BRepGProp_VolumeProperties, BRepMesh_IncrementalMesh_ctor, BRepOffsetAPI_MakeThickSolid_ctor,
+    BRepOffsetAPI_ThruSections, BRepOffsetAPI_ThruSections_ctor, BRepPrimAPI_MakeBox,
+    BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCone, BRepPrimAPI_MakeCone_ctor,
+    BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
+    BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
+    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRepPrimAPI_MakeTorus,
+    BRepPrimAPI_MakeTorus_ctor, BRep_Tool_Pnt, BRep_Tool_Triangulation, GProp_GProps_CentreOfMass,
+    GProp_GProps_ctor, HandlePoly_Triangulation_Get, IFSelect_ReturnStatus,
+    IGESControl_Reader_ctor, IGESControl_Writer_ctor, MakeThickSolidByJoin,
+    Message_ProgressRange_ctor, Poly_Triangulation_Node, STEPControl_Reader_ctor,
+    STEPControl_Writer_ctor, ShapeUpgrade_UnifySameDomain_ctor, TopAbs_Orientation,
+    TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape,
+    TopoDS_Shape_to_owned, TopoDS_Vertex, TopoDS_cast_to_face,
 };
 use std::f64::consts::PI;
 use std::os::raw::c_void;
@@ -29,6 +32,7 @@ extern "C" {
     fn dslcad_sweep_shape(profile: *const c_void, path: *const c_void) -> *mut c_void;
     fn dslcad_fillet(shape: *const c_void, radius: f64, axis_mask: i32) -> *mut c_void;
     fn dslcad_chamfer(shape: *const c_void, distance: f64, axis_mask: i32) -> *mut c_void;
+    fn dslcad_heal_shape(shape: *const c_void) -> *mut c_void;
 }
 
 /// Pack the selected axes into the bit mask the C++ helpers expect.
@@ -439,6 +443,87 @@ impl Shape {
         Ok(())
     }
 
+    /// Read the first shape from a STEP file.
+    pub fn read_step(path: impl AsRef<Path>) -> Result<Self, Error> {
+        let mut reader = STEPControl_Reader_ctor();
+
+        let status = read_step(
+            reader.pin_mut(),
+            path.as_ref().to_string_lossy().to_string(),
+        );
+        if status != IFSelect_ReturnStatus::IFSelect_RetDone {
+            return Err("failed to read STEP file".into());
+        }
+
+        let progress = Message_ProgressRange_ctor();
+        if reader.pin_mut().TransferRoots(&progress) == 0 {
+            return Err("STEP file contains no shapes".into());
+        }
+
+        Ok(Shape {
+            shape: one_shape_step(&reader),
+        })
+    }
+
+    /// Write the shape to an IGES file.
+    pub fn write_iges(&self, path: impl AsRef<Path>) -> Result<(), Error> {
+        let mut writer = IGESControl_Writer_ctor();
+
+        if !add_shape(writer.pin_mut(), &self.shape) {
+            return Err("failed to transfer shape to IGES writer".into());
+        }
+        compute_model(writer.pin_mut());
+
+        if !write_iges_file(
+            writer.pin_mut(),
+            path.as_ref().to_string_lossy().to_string(),
+        ) {
+            return Err("failed to write IGES file".into());
+        }
+
+        Ok(())
+    }
+
+    /// Read the first shape from an IGES file.
+    pub fn read_iges(path: impl AsRef<Path>) -> Result<Self, Error> {
+        let mut reader = IGESControl_Reader_ctor();
+
+        let status = read_iges(
+            reader.pin_mut(),
+            path.as_ref().to_string_lossy().to_string(),
+        );
+        if status != IFSelect_ReturnStatus::IFSelect_RetDone {
+            return Err("failed to read IGES file".into());
+        }
+
+        let progress = Message_ProgressRange_ctor();
+        if reader.pin_mut().TransferRoots(&progress) == 0 {
+            return Err("IGES file contains no shapes".into());
+        }
+
+        // IGES has weak topology, so stitch the faces and fix them up before
+        // the shape is used.
+        let imported = Shape {
+            shape: one_shape_iges(&reader),
+        };
+
+        Ok(imported.heal().unwrap_or(imported))
+    }
+
+    /// Repair a shape, for example after reading an IGES file where faces can
+    /// be disconnected or oriented inconsistently.
+    pub fn heal(&self) -> Result<Self, Error> {
+        let raw =
+            unsafe { dslcad_heal_shape(self.shape() as *const TopoDS_Shape as *const c_void) };
+        if raw.is_null() {
+            return Err("could not heal the shape".into());
+        }
+
+        Ok(Shape {
+            shape: unsafe { UniquePtr::from_raw(raw as *mut TopoDS_Shape) },
+        })
+    }
+
     pub fn mesh(&self, deflection: f64) -> Result<Mesh, Error> {
         let mut incremental_mesh = BRepMesh_IncrementalMesh_ctor(&self.shape, deflection);
         if !incremental_mesh.IsDone() {
@@ -846,6 +931,32 @@ mod tests {
         let contents = std::fs::read_to_string(&path).unwrap();
         assert!(contents.contains("ISO-10303-21"));
         assert!(contents.contains("MANIFOLD_SOLID_BREP"));
+
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn it_can_round_trip_step() {
+        let shape = Shape::cube(10., 10., 10.).unwrap();
+        let path = std::env::temp_dir().join("dslcad_read_test.step");
+
+        shape.write_step(&path).unwrap();
+        let imported = Shape::read_step(&path).unwrap();
+
+        assert!((imported.volume() - 1000.).abs() < 0.1);
+
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn it_can_round_trip_iges() {
+        let shape = Shape::cube(10., 10., 10.).unwrap();
+        let path = std::env::temp_dir().join("dslcad_read_test.iges");
+
+        shape.write_iges(&path).unwrap();
+        let imported = Shape::read_iges(&path).unwrap();
+
+        assert!((imported.volume() - 1000.).abs() < 0.1);
 
         let _ = std::fs::remove_file(&path);
     }
