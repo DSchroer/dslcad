@@ -110,12 +110,49 @@ pub fn intersect(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
     Ok(Shape::intersect(left, right)?.into())
 }
 
-pub fn chamfer(shape: &Shape, radius: f64) -> Result<Value, RuntimeError> {
-    Ok(Shape::chamfer(shape, radius)?.into())
+pub fn chamfer(shape: &Shape, radius: f64, axis: Option<String>) -> Result<Value, RuntimeError> {
+    let axes = match axis {
+        Some(axis) => parse_directions(&axis)?,
+        None => Vec::new(),
+    };
+
+    Ok(Shape::chamfer_edges(shape, radius, &axes)?.into())
 }
 
-pub fn fillet(shape: &Shape, radius: f64) -> Result<Value, RuntimeError> {
-    Ok(Shape::fillet(shape, radius)?.into())
+pub fn fillet(shape: &Shape, radius: f64, axis: Option<String>) -> Result<Value, RuntimeError> {
+    let axes = match axis {
+        Some(axis) => parse_directions(&axis)?,
+        None => Vec::new(),
+    };
+
+    Ok(Shape::fillet_edges(shape, radius, &axes)?.into())
+}
+
+pub fn fillet_variable(
+    shape: &Shape,
+    radii: &[Value],
+    axis: Option<String>,
+) -> Result<Value, RuntimeError> {
+    let axes = match axis {
+        Some(axis) => parse_directions(&axis)?,
+        None => Vec::new(),
+    };
+
+    let mut points = Vec::new();
+    for item in radii {
+        let pair = item.to_list()?;
+        if pair.len() != 2 {
+            return Err(RuntimeError::UnexpectedType());
+        }
+
+        points.push((pair[0].to_number()?, pair[1].to_number()?));
+    }
+
+    if points.is_empty() {
+        return Err(RuntimeError::UnsetParameter(String::from("radii")));
+    }
+
+    Ok(Shape::fillet_variable(shape, &points, &axes)?.into())
 }
 
 pub fn translate(

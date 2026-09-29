@@ -8,19 +8,18 @@ use opencascade_sys::ffi::{
     gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_list_of_shape, new_vec, transfer_shape,
     write_step, BRepAlgoAPI_Common, BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse, BRepAlgoAPI_Section,
     BRepBuilderAPI_GTransform, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
-    BRepBuilderAPI_Transform, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor,
-    BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepGProp_VolumeProperties,
-    BRepMesh_IncrementalMesh_ctor, BRepOffsetAPI_MakeThickSolid_ctor, BRepOffsetAPI_ThruSections,
-    BRepOffsetAPI_ThruSections_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
-    BRepPrimAPI_MakeCone, BRepPrimAPI_MakeCone_ctor, BRepPrimAPI_MakeCylinder,
-    BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
-    BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
-    BRepPrimAPI_MakeSphere_ctor, BRepPrimAPI_MakeTorus, BRepPrimAPI_MakeTorus_ctor, BRep_Tool_Pnt,
-    BRep_Tool_Triangulation, GProp_GProps_CentreOfMass, GProp_GProps_ctor,
-    HandlePoly_Triangulation_Get, IFSelect_ReturnStatus, MakeThickSolidByJoin,
-    Poly_Triangulation_Node, STEPControl_Writer_ctor, ShapeUpgrade_UnifySameDomain_ctor,
-    TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge,
-    TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Vertex, TopoDS_cast_to_face,
+    BRepBuilderAPI_Transform, BRepGProp_VolumeProperties, BRepMesh_IncrementalMesh_ctor,
+    BRepOffsetAPI_MakeThickSolid_ctor, BRepOffsetAPI_ThruSections, BRepOffsetAPI_ThruSections_ctor,
+    BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCone,
+    BRepPrimAPI_MakeCone_ctor, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor,
+    BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol,
+    BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor,
+    BRepPrimAPI_MakeTorus, BRepPrimAPI_MakeTorus_ctor, BRep_Tool_Pnt, BRep_Tool_Triangulation,
+    GProp_GProps_CentreOfMass, GProp_GProps_ctor, HandlePoly_Triangulation_Get,
+    IFSelect_ReturnStatus, MakeThickSolidByJoin, Poly_Triangulation_Node, STEPControl_Writer_ctor,
+    ShapeUpgrade_UnifySameDomain_ctor, TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor,
+    TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Vertex,
+    TopoDS_cast_to_face,
 };
 use std::f64::consts::PI;
 use std::os::raw::c_void;
@@ -28,6 +27,26 @@ use std::path::Path;
 
 extern "C" {
     fn dslcad_sweep_shape(profile: *const c_void, path: *const c_void) -> *mut c_void;
+    fn dslcad_fillet(
+        shape: *const c_void,
+        radius: f64,
+        positions: *const f64,
+        radii: *const f64,
+        count: i32,
+        axis_mask: i32,
+    ) -> *mut c_void;
+    fn dslcad_chamfer(shape: *const c_void, distance: f64, axis_mask: i32) -> *mut c_void;
+}
+
+/// Pack the selected axes into the bit mask the C++ helpers expect.
+fn axis_mask(axes: &[Axis]) -> i32 {
+    axes.iter().fold(0, |mask, axis| {
+        mask | match axis {
+            Axis::X => 1,
+            Axis::Y => 2,
+            Axis::Z => 4,
+        }
+    })
 }
 
 pub struct Shape {
@@ -326,26 +345,90 @@ impl Shape {
         Ok(Builder::try_build(&mut body)?.into())
     }
 
-    pub fn fillet(target: &Shape, thickness: f64) -> Result<Self, Error> {
-        let mut fillet = BRepFilletAPI_MakeFillet_ctor(&target.shape);
-
-        let mut edge_explorer: UniqueExplorer<TopoDS_Edge> = UniqueExplorer::new(target);
-        while let Some(edge) = edge_explorer.next() {
-            fillet.pin_mut().add_edge(thickness, edge);
-        }
-
-        Ok(Builder::try_build(&mut fillet)?.into())
+    pub fn fillet(target: &Shape, radius: f64) -> Result<Self, Error> {
+        Self::fillet_edges(target, radius, &[])
     }
 
-    pub fn chamfer(target: &Shape, thickness: f64) -> Result<Self, Error> {
-        let mut chamfer = BRepFilletAPI_MakeChamfer_ctor(&target.shape);
-
-        let mut edge_explorer: UniqueExplorer<TopoDS_Edge> = UniqueExplorer::new(target);
-        while let Some(edge) = edge_explorer.next() {
-            chamfer.pin_mut().add_edge(thickness, edge);
+    /// Fillet the edges that run along one of the given axes. Without axes
+    /// every edge is filleted.
+    pub fn fillet_edges(target: &Shape, radius: f64, axes: &[Axis]) -> Result<Self, Error> {
+        if radius <= 0.0 {
+            return Err("fillet radius must be positive".into());
         }
 
-        Ok(Builder::try_build(&mut chamfer)?.into())
+        let raw = unsafe {
+            dslcad_fillet(
+                target.shape() as *const TopoDS_Shape as *const c_void,
+                radius,
+                std::ptr::null(),
+                std::ptr::null(),
+                0,
+                axis_mask(axes),
+            )
+        };
+
+        Self::from_raw(raw, "could not fillet the shape")
+    }
+
+    /// Fillet the edges with a radius that varies along each edge. Every entry
+    /// is a `(position, radius)` pair, where the position runs from 0 at the
+    /// start of the edge to 1 at the end.
+    pub fn fillet_variable(
+        target: &Shape,
+        radii: &[(f64, f64)],
+        axes: &[Axis],
+    ) -> Result<Self, Error> {
+        if radii.is_empty() {
+            return Err("a variable fillet needs at least one radius".into());
+        }
+
+        let positions: Vec<f64> = radii.iter().map(|(position, _)| *position).collect();
+        let values: Vec<f64> = radii.iter().map(|(_, radius)| *radius).collect();
+
+        let raw = unsafe {
+            dslcad_fillet(
+                target.shape() as *const TopoDS_Shape as *const c_void,
+                0.0,
+                positions.as_ptr(),
+                values.as_ptr(),
+                radii.len() as i32,
+                axis_mask(axes),
+            )
+        };
+
+        Self::from_raw(raw, "could not fillet the shape")
+    }
+
+    pub fn chamfer(target: &Shape, distance: f64) -> Result<Self, Error> {
+        Self::chamfer_edges(target, distance, &[])
+    }
+
+    /// Chamfer the edges that run along one of the given axes. Without axes
+    /// every edge is chamfered.
+    pub fn chamfer_edges(target: &Shape, distance: f64, axes: &[Axis]) -> Result<Self, Error> {
+        if distance <= 0.0 {
+            return Err("chamfer distance must be positive".into());
+        }
+
+        let raw = unsafe {
+            dslcad_chamfer(
+                target.shape() as *const TopoDS_Shape as *const c_void,
+                distance,
+                axis_mask(axes),
+            )
+        };
+
+        Self::from_raw(raw, "could not chamfer the shape")
+    }
+
+    fn from_raw(raw: *mut c_void, message: &'static str) -> Result<Self, Error> {
+        if raw.is_null() {
+            return Err(message.into());
+        }
+
+        Ok(Shape {
+            shape: unsafe { UniquePtr::from_raw(raw as *mut TopoDS_Shape) },
+        })
     }
 
     /// Merge faces and edges that share the same underlying geometry to
@@ -512,8 +595,6 @@ shape_builder!(BRepPrimAPI_MakeCylinder);
 shape_builder!(BRepPrimAPI_MakeCone);
 shape_builder!(BRepPrimAPI_MakeTorus);
 shape_builder!(BRepPrimAPI_MakePrism);
-shape_builder!(BRepFilletAPI_MakeFillet);
-shape_builder!(BRepFilletAPI_MakeChamfer);
 shape_builder!(BRepPrimAPI_MakeRevol);
 shape_builder!(BRepOffsetAPI_ThruSections);
 shape_builder!(BRepAlgoAPI_Fuse);
@@ -635,6 +716,42 @@ mod tests {
         let b = Shape::cube(10., 10., 10.).unwrap();
         let shape = Shape::chamfer(&b, 0.5).unwrap();
         shape.mesh(0.1).unwrap();
+    }
+
+    #[test]
+    fn it_fillets_selected_edges() {
+        let cube = Shape::cube(10., 10., 10.).unwrap();
+        let filleted = Shape::fillet_edges(&cube, 1., &[Axis::Z]).unwrap();
+
+        // Each of the four vertical edges loses (1 - pi/4) * 1 * 10.
+        let expected = 1000. - 4. * 10. * (1. - std::f64::consts::FRAC_PI_4);
+        assert!((filleted.volume() - expected).abs() < 0.05);
+    }
+
+    #[test]
+    fn it_chamfers_selected_edges() {
+        let cube = Shape::cube(10., 10., 10.).unwrap();
+        let chamfered = Shape::chamfer_edges(&cube, 1., &[Axis::Z]).unwrap();
+
+        // Each of the four vertical edges loses a 1x10 triangle.
+        let expected = 1000. - 4. * 0.5 * 10.;
+        assert!((chamfered.volume() - expected).abs() < 0.05);
+    }
+
+    #[test]
+    fn it_fillets_with_a_variable_radius() {
+        let cube = Shape::cube(10., 10., 10.).unwrap();
+        let filleted = Shape::fillet_variable(&cube, &[(0., 0.5), (1., 1.)], &[Axis::Z]).unwrap();
+
+        // The radius runs from 0.5 to 1 along each vertical edge, each slice
+        // losing the square outside the quarter circle: r^2 * (1 - pi / 4).
+        let profile = |t: f64| {
+            let r = 0.5 + 0.5 * t;
+            r * r * (1. - std::f64::consts::FRAC_PI_4)
+        };
+        let average = (profile(0.) + 4. * profile(0.5) + profile(1.)) / 6.;
+        let expected = 1000. - 4. * 10. * average;
+        assert!((filleted.volume() - expected).abs() < 0.1);
     }
 
     #[test]

@@ -138,8 +138,9 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 - `torus(radius=[number], tube=[number])` create a torus (radius defaults to 0.5, tube to 0.25)
 - `mirror(shape=shape, x=[bool], y=[bool], z=[bool])` mirror a shape across the plane perpendicular to the given axis
 - `union(left=shape, right=shape)` combine two shapes
-- `chamfer(shape=shape, radius=number)` chamfer edges
-- `fillet(shape=shape, radius=number)` fillet edges
+- `chamfer(shape=shape, radius=number, axis=[text])` chamfer edges (pass an axis to only chamfer edges running along it)
+- `fillet(shape=shape, radius=number, axis=[text])` fillet edges (pass an axis to only fillet edges running along it)
+- `fillet(shape=shape, radii=list, axis=[text])` fillet edges with a radius that varies along each edge, from a list of [position, radius] pairs
 - `difference(left=shape, right=shape)` cut one shape out of another
 - `intersect(left=shape, right=shape)` intersection between two shapes
 - `translate(shape=shape, x=[number], y=[number], z=[number])` move a shape

@@ -7,6 +7,7 @@ fn main() {
     build
         .cpp(true)
         .file("src/bend.cc")
+        .file("src/blend.cc")
         .file("src/bounds.cc")
         .file("src/point_map.cc")
         .file("src/sketch.cc")
@@ -23,6 +24,7 @@ fn main() {
     build.compile("dslcad_bend");
 
     println!("cargo:rerun-if-changed=src/bend.cc");
+    println!("cargo:rerun-if-changed=src/blend.cc");
     println!("cargo:rerun-if-changed=src/bounds.cc");
     println!("cargo:rerun-if-changed=src/point_map.cc");
     println!("cargo:rerun-if-changed=src/point_map.hxx");

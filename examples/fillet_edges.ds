@@ -1,0 +1,15 @@
+// Fillet and chamfer only selected edges, and with a variable radius.
+
+// Fillet only the vertical edges.
+cube(x=8, y=8, z=8) -> fillet(radius=1.5, axis="z");
+
+// Chamfer only the edges running along x.
+cube(x=8, y=8, z=8) -> chamfer(radius=1.5, axis="x") -> translate(x=12);
+
+// A variable radius fillet along the vertical edges: 0.5mm at the bottom,
+// 2mm at the top.
+cube(x=8, y=8, z=8) -> fillet(radii=[[0, 0.5], [1, 2]], axis="z") -> translate(x=24);
+
+view overview (angle="iso", zoom=0.9) {
+    model();
+}
