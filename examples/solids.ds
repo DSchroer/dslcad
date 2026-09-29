@@ -9,10 +9,13 @@ var lofted = loft(sections=[
 
 lofted -> translate(x=-12);
 
-// Sweep a circular profile along an L-shaped path.
+// Sweep a circular profile along a path with a smooth bend.
 var path = union(
-    left=line(start=point(x=0, y=0, z=0), end=point(x=0, y=0, z=8)),
-    right=line(start=point(x=0, y=0, z=8), end=point(x=8, y=0, z=8)),
+    left=line(start=point(x=0, y=0, z=0), end=point(x=0, y=0, z=6)),
+    right=union(
+        left=arc(start=point(x=0, y=0, z=6), center=point(x=1.2, y=0, z=8.8), end=point(x=4, y=0, z=10)),
+        right=line(start=point(x=4, y=0, z=10), end=point(x=10, y=0, z=10)),
+    ),
 );
 
 sweep(profile=circle(radius=1) -> center(), path=path) -> translate(x=4, y=-4);
