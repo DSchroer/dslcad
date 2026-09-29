@@ -1,0 +1,13 @@
+// A document that imports another and reuses the views it exports.
+var plate = ./plate.ds();
+plate;
+
+// The imported views (Front, Top) are available to address and reuse. Their
+// cameras are not inherited: each view keeps its own framing.
+view Assembly(angle="iso") {
+    model();
+}
+
+view PlateElevation(angle="front", projection="orthographic") {
+    plate.Front();
+}

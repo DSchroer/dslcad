@@ -196,8 +196,11 @@ impl Default for ShowFlags {
     }
 }
 
-/// A named camera together with the annotations it overlays on the shared
-/// model scene.
+/// A named camera together with the geometry and annotations it draws.
+///
+/// A view is empty by default: `parts` holds only the geometry authored in the
+/// view's body (including a `model()` reference), never the document's shared
+/// scene. The shared scene is [`Render::parts`].
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ViewDef {
     pub name: Option<String>,
@@ -207,6 +210,8 @@ pub struct ViewDef {
     pub target: Option<Point>,
     pub fit: bool,
     pub show: ShowFlags,
+    #[serde(default)]
+    pub parts: Vec<Part>,
     pub annotations: Vec<Annotation>,
 }
 

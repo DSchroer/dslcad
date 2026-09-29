@@ -43,6 +43,15 @@ pub struct Engine<'a> {
     cache: Option<&'a mut Cache>,
     /// Parameters declared at the root document, collected during evaluation.
     parameters: Vec<Parameter>,
+    /// The values produced by the document's top level, exposed to views as
+    /// `model()`. Restored around nested documents.
+    default_model: Vec<Value>,
+    /// How many views are currently being evaluated. `model` is the builtin
+    /// whenever this is greater than zero, including through `func` calls.
+    view_depth: usize,
+    /// Names of the views declared so far, so a variable cannot collide with
+    /// one (views and variables share a namespace).
+    declared_views: std::collections::HashSet<String>,
 }
 
 impl<'a> Engine<'a> {
@@ -55,6 +64,9 @@ impl<'a> Engine<'a> {
             current_document: None,
             cache: None,
             parameters: Vec::new(),
+            default_model: Vec::new(),
+            view_depth: 0,
+            declared_views: std::collections::HashSet::new(),
         }
     }
 
@@ -90,7 +102,57 @@ impl<'a> Engine<'a> {
             WithStack::from_err(RuntimeError::UnknownIdentifier(id.to_string()), &self.stack)
         })?;
 
-        self.eval_statements(id, statements)
+        self.eval_document(id, statements)
+    }
+
+    /// Evaluates a document in two phases: first the top level (which becomes
+    /// the default model `model()` refers to), then the views. Views therefore
+    /// see the whole default model regardless of where they are declared, and a
+    /// view can only call views declared before it.
+    fn eval_document(
+        &mut self,
+        id: DocId,
+        statements: &[Statement],
+    ) -> Result<ScriptInstance, WithStack<RuntimeError>> {
+        let mut defaults = Vec::new();
+        for statement in statements {
+            if matches!(statement, Statement::View(_, _)) {
+                continue;
+            }
+
+            self.stack.push(StackFrame::from_statement(&id, statement));
+            if self.stack.len() >= MAX_STACK_SIZE {
+                return Err(WithStack::from_err(
+                    RuntimeError::StackOverflow(),
+                    &self.stack,
+                ));
+            }
+            if let Some(v) = self.visit_statement(statement)? {
+                defaults.push(v);
+            }
+            self.stack.pop();
+        }
+
+        let saved_model = std::mem::replace(&mut self.default_model, defaults.clone());
+        let saved_views = std::mem::take(&mut self.declared_views);
+
+        let mut views = Vec::new();
+        for statement in statements {
+            if let Statement::View(view, span) = statement {
+                self.stack.push(StackFrame::from_statement(&id, statement));
+                if let Some(v) = self.visit_view(view, span)? {
+                    views.push(v);
+                }
+                self.stack.pop();
+            }
+        }
+
+        self.default_model = saved_model;
+        self.declared_views = saved_views;
+
+        defaults.extend(views);
+        ScriptInstance::from_scope(defaults, self.scope.clone())
+            .map_err(|e| WithStack::from_err(e, &self.stack))
     }
 
     fn with_scope<T>(&mut self, scope: Scope, f: impl FnOnce(&mut Self) -> T) -> T {
@@ -238,6 +300,19 @@ impl StatementVisitor for Engine<'_> {
         }: &Variable,
         _span: &Span,
     ) -> Self::Result {
+        if self.view_depth > 0 && name == "model" {
+            return Err(WithStack::from_err(
+                RuntimeError::UserDefined("'model' is reserved inside a view".to_string()),
+                &self.stack,
+            ));
+        }
+        if self.declared_views.contains(name.as_str()) {
+            return Err(WithStack::from_err(
+                RuntimeError::UserDefined(format!("'{name}' is already a view")),
+                &self.stack,
+            ));
+        }
+
         let resolved = match value {
             Some(value) => {
                 if let Some(value) = self.scope.get(name.as_str()).cloned() {
@@ -275,6 +350,13 @@ impl StatementVisitor for Engine<'_> {
     }
 
     fn visit_view(&mut self, view: &View, _span: &Span) -> Self::Result {
+        if self.declared_views.contains(&view.name) || self.scope.get(&view.name).is_some() {
+            return Err(WithStack::from_err(
+                RuntimeError::UserDefined(format!("'{}' is already defined", view.name)),
+                &self.stack,
+            ));
+        }
+
         let argument_values = view
             .arguments
             .iter()
@@ -299,12 +381,27 @@ impl StatementVisitor for Engine<'_> {
             .map_err(|e| WithStack::from_err(e, &self.stack))?;
 
         let document = self.current_document.as_ref().map(|d| d.to_string());
-        let values = self.eval_block(DocId::new_with_path("view", document), &view.body)?;
+
+        self.view_depth += 1;
+        let evaluated = self.eval_block(DocId::new_with_path("view", document), &view.body);
+        self.view_depth -= 1;
+        let values = evaluated?;
+
         let layers = values
             .iter()
             .flat_map(|value| value.flatten())
             .cloned()
             .collect();
+
+        // Views and variables share a namespace: binding the view name makes it
+        // callable from later views, and blocks a variable of the same name.
+        self.declared_views.insert(view.name.clone());
+        self.scope.set(
+            view.name.clone(),
+            Value::Function(Rc::new(Function::Constant {
+                value: Value::List(values),
+            })),
+        );
 
         Ok(Some(Value::View(Rc::new(ViewValue {
             name: camera.name,
@@ -557,6 +654,16 @@ impl ExpressionVisitor for Engine<'_> {
 
         match path {
             CallPath::Function(path) => {
+                // `model()` is the document's default model. It is the builtin
+                // only while a view is being evaluated; resolution goes through
+                // the view depth rather than scope so it reaches into `func`
+                // calls made from a view.
+                if let Expression::Reference(reference, _) = &**path {
+                    if reference.name == "model" && self.view_depth > 0 {
+                        return Ok(Value::List(self.default_model.clone()));
+                    }
+                }
+
                 let timer = Instant::now();
 
                 let value = self.visit_expression(path)?;
@@ -604,6 +711,7 @@ impl ExpressionVisitor for Engine<'_> {
                         })?
                         .into()
                     }
+                    Function::Constant { value } => value.clone(),
                 };
 
                 if timer.elapsed().as_millis() != 0 {

@@ -85,7 +85,7 @@ pub fn render(instance: Value, deflection: f64) -> Result<Render, RuntimeError> 
 pub fn render_with_cache(
     instance: Value,
     deflection: f64,
-    cache: Option<&mut Cache>,
+    mut cache: Option<&mut Cache>,
 ) -> Result<Render, RuntimeError> {
     let render_time = Instant::now();
 
@@ -104,8 +104,10 @@ pub fn render_with_cache(
         match value {
             Value::Annotation(annotation) => annotations.push((*annotation).clone()),
             Value::View(view) => {
-                // The view's geometry joins the shared scene, while its
-                // annotations belong to the view.
+                // A view is empty by default: its `parts` are only what its
+                // body authored (including any `model()` reference). The
+                // document's shared scene stays in `Render::parts`.
+                let mut view_parts = Vec::new();
                 let mut view_annotations = Vec::new();
                 for layer in &view.layers {
                     for value in layer.flatten() {
@@ -114,10 +116,15 @@ pub fn render_with_cache(
                                 view_annotations.push((**annotation).clone())
                             }
                             Value::View(_) => {}
-                            other => parts.push(other.clone()),
+                            other => view_parts.push(other.clone()),
                         }
                     }
                 }
+
+                let view_parts = match cache.as_deref_mut() {
+                    Some(cache) => values_to_output_cached(view_parts, deflection, cache)?,
+                    None => values_to_output(view_parts, deflection)?,
+                };
 
                 views.push(ViewDef {
                     name: view.name.clone(),
@@ -127,6 +134,7 @@ pub fn render_with_cache(
                     target: view.target,
                     fit: view.fit,
                     show: view.show,
+                    parts: view_parts,
                     annotations: view_annotations,
                 });
             }
@@ -466,6 +474,7 @@ mod tests {
 
         let value = run(r#"
             var part = cube();
+            part;
             view front(angle="front", projection="orthographic") {
                 part;
                 label(text="hi", at=point(x=0,y=0,z=0));
@@ -481,6 +490,87 @@ mod tests {
         assert_eq!(Some(90.0), view.angle.x);
         assert_eq!(Projection::Orthographic, view.projection);
         assert_eq!(1, view.annotations.len());
+        // View-body geometry is local to the view, not merged into the scene.
+        assert!(!view.parts.is_empty());
+    }
+
+    #[test]
+    fn an_empty_view_draws_nothing() {
+        let value = run(r#"
+            cube();
+            view top {}
+            "#);
+
+        let render = render(value, 0.1).unwrap();
+        assert!(!render.parts.is_empty());
+        assert_eq!(1, render.views.len());
+        assert!(render.views[0].parts.is_empty());
+        assert!(render.views[0].annotations.is_empty());
+    }
+
+    #[test]
+    fn model_includes_the_default_scene() {
+        let value = run(r#"
+            cube();
+            view top {
+                model();
+            }
+            "#);
+
+        let render = render(value, 0.1).unwrap();
+        assert!(!render.parts.is_empty());
+        assert!(
+            !render.views[0].parts.is_empty(),
+            "model() should bring the default scene into the view"
+        );
+    }
+
+    #[test]
+    fn model_is_only_reserved_inside_a_view() {
+        // Outside a view `model` is an ordinary identifier.
+        let value = run(r#"
+            var model = cube();
+            model;
+            view top {
+                model();
+            }
+            "#);
+
+        let render = render(value, 0.1).unwrap();
+        assert!(!render.parts.is_empty());
+        assert!(!render.views[0].parts.is_empty());
+    }
+
+    #[test]
+    fn views_can_call_each_other_without_inheriting_the_camera() {
+        let value = run(r#"
+            cube();
+            view base(angle="top") { model(); }
+            view detail(angle="front") { base(); }
+            "#);
+
+        let render = render(value, 0.1).unwrap();
+        let detail = render
+            .views
+            .iter()
+            .find(|v| v.name.as_deref() == Some("detail"))
+            .unwrap();
+        // `detail` gets base's content but keeps its own camera.
+        assert!(!detail.parts.is_empty());
+        assert_eq!(Some(90.0), detail.angle.x);
+    }
+
+    #[test]
+    fn a_view_and_a_variable_cannot_share_a_name() {
+        let parse_fails = |code: &'static str| {
+            let reader = TestReader(code);
+            Parser::new(reader, DocId::new("test".to_string()))
+                .parse()
+                .is_err()
+        };
+
+        assert!(parse_fails("view front {} var front = 1;"));
+        assert!(parse_fails("var front = 1; view front {}"));
     }
 
     #[test]

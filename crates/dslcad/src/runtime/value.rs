@@ -43,6 +43,11 @@ pub enum Function {
         clojure: Scope,
         statements: Rc<Vec<Statement>>,
     },
+    /// A view name, bound to the content it draws. Calling it returns that
+    /// content; the camera is never part of the result.
+    Constant {
+        value: Value,
+    },
 }
 
 /// A resolved `view` statement: a camera plus the values it draws.

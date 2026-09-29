@@ -68,10 +68,24 @@ pub struct RenderState {
 }
 
 impl RenderState {
-    /// The bounds of the currently rendered model, if any. Annotations are
+    /// The parts to draw: the active view's own geometry, or the document's
+    /// shared scene when no view is active. A view is empty by default, so this
+    /// is not simply the shared scene plus overrides.
+    pub fn parts(&self) -> &[Part] {
+        let Some(model) = &self.model else {
+            return &[];
+        };
+
+        match self.active_view.and_then(|index| model.views.get(index)) {
+            Some(view) => &view.parts,
+            None => &model.parts,
+        }
+    }
+
+    /// The bounds of the currently rendered scene, if any. Annotations are
     /// overlays and never affect the framing.
     pub fn aabb(&self) -> Option<BoundingBox> {
-        BoundingBox::from_parts(&self.model.as_ref()?.parts)
+        BoundingBox::from_parts(self.parts())
     }
 
     /// The available views, in declaration order.
@@ -99,16 +113,18 @@ impl RenderState {
         self.active_view
     }
 
-    /// Global annotations plus the active view's annotations.
+    /// The active view's annotations, or the shared annotations when no view is
+    /// active. A view draws only what it includes, so global annotations are
+    /// hidden while a view that does not call `model()` is active.
     pub fn annotations(&self) -> Vec<Annotation> {
-        let mut annotations = Vec::new();
-        if let Some(model) = &self.model {
-            annotations.extend(model.annotations.iter().cloned());
-            if let Some(view) = self.active_view.and_then(|index| model.views.get(index)) {
-                annotations.extend(view.annotations.iter().cloned());
-            }
+        let Some(model) = &self.model else {
+            return Vec::new();
+        };
+
+        match self.active_view.and_then(|index| model.views.get(index)) {
+            Some(view) => view.annotations.clone(),
+            None => model.annotations.clone(),
         }
-        annotations
     }
 }
 
@@ -148,11 +164,11 @@ fn mesh_renderer(
                 continue;
             }
 
-            let Some(Model { parts, entity, .. }) = &render_state.model else {
+            let Some(Model { entity, .. }) = &render_state.model else {
                 return;
             };
 
-            for (i, part) in parts.iter().enumerate() {
+            for (i, part) in render_state.parts().iter().enumerate() {
                 if let Part::Object { mesh, .. } = part {
                     let mesh = stl_to_triangle_mesh(mesh);
 
@@ -191,11 +207,11 @@ fn point_renderer(
                 continue;
             }
 
-            let Some(Model { parts, entity, .. }) = &render_state.model else {
+            let Some(Model { entity, .. }) = &render_state.model else {
                 return;
             };
 
-            for part in parts {
+            for part in render_state.parts() {
                 let color = feature_color(&render_state, part);
                 match part {
                     Part::Empty => {}
@@ -275,11 +291,11 @@ fn line_renderer(
                 continue;
             }
 
-            let Some(Model { parts, entity, .. }) = &render_state.model else {
+            let Some(Model { entity, .. }) = &render_state.model else {
                 return;
             };
 
-            for part in parts {
+            for part in render_state.parts() {
                 let color = feature_color(&render_state, part);
                 match part {
                     Part::Empty => {}

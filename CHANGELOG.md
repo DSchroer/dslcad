@@ -13,9 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Drawing annotations: `measure`, `convert`, `dimension` (linear, radial and angular), `label`, `leader`, `level`, `north`, `centerline` and `title`, rendered in the preview and screenshot
 - Embedded IBM Plex Mono (SIL OFL) as the annotation font, compiled into the binary at build time
 - `view name(angle=..., projection=..., zoom=...) { ... }` statement to author named views that group a camera with the annotations they draw; `--screenshot` renders the first view or a `--view <name>` one
+- `model()` to draw a document's default model (its top level geometry and annotations) inside a view
+- Views are callable: `view detail { base(); }` includes another view's content without inheriting its camera
+- Documents export their views: importing `./part.ds()` exposes `part.Front()`, and an emitted import contributes its views
 - `var name(type, min=0, max=100, step=1) = value;` parameter metadata and a parameters panel in the preview that edits them live
 
 ### Modified
+- Views are empty by default: a view draws only its body, and its geometry is no longer merged into the shared scene. Add `model();` to a view that should draw the default model
+- Views and variables share a namespace, so `view front` and `var front` cannot coexist
+- `view` statements are top level only
 - Updated the preview to Bevy 0.18 (from 0.15), together with `bevy_egui`, `bevy_points` and the orbit camera controller
 - Updated `thiserror`, `clap`, `indexmap`, `env_logger` and other dependencies
 

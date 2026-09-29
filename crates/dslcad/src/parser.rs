@@ -29,6 +29,9 @@ pub struct Parser<R> {
     variables: HashSet<String>,
     to_parse: Vec<DocId>,
     resource_loaders: HashMap<&'static str, Rc<dyn ResourceLoader>>,
+    /// How many `{ ... }`/`func` scopes enclose the current statement. Views
+    /// are top level only, so this must be zero to declare one.
+    scope_depth: usize,
 }
 
 /// The resolved target of a path call: either another document to run, or a
@@ -83,6 +86,7 @@ impl<T> Parser<T> {
             variables: HashSet::new(),
             to_parse: Vec::new(),
             resource_loaders: HashMap::new(),
+            scope_depth: 0,
         }
     }
 
@@ -194,6 +198,14 @@ impl<R: Reader + 'static> Parser<R> {
         take!(self, lexer, Token::View = "view");
         let sb = SpanBuilder::from(lexer);
 
+        if self.scope_depth > 0 {
+            return Err(DocumentParseError::Expected(
+                "top level",
+                "view".to_string(),
+                lexer.span(),
+            ));
+        }
+
         let name = match lexer.next() {
             Some(Token::Identifier) => lexer.slice().to_string(),
             Some(_) => {
@@ -206,12 +218,23 @@ impl<R: Reader + 'static> Parser<R> {
             None => return Err(DocumentParseError::UnexpectedEndOfFile()),
         };
 
+        if self.variables.contains(&name) || name == "model" {
+            return Err(DocumentParseError::DuplicateVariableName(
+                name.to_string(),
+                lexer.span(),
+            ));
+        }
+
         let arguments = match next_significant(lexer) {
             Some(Token::OpenBracket) => self.parse_call_arguments(lexer)?,
             _ => VecDeque::new(),
         };
 
         let body = self.parse_scope(lexer, false)?;
+
+        // Views and variables share a namespace. Registering after the body
+        // lets a view call views declared before it, but not itself.
+        self.variables.insert(name.clone());
 
         Ok(Statement::View(
             View {
@@ -582,7 +605,7 @@ impl<R: Reader + 'static> Parser<R> {
         let name = take!(self, lexer, Token::Identifier = "identifier" => lexer.slice());
         let sb = SpanBuilder::from(lexer);
 
-        if !self.variables.contains(name) && !Library::default().contains(name) {
+        if !self.variables.contains(name) && !Library::default().contains(name) && name != "model" {
             return Err(DocumentParseError::UndeclaredIdentifier(
                 name.to_string(),
                 lexer.span(),
@@ -763,7 +786,9 @@ impl<R: Reader + 'static> Parser<R> {
         take!(self, lexer, Token::OpenScope = "{");
 
         let outer = self.variables.clone();
+        self.scope_depth += 1;
         let statements = self.parse_document(lexer, Some(Token::CloseScope), allow_parameters)?;
+        self.scope_depth -= 1;
         self.variables = outer;
 
         take!(self, lexer, Token::CloseScope = "}");

@@ -360,7 +360,9 @@ fn render_to_screenshot(
 
     if let Some(index) = selected {
         let selected = render.views[index].clone();
-        render.annotations.extend(selected.annotations.clone());
+        // A view draws exactly what it includes, so replace the shared
+        // annotations rather than adding to them.
+        render.annotations = selected.annotations.clone();
         render.views.clear();
 
         projection = selected.projection;

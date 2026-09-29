@@ -28,7 +28,8 @@ Coordinates are in millimetres.
 - `a -> b()` pipe `a` into the first argument of `b`
 - `a.b` access property `b` of `a` (for example `point.x`, `shape.center`, `shape.volume`)
 - `list[0]` get an item of a list (the index is zero-based)
-- `view name(angle="front", projection="orthographic") { ... }` a named view: a camera plus the parts and annotations it draws
+- `view name(angle="front", projection="orthographic") { ... }` a named view: a camera plus the geometry and annotations it draws; views are empty by default, so call `model()` to draw the document's default model
+- `model()` inside a view, the document's default model (its top level geometry and annotations); reserved only inside views
 - `{ ... }` a scope; `func { ... }` a function that takes its own arguments
 - `if a: b() else: c()` branch on condition `a` (the `else` branch is required)
 - statements may end at a newline instead of a semicolon, like JavaScript automatic semicolon insertion

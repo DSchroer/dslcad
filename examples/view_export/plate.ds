@@ -1,0 +1,12 @@
+// A part that publishes its own named views. Importing it brings both the
+// geometry and the views along.
+cube(x=40, y=20, z=5)
+    -> difference(cylinder(radius=4, height=5) -> translate(x=20, y=10));
+
+view Front(angle="front", projection="orthographic") {
+    model();
+}
+
+view Top(angle="top", projection="orthographic") {
+    model();
+}
