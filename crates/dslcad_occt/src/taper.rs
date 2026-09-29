@@ -109,6 +109,79 @@ mod tests {
     }
 
     #[test]
+    fn it_gives_every_wall_the_same_angle() {
+        use crate::{Edge, Point, WireFactory};
+
+        // A sheared box whose y facing walls are not aligned with the axes, so
+        // a draft would lean them along their normals and each would move by a
+        // different amount along x. The ends are aligned with x and stay put.
+        let corners = [
+            Point::new(0., 0., 0.),
+            Point::new(10., 1., 0.),
+            Point::new(10., 3., 0.),
+            Point::new(0., 2., 0.),
+        ];
+
+        let mut wire = WireFactory::new();
+        for index in 0..4 {
+            wire.add_edge(&Edge::new_line(&corners[index], &corners[(index + 1) % 4]).unwrap());
+        }
+
+        let face = wire.build().unwrap();
+        let shape = Shape::extrude(&face, 0., 0., 1.).unwrap();
+        let tapered = Shape::taper(&shape, Axis::Z, &[Axis::Y], 20.).unwrap();
+
+        let amount = (20f64).to_radians().tan();
+
+        let top: Vec<[f64; 3]> = tapered
+            .points()
+            .unwrap()
+            .into_iter()
+            .filter(|point| (point[2] - 1.0).abs() < 1e-6)
+            .collect();
+
+        // The ends are still at x 0 and 10, and each slanted wall leaned inward
+        // by height * tan(angle).
+        let has = |x: f64, y: f64| {
+            top.iter()
+                .any(|point| (point[0] - x).abs() < 1e-6 && (point[1] - y).abs() < 1e-6)
+        };
+
+        assert!(has(0., amount), "lower wall did not lean by {amount}");
+        assert!(has(10., 1. + amount), "lower wall did not lean by {amount}");
+        assert!(has(0., 2. - amount), "upper wall did not lean by {amount}");
+        assert!(has(10., 3. - amount), "upper wall did not lean by {amount}");
+    }
+
+    #[test]
+    fn it_keeps_unselected_axes_in_place() {
+        // A cube rotated around z has walls that are not aligned with the
+        // axes. A taper along y must not move them along x, however they are
+        // oriented, and the top stays as wide as the base.
+        let cube = Shape::cube(10., 10., 1.).unwrap();
+        let rotated = cube.rotate(Axis::Z, 45.).unwrap();
+        let tapered = Shape::taper(&rotated, Axis::Z, &[Axis::Y], 45.).unwrap();
+
+        let (minimum, maximum) = rotated.bounds().unwrap();
+        let extent = maximum.x() - minimum.x();
+
+        let mut minimum_x = f64::MAX;
+        let mut maximum_x = f64::MIN;
+        for point in tapered.points().unwrap() {
+            if (point[2] - 1.0).abs() < 1e-6 {
+                minimum_x = minimum_x.min(point[0]);
+                maximum_x = maximum_x.max(point[0]);
+            }
+        }
+
+        assert!(
+            ((maximum_x - minimum_x) - extent).abs() < 1e-6,
+            "top x extent {} does not match the base extent {extent}",
+            maximum_x - minimum_x
+        );
+    }
+
+    #[test]
     fn it_keeps_the_original_shape_untouched() {
         let cube = Shape::cube(10., 10., 1.).unwrap();
         Shape::taper(&cube, Axis::Z, &[Axis::Y], 45.).unwrap();

@@ -1,45 +1,57 @@
 // Tapers the walls of a shape that run along one axis so they lean inward along
-// one or more other axes. Every wall facing a selected direction is rotated
-// about its intersection with the neutral plane at the base of the shape, which
-// translates its top edge inward by height * tan(angle) without scaling the
-// cross-section. BRepOffsetAPI_DraftAngle rebuilds the walls and the faces next
-// to them, so the shape stays closed.
+// one or more other axes. Every wall facing a selected axis has its top edge
+// translated inward along that axis by height * tan(angle), while the base of
+// the shape stays in place. The displacement is along the selected axes only,
+// so a taper along y never moves geometry along x. A shared edge or vertex
+// blends the walls around it, so a corner between two tapered walls moves along
+// both of their axes while the shape stays connected.
+#include <algorithm>
 #include <cmath>
 
 #include <Bnd_Box.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepLib.hxx>
-#include <BRepOffsetAPI_DraftAngle.hxx>
 #include <BRepTools.hxx>
+#include <BRepTools_Modifier.hxx>
 #include <BRep_Tool.hxx>
 #include <GeomLProp_SLProps.hxx>
 #include <Geom_Surface.hxx>
+#include <NCollection_DataMap.hxx>
 #include <ShapeFix_Shape.hxx>
 #include <Standard_Failure.hxx>
+#include <TopAbs_Orientation.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopLoc_Location.hxx>
+#include <TopTools_ShapeMapHasher.hxx>
 #include <TopoDS.hxx>
+#include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Shape.hxx>
+#include <TopoDS_Vertex.hxx>
 #include <gp_Dir.hxx>
-#include <gp_Pln.hxx>
 #include <gp_Pnt.hxx>
+#include <gp_XYZ.hxx>
+
+#include "point_map.hxx"
 
 namespace {
 
 // A wall counts as running along the up axis when its normal is nearly
-// perpendicular to it, and as facing a movement axis when its normal points
-// mostly along that axis.
+// perpendicular to it.
 const double MAX_UP_COMPONENT = 0.1;
-const double MIN_MOVE_COMPONENT = 0.5;
 
-gp_Dir axis_direction(int axis) {
-    return gp_Dir(axis == 0 ? 1.0 : 0.0, axis == 1 ? 1.0 : 0.0, axis == 2 ? 1.0 : 0.0);
-}
+// The direction every wall around a shared edge or vertex pushes it in, added
+// up per selected axis. The strongest wall around it breaks a tie when two
+// opposite walls meet, so the corner still moves instead of standing vertical.
+struct Blend {
+    double sum[3];
+    double weight[3];
+    double sign[3];
+};
 
-// Normal of a face at the middle of its UV range. Returns false for faces
-// whose normal is undefined, for example the apex of a cone.
+// The outward normal of a face at the middle of its UV range. Returns false for
+// faces whose normal is undefined, for example the apex of a cone.
 bool face_normal(const TopoDS_Face& face, gp_Dir& normal) {
     Standard_Real u1, u2, v1, v2;
     BRepTools::UVBounds(face, u1, u2, v1, v2);
@@ -56,7 +68,55 @@ bool face_normal(const TopoDS_Face& face, gp_Dir& normal) {
     }
 
     normal = properties.Normal().Transformed(location.Transformation());
+    if (face.Orientation() == TopAbs_REVERSED) {
+        normal.Reverse();
+    }
     return true;
+}
+
+using DirectionMap = NCollection_DataMap<TopoDS_Shape, gp_XYZ, TopTools_ShapeMapHasher>;
+using BlendMap = NCollection_DataMap<TopoDS_Shape, Blend, TopTools_ShapeMapHasher>;
+
+void blend_direction(BlendMap& map, const TopoDS_Shape& key, const double direction[3],
+                     const double weight[3]) {
+    Blend blend;
+    if (map.IsBound(key)) {
+        blend = map.Find(key);
+    } else {
+        for (int axis = 0; axis < 3; ++axis) {
+            blend.sum[axis] = 0.0;
+            blend.weight[axis] = 0.0;
+            blend.sign[axis] = 0.0;
+        }
+    }
+
+    for (int axis = 0; axis < 3; ++axis) {
+        if (direction[axis] == 0.0) {
+            continue;
+        }
+
+        blend.sum[axis] += direction[axis] * weight[axis];
+        if (weight[axis] > blend.weight[axis]) {
+            blend.weight[axis] = weight[axis];
+            blend.sign[axis] = direction[axis];
+        }
+    }
+
+    map.Bind(key, blend);
+}
+
+gp_XYZ blend_result(const Blend& blend) {
+    gp_XYZ direction(0.0, 0.0, 0.0);
+    for (int axis = 0; axis < 3; ++axis) {
+        if (blend.sum[axis] > 1e-12) {
+            direction.SetCoord(axis + 1, 1.0);
+        } else if (blend.sum[axis] < -1e-12) {
+            direction.SetCoord(axis + 1, -1.0);
+        } else if (blend.weight[axis] > 0.0) {
+            direction.SetCoord(axis + 1, blend.sign[axis]);
+        }
+    }
+    return direction;
 }
 
 } // namespace
@@ -85,69 +145,104 @@ extern "C" void* dslcad_taper_shape(const void* shape, int up_axis, int directio
             (xmax - xmin) * (xmax - xmin) + (ymax - ymin) * (ymax - ymin) +
             (zmax - zmin) * (zmax - zmin));
 
-        const gp_Dir up = axis_direction(up_axis);
-        const gp_Dir axes[3] = {axis_direction(0), axis_direction(1), axis_direction(2)};
-        const double angle = degrees * M_PI / 180.0;
+        const int up = up_axis;
+        const double base = minimum[up];
+        const double tangent = std::tan(degrees * M_PI / 180.0);
+        const gp_Dir up_direction(up == 0 ? 1.0 : 0.0, up == 1 ? 1.0 : 0.0,
+                                  up == 2 ? 1.0 : 0.0);
 
-        // The neutral plane sits at the base of the shape, so the taper
-        // translates the top of each wall and leaves the bottom in place.
-        gp_Pnt neutral(0.0, 0.0, 0.0);
-        neutral.SetCoord(up_axis + 1, minimum[up_axis]);
-        const gp_Pln plane(neutral, up);
+        const double tolerance = std::max(diagonal * 1e-6, 1e-9);
+        const double scale = std::max(diagonal, 1e-9);
 
-        BRepOffsetAPI_DraftAngle draft(input);
+        // The direction each wall's top edge moves along. A wall facing a
+        // selected axis moves inward along it; a wall facing the opposite way
+        // moves the other way. Walls running along the up axis only, and walls
+        // that do not face a selected axis, stay in place.
+        DirectionMap faces;
+        BlendMap edges;
+        BlendMap vertices;
 
-        int drafted = 0;
         for (TopExp_Explorer it(input, TopAbs_FACE); it.More(); it.Next()) {
             const TopoDS_Face face = TopoDS::Face(it.Current());
 
+            double direction[3] = {0.0, 0.0, 0.0};
+            double weight[3] = {0.0, 0.0, 0.0};
             gp_Dir normal;
-            if (!face_normal(face, normal)) {
-                continue;
-            }
-            if (std::fabs(normal.Dot(up)) > MAX_UP_COMPONENT) {
-                continue;
+            if (face_normal(face, normal) &&
+                std::fabs(normal.Dot(up_direction)) <= MAX_UP_COMPONENT) {
+                const double components[3] = {normal.X(), normal.Y(), normal.Z()};
+                for (int axis = 0; axis < 3; ++axis) {
+                    if (axis == up || (directions & (1 << axis)) == 0) {
+                        continue;
+                    }
+                    if (std::fabs(components[axis]) > 1e-9) {
+                        direction[axis] = components[axis] > 0.0 ? -1.0 : 1.0;
+                        weight[axis] = std::fabs(components[axis]);
+                    }
+                }
             }
 
-            bool facing = false;
+            gp_XYZ face_direction(0.0, 0.0, 0.0);
             for (int axis = 0; axis < 3; ++axis) {
-                if (axis == up_axis || (directions & (1 << axis)) == 0) {
-                    continue;
-                }
-                if (std::fabs(normal.Dot(axes[axis])) >= MIN_MOVE_COMPONENT) {
-                    facing = true;
-                    break;
-                }
+                face_direction.SetCoord(axis + 1, direction[axis]);
             }
-            if (!facing) {
-                continue;
-            }
+            faces.Bind(face, face_direction);
 
-            draft.Add(face, up, angle, plane);
-            if (draft.AddDone()) {
-                drafted++;
+            for (TopExp_Explorer edge(face, TopAbs_EDGE); edge.More(); edge.Next()) {
+                blend_direction(edges, TopoDS::Edge(edge.Current()), direction, weight);
+            }
+            for (TopExp_Explorer vertex(face, TopAbs_VERTEX); vertex.More(); vertex.Next()) {
+                blend_direction(vertices, TopoDS::Vertex(vertex.Current()), direction, weight);
             }
         }
 
-        // No wall faces the requested direction, so there is nothing to taper.
-        if (drafted == 0) {
-            return new TopoDS_Shape(input);
-        }
+        // Translate a point along the selected axes by the accumulated wall
+        // direction. The amount grows with the height above the base, so the
+        // base stays in place and every wall leans by the same angle.
+        auto translate = [&](const gp_XYZ& direction, const gp_Pnt& point) -> gp_Pnt {
+            const double coordinates[3] = {point.X(), point.Y(), point.Z()};
+            const double amount = (coordinates[up] - base) * tangent;
 
-        draft.Build();
-        if (!draft.IsDone()) {
+            double moved[3] = {coordinates[0], coordinates[1], coordinates[2]};
+            for (int axis = 0; axis < 3; ++axis) {
+                moved[axis] += direction.Coord(axis + 1) * amount;
+            }
+
+            return gp_Pnt(moved[0], moved[1], moved[2]);
+        };
+
+        auto blended = [](const BlendMap& map, const TopoDS_Shape& key) {
+            return blend_result(map.Find(key));
+        };
+
+        dslcad::PointMapModification::Map identity = [](const gp_Pnt& point) { return point; };
+        Handle(dslcad::PointMapModification) modification = new dslcad::PointMapModification(
+            identity,
+            [&](const TopoDS_Face& face, const gp_Pnt& point) {
+                return translate(faces.Find(face), point);
+            },
+            [&](const TopoDS_Edge& edge, const gp_Pnt& point) {
+                return translate(blended(edges, edge), point);
+            },
+            [&](const TopoDS_Vertex& vertex, const gp_Pnt& point) {
+                return translate(blended(vertices, vertex), point);
+            },
+            tolerance, scale);
+
+        BRepTools_Modifier modifier(input, modification);
+        if (!modifier.IsDone() || modification->Failed()) {
             return nullptr;
         }
 
-        TopoDS_Shape result = draft.Shape();
+        TopoDS_Shape result = modifier.ModifiedShape(input);
         if (result.IsNull()) {
             return nullptr;
         }
 
-        // Drafting leaves some edges with a parameterization that no longer
-        // matches their curve. Recomputing those is cheaper than a full
-        // ShapeFix pass, so only fall back to ShapeFix when that is not enough.
-        const double tolerance = std::max(diagonal * 1e-6, 1e-9);
+        // Fitting surfaces and curves leaves the pcurves of some edges with a
+        // parameterization that no longer matches their 3D curve. Recomputing
+        // those pcurves is cheaper than a full ShapeFix pass, so only fall back
+        // to ShapeFix when the shape stays invalid.
         if (!BRepCheck_Analyzer(result).IsValid()) {
             BRepLib::SameParameter(result, tolerance, Standard_True);
         }
