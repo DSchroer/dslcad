@@ -52,19 +52,14 @@ You should see the preview open with a cube:
 
 ![hello](./hello.png){: style="height:250px;aspect-ratio:auto"}
 
-To render a single view to a png file instead of opening the preview window:
+To render the part to png images instead of opening the preview window:
 
 ```sh
-dslcad ./hello.ds --screenshot
+dslcad ./hello.ds -o png
 ```
 
-An optional angle and zoom (magnification, larger moves the camera closer) can
-be provided. The angle is a sequence of axis rotations, where `x` tilts from
-the top (`x0` is a top view), `y` rotates around the vertical axis and `z`
-rolls the camera. A bare number is shorthand for `y`:
-
-```sh
-dslcad ./hello.ds --screenshot x90y45 2
-```
+Every declared view is written to its own image (`hello_<view>.png`), or a
+single `hello.png` when the script declares no views. Pass `--view <name>` to
+render just one view.
 
 To learn more, check out the [concepts](concepts.md) page.

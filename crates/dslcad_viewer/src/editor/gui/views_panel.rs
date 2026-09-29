@@ -3,6 +3,7 @@
 
 use crate::editor::camera::CameraCommand;
 use crate::editor::rendering::{RenderCommand, RenderState};
+use crate::settings::Settings;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPrimaryContextPass, PrimaryEguiContext};
 
@@ -31,6 +32,7 @@ fn views_panel(
     mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
     mut state: ResMut<RenderState>,
     panel: Res<ViewsPanel>,
+    mut store: ResMut<Settings>,
     mut render_events: MessageWriter<RenderCommand>,
     mut camera_events: MessageWriter<CameraCommand>,
 ) {
@@ -49,10 +51,12 @@ fn views_panel(
         return;
     }
 
-    egui::SidePanel::right("Views")
+    let mut context = egui_ctx.single_mut().unwrap();
+    let ctx = context.get_mut();
+    let response = egui::SidePanel::right("Views")
         .resizable(true)
-        .default_width(160.0)
-        .show_animated(egui_ctx.single_mut().unwrap().get_mut(), panel.open, |ui| {
+        .default_width(super::panel_size(&store, "views_width", 160.0))
+        .show_animated(ctx, panel.open, |ui| {
             ui.label(
                 egui::RichText::new("Views")
                     .heading()
@@ -81,6 +85,16 @@ fn views_panel(
                 }
             }
         });
+
+    if response.is_some() {
+        super::persist_panel_size(
+            ctx,
+            "Views",
+            &mut store,
+            "views_width",
+            super::PanelAxis::Width,
+        );
+    }
 }
 
 /// A full width, left aligned entry in the views list.

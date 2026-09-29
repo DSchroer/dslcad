@@ -3,6 +3,7 @@
 //! evaluator as script argument overrides, which triggers a re-render.
 
 use crate::editor::rendering::RenderState;
+use crate::settings::Settings;
 use crate::ParameterHandle;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPrimaryContextPass, PrimaryEguiContext};
@@ -45,6 +46,7 @@ fn parameters_panel(
     mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
     state: Res<RenderState>,
     panel: Res<ParametersPanel>,
+    mut store: ResMut<Settings>,
     handle: Res<ParameterHandle>,
     mut editor: ResMut<ParameterEditor>,
 ) {
@@ -53,10 +55,12 @@ fn parameters_panel(
         return;
     }
 
-    egui::SidePanel::left("Parameters")
+    let mut context = egui_ctx.single_mut().unwrap();
+    let ctx = context.get_mut();
+    let response = egui::SidePanel::left("Parameters")
         .resizable(true)
-        .default_width(220.0)
-        .show_animated(egui_ctx.single_mut().unwrap().get_mut(), panel.open, |ui| {
+        .default_width(super::panel_size(&store, "parameters_width", 220.0))
+        .show_animated(ctx, panel.open, |ui| {
             ui.label(
                 egui::RichText::new("Parameters")
                     .heading()
@@ -73,6 +77,16 @@ fn parameters_panel(
                     }
                 });
         });
+
+    if response.is_some() {
+        super::persist_panel_size(
+            ctx,
+            "Parameters",
+            &mut store,
+            "parameters_width",
+            super::PanelAxis::Width,
+        );
+    }
 }
 
 fn parameter_widget(

@@ -142,34 +142,85 @@ struct CheatSheet {
     cheetsheet: String,
 }
 
+/// The axis a resizable panel is sized along.
+pub(crate) enum PanelAxis {
+    Width,
+    Height,
+}
+
+/// The size to give a resizable panel before the user has ever resized it.
+pub(crate) fn panel_size(store: &Settings, key: &'static str, default: f32) -> f32 {
+    store
+        .load(key)
+        .and_then(|value| value.parse::<f32>().ok())
+        .unwrap_or(default)
+}
+
+/// Saves a resizable panel's size once the user finishes dragging its edge.
+pub(crate) fn persist_panel_size(
+    ctx: &egui::Context,
+    name: &str,
+    store: &mut Settings,
+    key: &'static str,
+    axis: PanelAxis,
+) {
+    let id = egui::Id::new(name);
+    let resizing = ctx
+        .read_response(id.with("__resize"))
+        .is_some_and(|response| response.drag_stopped());
+    if !resizing {
+        return;
+    }
+
+    if let Some(state) = egui::containers::panel::PanelState::load(ctx, id) {
+        let size = match axis {
+            PanelAxis::Width => state.rect.width(),
+            PanelAxis::Height => state.rect.height(),
+        };
+        store.store(key, &size.to_string());
+    }
+}
+
 fn console_panel(
     console: Res<Console>,
+    mut store: ResMut<Settings>,
     mut egui_ctx: Query<&mut EguiContext, With<PrimaryEguiContext>>,
 ) {
-    egui::TopBottomPanel::bottom("Console")
+    let mut context = egui_ctx.single_mut().unwrap();
+    let ctx = context.get_mut();
+    let response = egui::TopBottomPanel::bottom("Console")
         .resizable(true)
-        .default_height(180.0)
-        .show_animated(
-            egui_ctx.single_mut().unwrap().get_mut(),
-            console.open,
-            |ui| {
-                ui.label(
-                    egui::RichText::new("Console")
-                        .heading()
-                        .color(theme::heading_color()),
-                );
-                ui.separator();
+        .default_height(panel_size(&store, "console_height", 180.0))
+        .show_animated(ctx, console.open, |ui| {
+            // Fill the panel so dragging its top edge can resize it, exactly
+            // as the side panels do with their height.
+            ui.set_min_height(ui.available_height());
 
-                egui::ScrollArea::vertical()
-                    .max_height(256.)
-                    .max_width(f32::INFINITY)
-                    .auto_shrink([false, true])
-                    .show(ui, |ui| match &console.text {
-                        None => ui.monospace(""),
-                        Some(t) => ui.monospace(t),
-                    });
-            },
+            ui.label(
+                egui::RichText::new("Console")
+                    .heading()
+                    .color(theme::heading_color()),
+            );
+            ui.separator();
+
+            egui::ScrollArea::vertical()
+                .max_width(f32::INFINITY)
+                .auto_shrink([false, false])
+                .show(ui, |ui| match &console.text {
+                    None => ui.monospace(""),
+                    Some(t) => ui.monospace(t),
+                });
+        });
+
+    if response.is_some() {
+        persist_panel_size(
+            ctx,
+            "Console",
+            &mut store,
+            "console_height",
+            PanelAxis::Height,
         );
+    }
 }
 
 /// A quick access toolbar at the very bottom of the window that toggles the

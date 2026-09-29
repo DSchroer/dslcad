@@ -28,8 +28,8 @@ Examples:
   dslcad ./part.ds --preview        open part.ds in the interactive preview
   dslcad ./part.ds -o stl           render to an STL instead of a 3MF
   dslcad ./part.ds -o step          render to a STEP instead of a 3MF
+  dslcad ./part.ds -o png           render every declared view to a png
   dslcad ./part.ds -a size=5        render with the `size` script argument set to 5
-  dslcad ./part.ds -s x90y45 2      render a screenshot from an angle at 2x zoom
   dslcad cheatsheet                 print the full syntax and function reference
 
 Run `dslcad cheatsheet` for the language reference, and see
@@ -71,24 +71,8 @@ struct Args {
     preview: bool,
 
     #[cfg(feature = "preview")]
-    #[arg(
-        short,
-        long,
-        num_args = 0..=2,
-        value_names = ["ANGLE", "ZOOM"],
-        allow_negative_numbers = true,
-        conflicts_with = "preview"
-    )]
-    /// Render a single view of the part to a png file. Angle is a sequence of
-    /// axis rotations like `x90y45`, where x tilts from the top (x0 is a top
-    /// view), y rotates around the vertical axis and z rolls the camera. A bare
-    /// number is shorthand for a y rotation. Zoom is a magnification factor
-    /// (defaults to 1)
-    screenshot: Option<Vec<String>>,
-
-    #[cfg(feature = "preview")]
     #[arg(long)]
-    /// Named view to render with --screenshot (defaults to the first view)
+    /// Named view to render with `-o png` instead of every view
     view: Option<String>,
 
     #[arg(short, long)]
@@ -122,6 +106,8 @@ enum Output {
     Raw,
     Stl,
     Step,
+    /// Render every declared view to a png (preview feature only)
+    Png,
 }
 
 #[derive(Debug, Error)]
@@ -145,9 +131,12 @@ enum CliError {
     Notify(#[from] notify::Error),
     #[error(transparent)]
     Stl(#[from] protocol::StlError),
+    #[cfg(not(feature = "preview"))]
+    #[error("{0}")]
+    Unsupported(String),
     #[cfg(feature = "preview")]
-    #[error("invalid screenshot argument: {0}")]
-    InvalidScreenshot(String),
+    #[error("unknown view '{0}'")]
+    UnknownView(String),
     #[cfg(feature = "preview")]
     #[error("screenshot failed: {0}")]
     Screenshot(String),
@@ -174,32 +163,26 @@ fn main() {
     };
 
     #[cfg(feature = "preview")]
-    if let Some(values) = &args.screenshot {
-        let result = parse_screenshot_arguments(values);
-        match result {
-            Ok((angle, zoom)) => {
-                if let Err(e) = render_to_screenshot(
-                    &source,
-                    args.argument,
-                    args.deflection,
-                    angle,
-                    zoom,
-                    args.view,
-                ) {
-                    fail(e);
-                }
-            }
-            Err(e) => fail(e),
-        }
-        return;
-    }
-
-    #[cfg(feature = "preview")]
     if args.preview {
         if let Err(e) = render_to_preview(&source, args.argument, args.deflection) {
             fail(e);
         }
         return;
+    }
+
+    if let Output::Png = &args.output {
+        #[cfg(feature = "preview")]
+        {
+            if let Err(e) = render_to_screenshot(&source, args.argument, args.deflection, args.view)
+            {
+                fail(e);
+            }
+            return;
+        }
+        #[cfg(not(feature = "preview"))]
+        fail(CliError::Unsupported(
+            "png output requires the preview feature".to_string(),
+        ));
     }
 
     if let Err(e) = render_to_file(&source, args.argument, args.deflection, args.output) {
@@ -287,6 +270,9 @@ fn render_to_file(
             shape.write_step(&outpath).map_err(RuntimeError::from)?;
             outpath
         }
+        // `png` is rendered through the screenshot path in `main`, before this
+        // function runs.
+        Output::Png => unreachable!("png output is handled before rendering to a file"),
     };
 
     info!("output written to {}", outfile.to_string_lossy());
@@ -295,94 +281,100 @@ fn render_to_file(
 }
 
 #[cfg(feature = "preview")]
-fn parse_screenshot_arguments(
-    values: &[String],
-) -> Result<(dslcad_viewer::AxisAngles, Option<f64>), CliError> {
-    let angle = match values.first() {
-        Some(angle) => angle
-            .parse::<dslcad_viewer::AxisAngles>()
-            .map_err(CliError::InvalidScreenshot)?,
-        None => dslcad_viewer::AxisAngles::default(),
-    };
-
-    let zoom = match values.get(1) {
-        Some(zoom) => {
-            let zoom: f64 = zoom
-                .parse()
-                .map_err(|_| CliError::InvalidScreenshot(format!("invalid zoom '{}'", zoom)))?;
-            if zoom <= 0.0 {
-                return Err(CliError::InvalidScreenshot(
-                    "zoom must be greater than zero".to_string(),
-                ));
-            }
-            Some(zoom)
-        }
-        None => None,
-    };
-
-    Ok((angle, zoom))
-}
-
-#[cfg(feature = "preview")]
 fn render_to_screenshot(
     source: &str,
     arguments: Vec<String>,
     deflection: f64,
-    angle: dslcad_viewer::AxisAngles,
-    zoom: Option<f64>,
     view: Option<String>,
 ) -> Result<(), CliError> {
     use dslcad_storage::protocol::Projection;
-    use dslcad_viewer::{AxisAngles, Preview, ScreenshotOptions};
+    use dslcad_viewer::AxisAngles;
 
     let arguments = parse_arguments(arguments.iter().map(|i| i.as_str()))?;
-    let mut render = render(eval(load_ast(source)?, arguments)?, deflection)?;
+    let render = render(eval(load_ast(source)?, arguments)?, deflection)?;
 
     if !render.stdout.is_empty() {
         print!("{}", render.stdout);
-    }
-
-    let selected = match &view {
-        Some(name) => Some(
-            render
-                .views
-                .iter()
-                .position(|view| view.name.as_deref() == Some(name.as_str()))
-                .ok_or_else(|| CliError::InvalidScreenshot(format!("unknown view '{name}'")))?,
-        ),
-        None if !render.views.is_empty() => Some(0),
-        None => None,
-    };
-
-    let mut angle = angle;
-    let mut zoom = zoom;
-    let mut projection = Projection::Perspective;
-
-    if let Some(index) = selected {
-        let selected = render.views[index].clone();
-        // A view draws exactly what it includes, so replace the shared
-        // annotations rather than adding to them.
-        render.annotations = selected.annotations.clone();
-        render.views.clear();
-
-        projection = selected.projection;
-        if angle == AxisAngles::default() {
-            angle = AxisAngles {
-                x: selected.angle.x,
-                y: selected.angle.y,
-                z: selected.angle.z,
-            };
-        }
-        if zoom.is_none() {
-            zoom = selected.zoom.map(f64::from);
-        }
     }
 
     let stem = Path::new(source)
         .file_stem()
         .map(|stem| stem.to_string_lossy().to_string())
         .unwrap_or_else(|| "screenshot".to_string());
-    let path = env::current_dir()?.join(format!("{}.png", stem));
+
+    // `--view NAME` selects a single view. Without it every declared view is
+    // rendered, falling back to the default framing when there are none.
+    let selected: Vec<usize> = match &view {
+        Some(name) => vec![render
+            .views
+            .iter()
+            .position(|view| view.name.as_deref() == Some(name.as_str()))
+            .ok_or_else(|| CliError::UnknownView(name.clone()))?],
+        None => (0..render.views.len()).collect(),
+    };
+
+    if selected.is_empty() {
+        let path = env::current_dir()?.join(format!("{stem}.png"));
+        save_screenshot(
+            render,
+            path,
+            AxisAngles::default(),
+            None,
+            Projection::Perspective,
+        )?;
+        return Ok(());
+    }
+
+    let named = selected.len() > 1;
+    for index in selected {
+        let selected = render.views[index].clone();
+
+        // A view draws exactly what it includes, so replace the shared
+        // annotations rather than adding to them.
+        let mut view_render = render.clone();
+        view_render.annotations = selected.annotations.clone();
+        view_render.views.clear();
+
+        let view_angle = AxisAngles {
+            x: selected.angle.x,
+            y: selected.angle.y,
+            z: selected.angle.z,
+        };
+        let view_zoom = selected.zoom.map(f64::from);
+
+        let name = if named {
+            let name = selected
+                .name
+                .clone()
+                .unwrap_or_else(|| format!("view{}", index + 1));
+            format!("{stem}_{name}.png")
+        } else {
+            format!("{stem}.png")
+        };
+        let path = env::current_dir()?.join(name);
+
+        save_screenshot(
+            view_render,
+            path,
+            view_angle,
+            view_zoom,
+            selected.projection,
+        )?;
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "preview")]
+fn save_screenshot(
+    render: Render,
+    path: std::path::PathBuf,
+    angle: dslcad_viewer::AxisAngles,
+    zoom: Option<f64>,
+    projection: dslcad_storage::protocol::Projection,
+) -> Result<(), CliError> {
+    use dslcad_viewer::{Preview, ScreenshotOptions};
+
     let _ = std::fs::remove_file(&path);
 
     let (preview, handle) = Preview::new();
