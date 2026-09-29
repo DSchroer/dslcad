@@ -110,6 +110,7 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 - `rotate(shape=line|plane, angle=[number])` rotate a 2D shape around the z axis by angle in degrees
 - `rotate(shape=line|plane, x=[number], y=[number], z=[number])` rotate a 2D shape around the x, y and z axes by degrees
 - `scale(shape=line|plane, scale=number)` scale a 2D shape
+- `mirror(shape=line|plane, x=[bool], y=[bool], z=[bool])` mirror a 2D shape across the plane perpendicular to the given axis
 - `normalize(shape=line|plane)` scale a 2D shape so its largest side is 1 unit long
 - `center(shape=line|plane, x=[bool], y=[bool], z=[bool])` center a 2D shape on the given axes (each axis defaults to true; pass false to leave it in place)
 - `offset(shape=plane, distance=number)` expand a closed 2D shape outward by distance
@@ -125,6 +126,9 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 - `cube(x=[number], y=[number], z=[number])` create a cube or box (x, y and z default to 1)
 - `sphere(radius=[number])` create a sphere (radius defaults to 0.5)
 - `cylinder(radius=[number], height=[number])` create a cylinder (radius defaults to 0.5, height to 1)
+- `cone(radius1=[number], radius2=[number], height=[number])` create a cone or truncated cone (radius1 defaults to 0, radius2 to 0.5, height to 1)
+- `torus(radius=[number], tube=[number])` create a torus (radius defaults to 0.5, tube to 0.25)
+- `mirror(shape=shape, x=[bool], y=[bool], z=[bool])` mirror a shape across the plane perpendicular to the given axis
 - `union(left=shape, right=shape)` combine two shapes
 - `chamfer(shape=shape, radius=number)` chamfer edges
 - `fillet(shape=shape, radius=number)` fillet edges

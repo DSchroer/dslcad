@@ -11,14 +11,15 @@ use opencascade_sys::ffi::{
     BRepBuilderAPI_Transform, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor,
     BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepGProp_VolumeProperties,
     BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
-    BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
-    BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
-    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRep_Tool_Pnt, BRep_Tool_Triangulation,
-    GProp_GProps_CentreOfMass, GProp_GProps_ctor, HandlePoly_Triangulation_Get,
-    IFSelect_ReturnStatus, Poly_Triangulation_Node, STEPControl_Writer_ctor,
-    ShapeUpgrade_UnifySameDomain_ctor, TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor,
-    TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Vertex,
-    TopoDS_cast_to_face,
+    BRepPrimAPI_MakeCone, BRepPrimAPI_MakeCone_ctor, BRepPrimAPI_MakeCylinder,
+    BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
+    BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
+    BRepPrimAPI_MakeSphere_ctor, BRepPrimAPI_MakeTorus, BRepPrimAPI_MakeTorus_ctor, BRep_Tool_Pnt,
+    BRep_Tool_Triangulation, GProp_GProps_CentreOfMass, GProp_GProps_ctor,
+    HandlePoly_Triangulation_Get, IFSelect_ReturnStatus, Poly_Triangulation_Node,
+    STEPControl_Writer_ctor, ShapeUpgrade_UnifySameDomain_ctor, TopAbs_Orientation,
+    TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape,
+    TopoDS_Shape_to_owned, TopoDS_Vertex, TopoDS_cast_to_face,
 };
 use std::f64::consts::PI;
 use std::path::Path;
@@ -64,6 +65,27 @@ impl Shape {
         let axis = gp_Ax2_ctor(&origin.point, gp_DZ());
         let mut cylinder = BRepPrimAPI_MakeCylinder_ctor(&axis, radius, height);
         Ok(Builder::try_build(&mut cylinder)?.into())
+    }
+
+    /// A cone or truncated cone with `radius1` at the base and `radius2` at the
+    /// top. The base sits on the xy plane, at the same place a cylinder of the
+    /// same radius would sit.
+    pub fn cone(radius1: f64, radius2: f64, height: f64) -> Result<Self, Error> {
+        let base = radius1.max(radius2);
+        let origin = Point::new(base, base, 0.);
+        let axis = gp_Ax2_ctor(&origin.point, gp_DZ());
+        let mut cone = BRepPrimAPI_MakeCone_ctor(&axis, radius1, radius2, height, 2. * PI);
+        Ok(Builder::try_build(&mut cone)?.into())
+    }
+
+    /// A torus around the z axis. `radius` is the distance from the center to
+    /// the middle of the tube and `tube` is the radius of the tube. The torus
+    /// sits on the xy plane, spanning the same positive quadrant as a sphere.
+    pub fn torus(radius: f64, tube: f64) -> Result<Self, Error> {
+        let origin = Point::new(radius + tube, radius + tube, tube);
+        let axis = gp_Ax2_ctor(&origin.point, gp_DZ());
+        let mut torus = BRepPrimAPI_MakeTorus_ctor(&axis, radius, tube, 0., 2. * PI, 2. * PI);
+        Ok(Builder::try_build(&mut torus)?.into())
     }
 
     pub fn extrude(wire: &Wire, x: f64, y: f64, z: f64) -> Result<Self, Error> {
@@ -406,6 +428,8 @@ macro_rules! shape_builder {
 shape_builder!(BRepPrimAPI_MakeBox);
 shape_builder!(BRepPrimAPI_MakeSphere);
 shape_builder!(BRepPrimAPI_MakeCylinder);
+shape_builder!(BRepPrimAPI_MakeCone);
+shape_builder!(BRepPrimAPI_MakeTorus);
 shape_builder!(BRepPrimAPI_MakePrism);
 shape_builder!(BRepFilletAPI_MakeFillet);
 shape_builder!(BRepFilletAPI_MakeChamfer);
@@ -535,6 +559,24 @@ mod tests {
     fn it_can_write_cylinder_stl() {
         let shape = Shape::cylinder(10., 100.).unwrap();
         shape.mesh(0.1).unwrap();
+    }
+
+    #[test]
+    fn it_can_make_a_cone() {
+        let cone = Shape::cone(2., 1., 4.).unwrap();
+
+        // Volume of a truncated cone: 1/3 * pi * h * (r1^2 + r1 * r2 + r2^2).
+        let expected = PI / 3. * 4. * (4. + 2. + 1.);
+        assert!((cone.volume() - expected).abs() < 1e-6);
+    }
+
+    #[test]
+    fn it_can_make_a_torus() {
+        let torus = Shape::torus(2., 0.5).unwrap();
+
+        // Volume of a torus: 2 * pi^2 * R * r^2.
+        let expected = 2. * PI * PI * 2. * 0.25;
+        assert!((torus.volume() - expected).abs() < 1e-6);
     }
 
     #[test]

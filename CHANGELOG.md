@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `cone` and `torus` primitives
+- `mirror` operator to reflect a 2D or 3D shape across the plane perpendicular to an axis
 - In-memory caching while the preview is running, so editing a model only recomputes the values that changed
 - `taper` operator to draft the walls of a 3D shape inward along an axis without scaling its cross-section
 - Drawing annotations: `measure`, `convert`, `dimension` (linear, radial and angular), `label`, `leader`, `level`, `north`, `centerline` and `title`, rendered in the preview and screenshot

@@ -28,6 +28,57 @@ pub fn cylinder(radius: Option<f64>, height: Option<f64>) -> Result<Value, Runti
     Ok(base.into())
 }
 
+pub fn cone(
+    radius1: Option<f64>,
+    radius2: Option<f64>,
+    height: Option<f64>,
+) -> Result<Value, RuntimeError> {
+    let radius1 = radius1.unwrap_or(0.0);
+    let radius2 = radius2.unwrap_or(0.5);
+    let height = height.unwrap_or(1.0);
+
+    Ok(Shape::cone(radius1, radius2, height)?.into())
+}
+
+pub fn torus(radius: Option<f64>, tube: Option<f64>) -> Result<Value, RuntimeError> {
+    let radius = radius.unwrap_or(0.5);
+    let tube = tube.unwrap_or(0.25);
+
+    let base = Shape::torus(radius, tube)?;
+    Ok(base.into())
+}
+
+pub fn mirror(
+    shape: &Shape,
+    x: Option<bool>,
+    y: Option<bool>,
+    z: Option<bool>,
+) -> Result<Value, RuntimeError> {
+    let (x, y, z) = mirror_axes(x, y, z)?;
+    let matrix = [x, 0.0, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 0.0, z, 0.0];
+
+    Ok(Shape::transform(shape, &matrix)?.into())
+}
+
+/// Turn the per-axis mirror flags into the diagonal of a reflection matrix.
+/// Returns an error when no axis was selected, because mirroring on no axis
+/// would silently return the original shape.
+pub(super) fn mirror_axes(
+    x: Option<bool>,
+    y: Option<bool>,
+    z: Option<bool>,
+) -> Result<(f64, f64, f64), RuntimeError> {
+    if x.is_none() && y.is_none() && z.is_none() {
+        return Err(RuntimeError::UnsetParameter(String::from("x, y, or z")));
+    }
+
+    Ok((
+        if x.unwrap_or(false) { -1.0 } else { 1.0 },
+        if y.unwrap_or(false) { -1.0 } else { 1.0 },
+        if z.unwrap_or(false) { -1.0 } else { 1.0 },
+    ))
+}
+
 pub fn union_shape(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
     Ok(Shape::fuse(left, right)?.into())
 }

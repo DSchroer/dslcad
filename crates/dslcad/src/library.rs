@@ -479,6 +479,7 @@ impl Default for Library {
             bind!(rotate, faces::rotate[shape=shape2d, angle=option_number], Category::TwoD, "rotate a 2D shape around the z axis by angle in degrees"),
             bind!(rotate, faces::rotate_3d[shape=shape2d, x=option_number, y=option_number, z=option_number], Category::TwoD, "rotate a 2D shape around the x, y and z axes by degrees"),
             bind!(scale, faces::scale[shape=shape2d, scale=number], Category::TwoD, "scale a 2D shape"),
+            bind!(mirror, faces::mirror[shape=shape2d, x=option_bool, y=option_bool, z=option_bool], Category::TwoD, "mirror a 2D shape across the plane perpendicular to the given axis"),
             bind!(
                 normalize,
                 faces::normalize[shape = shape2d],
@@ -513,6 +514,9 @@ impl Default for Library {
                 "create a sphere (radius defaults to 0.5)"
             ),
             bind!(cylinder, shapes::cylinder[radius=option_number, height=option_number], Category::ThreeD, "create a cylinder (radius defaults to 0.5, height to 1)"),
+            bind!(cone, shapes::cone[radius1=option_number, radius2=option_number, height=option_number], Category::ThreeD, "create a cone or truncated cone (radius1 defaults to 0, radius2 to 0.5, height to 1)"),
+            bind!(torus, shapes::torus[radius=option_number, tube=option_number], Category::ThreeD, "create a torus (radius defaults to 0.5, tube to 0.25)"),
+            bind!(mirror, shapes::mirror[shape=shape, x=option_bool, y=option_bool, z=option_bool], Category::ThreeD, "mirror a shape across the plane perpendicular to the given axis"),
             bind!(union, shapes::union_shape[left=shape, right=shape], Category::ThreeD, "combine two shapes"),
             bind!(chamfer, shapes::chamfer[shape=shape, radius=number], Category::ThreeD, "chamfer edges"),
             bind!(fillet, shapes::fillet[shape=shape, radius=number], Category::ThreeD, "fillet edges"),
