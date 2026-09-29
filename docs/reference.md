@@ -73,8 +73,11 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 ## Properties
 - `point.x`, `point.y`, `point.z` coordinates of a point
 - `2d_value.center` center of a 2D object
+- `2d_value.length` length of a line or the perimeter of a 2D object
+- `2d_value.area` area enclosed by a 2D object
 - `3d_value.center` center of a 3D object
 - `3d_value.volume` volume of a 3D object
+- `3d_value.area` surface area of a 3D object
 
 ## Signature Notation
 - `name(type)` required argument of the given type

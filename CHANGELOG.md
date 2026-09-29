@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Shape properties: `area` on 3D shapes, `length` and `area` on 2D shapes
 - `fillet` and `chamfer` can select edges by axis
 - `loft`, `sweep` and `shell` operators to build solids from sections and paths, and to hollow them
 - `ellipse`, `spline` and `bezier` sketch curves

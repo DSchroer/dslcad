@@ -8,14 +8,15 @@ use opencascade_sys::ffi::{
     gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_list_of_shape, new_vec, transfer_shape,
     write_step, BRepAlgoAPI_Common, BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse, BRepAlgoAPI_Section,
     BRepBuilderAPI_GTransform, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
-    BRepBuilderAPI_Transform, BRepGProp_VolumeProperties, BRepMesh_IncrementalMesh_ctor,
-    BRepOffsetAPI_MakeThickSolid_ctor, BRepOffsetAPI_ThruSections, BRepOffsetAPI_ThruSections_ctor,
-    BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor, BRepPrimAPI_MakeCone, BRepPrimAPI_MakeCone_ctor,
-    BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism,
-    BRepPrimAPI_MakePrism_ctor, BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor,
-    BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeSphere_ctor, BRepPrimAPI_MakeTorus,
-    BRepPrimAPI_MakeTorus_ctor, BRep_Tool_Pnt, BRep_Tool_Triangulation, GProp_GProps_CentreOfMass,
-    GProp_GProps_ctor, HandlePoly_Triangulation_Get, IFSelect_ReturnStatus, MakeThickSolidByJoin,
+    BRepBuilderAPI_Transform, BRepGProp_SurfaceProperties, BRepGProp_VolumeProperties,
+    BRepMesh_IncrementalMesh_ctor, BRepOffsetAPI_MakeThickSolid_ctor, BRepOffsetAPI_ThruSections,
+    BRepOffsetAPI_ThruSections_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
+    BRepPrimAPI_MakeCone, BRepPrimAPI_MakeCone_ctor, BRepPrimAPI_MakeCylinder,
+    BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
+    BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
+    BRepPrimAPI_MakeSphere_ctor, BRepPrimAPI_MakeTorus, BRepPrimAPI_MakeTorus_ctor, BRep_Tool_Pnt,
+    BRep_Tool_Triangulation, GProp_GProps_CentreOfMass, GProp_GProps_ctor,
+    HandlePoly_Triangulation_Get, IFSelect_ReturnStatus, MakeThickSolidByJoin,
     Poly_Triangulation_Node, STEPControl_Writer_ctor, ShapeUpgrade_UnifySameDomain_ctor,
     TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge,
     TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Vertex, TopoDS_cast_to_face,
@@ -412,6 +413,13 @@ impl Shape {
         props.Mass()
     }
 
+    /// Total surface area of the shape.
+    pub fn area(&self) -> f64 {
+        let mut props = GProp_GProps_ctor();
+        BRepGProp_SurfaceProperties(self.shape(), props.pin_mut());
+        props.Mass()
+    }
+
     pub fn write_step(&self, path: impl AsRef<Path>) -> Result<(), Error> {
         let mut writer = STEPControl_Writer_ctor();
 
@@ -756,6 +764,12 @@ mod tests {
         let hollow = Shape::shell(&cube, 1.).unwrap();
 
         assert!((hollow.volume() - 488.).abs() < 0.1);
+    }
+
+    #[test]
+    fn it_can_measure_the_surface_area() {
+        let cube = Shape::cube(2., 2., 2.).unwrap();
+        assert!((cube.area() - 24.).abs() < 1e-9);
     }
 
     #[test]
