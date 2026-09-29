@@ -1,0 +1,23 @@
+// Primitive solids: cone and torus.
+
+// A cone and a torus fused into a tower, plus its mirror image.
+var tower = cone(radius1=3, radius2=1, height=6)
+    -> union(right=torus(radius=2, tube=0.5) -> translate(x=0.5, y=0.5, z=3.5));
+
+tower -> translate(x=8);
+tower -> mirror(x=true) -> translate(x=-8);
+
+// `mirror` also works on 2D shapes. The C-shaped profiles below face each
+// other because the right one is flipped across the yz plane.
+var profile = face(parts=[
+    point(x=0, y=0), point(x=3, y=0), point(x=3, y=0.5),
+    point(x=1.5, y=0.5), point(x=1.5, y=1.5), point(x=3, y=1.5),
+    point(x=3, y=2), point(x=0, y=2),
+]);
+
+profile -> extrude(z=0.5) -> translate(x=2, y=-6);
+profile -> mirror(x=true) -> extrude(z=0.5) -> translate(x=-2, y=-6);
+
+view overview (angle="iso", zoom=1.6) {
+    model();
+}

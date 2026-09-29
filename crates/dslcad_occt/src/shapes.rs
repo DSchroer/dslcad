@@ -91,21 +91,16 @@ pub trait DsShape: for<'a> From<&'a TopoDS_Shape> {
         .into())
     }
 
+    /// Mirror the shape across the plane perpendicular to `axis` that passes
+    /// through the origin.
     fn mirror(&self, axis: Axis) -> Result<Self, Error> {
-        let mut transform = new_transform();
-        let gp_axis = match axis {
-            Axis::X => gp_OX(),
-            Axis::Y => gp_OY(),
-            Axis::Z => gp_OZ(),
+        let values = match axis {
+            Axis::X => [-1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+            Axis::Y => [1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+            Axis::Z => [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0],
         };
-        transform.pin_mut().set_mirror_axis(gp_axis);
 
-        Ok(Builder::try_build(&mut BRepBuilderAPI_Transform_ctor(
-            self.shape(),
-            &transform,
-            true,
-        ))?
-        .into())
+        self.transform(&values)
     }
 
     fn fuse(&self, right: &Self) -> Result<Self, Error> {
@@ -170,5 +165,18 @@ mod tests {
         assert!((maximum.y() - 4.0).abs() < 1e-9);
         assert!((maximum.z() - 6.0).abs() < 1e-9);
         assert!((cube.max_dimension().unwrap() - 6.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn it_mirrors_shapes_across_planes() {
+        let cube = Shape::cube(1., 2., 3.).unwrap();
+        let mirrored = cube.mirror(Axis::X).unwrap();
+        let (minimum, maximum) = mirrored.bounds().unwrap();
+
+        assert!((minimum.x() + 1.0).abs() < 1e-9);
+        assert!(maximum.x().abs() < 1e-9);
+        assert!(minimum.y().abs() < 1e-9);
+        assert!((maximum.y() - 2.0).abs() < 1e-9);
+        assert!((maximum.z() - 3.0).abs() < 1e-9);
     }
 }

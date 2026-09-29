@@ -218,6 +218,21 @@ pub fn scale(shape: Value, size: f64) -> Result<Value, RuntimeError> {
     Ok(same_type(&shape, result))
 }
 
+pub fn mirror(
+    shape: Value,
+    x: Option<bool>,
+    y: Option<bool>,
+    z: Option<bool>,
+) -> Result<Value, RuntimeError> {
+    let (x, y, z) = super::shapes::mirror_axes(x, y, z)?;
+    let matrix = [x, 0.0, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 0.0, z, 0.0];
+
+    let wire = shape.to_wire()?;
+    let result = Wire::transform(&wire, &matrix)?;
+
+    Ok(same_type(&shape, result))
+}
+
 pub fn normalize(shape: Value) -> Result<Value, RuntimeError> {
     let wire = shape.to_wire()?;
     let length = wire.max_dimension()?;
