@@ -467,7 +467,25 @@ impl Default for Library {
                 Category::TwoD,
                 "create a circle (radius defaults to 0.5)"
             ),
+            bind!(
+                ellipse,
+                faces::ellipse[x = option_number, y = option_number],
+                Category::TwoD,
+                "create an ellipse (x and y are the semi-axes, they default to 1 and 0.5)"
+            ),
             bind!(arc, faces::arc[start=point, center=point, end=point], Category::TwoD, "create an arcing line between three points"),
+            bind!(
+                bezier,
+                faces::bezier[points = list],
+                Category::TwoD,
+                "create a bezier curve from a list of control points"
+            ),
+            bind!(
+                spline,
+                faces::spline[points = list],
+                Category::TwoD,
+                "create a spline that passes through a list of points"
+            ),
             bind!(union, faces::union_edge[left=shape2d, right=shape2d], Category::TwoD, "combine two 2D shapes"),
             bind!(
                 face,
@@ -493,6 +511,8 @@ impl Default for Library {
                 "center a 2D shape on the given axes (each axis defaults to true; pass false to leave it in place)"
             ),
             bind!(offset, faces::offset[shape=plane, distance=number], Category::TwoD, "expand a closed 2D shape outward by distance"),
+            bind!(fillet, faces::fillet[shape=plane, radius=number], Category::TwoD, "round the corners of a 2D shape"),
+            bind!(chamfer, faces::chamfer[shape=plane, radius=number], Category::TwoD, "chamfer the corners of a 2D shape"),
             bind!(simplify, faces::simplify[shape=shape2d, tolerance=option_number], Category::TwoD, "remove detail from a line or plane so it stays within tolerance of the original"),
             bind!(thicken, faces::thicken[shape=line, distance=option_number, x=option_number, y=option_number, z=option_number], Category::TwoD, "turn a line into a face by thickening it"),
             // 3D

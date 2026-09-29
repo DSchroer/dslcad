@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `ellipse`, `spline` and `bezier` sketch curves
+- `fillet` and `chamfer` operators for the corners of 2D shapes
 - `cone` and `torus` primitives
 - `mirror` operator to reflect a 2D or 3D shape across the plane perpendicular to an axis
 - In-memory caching while the preview is running, so editing a model only recomputes the values that changed

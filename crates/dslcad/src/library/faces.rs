@@ -26,6 +26,31 @@ pub fn arc(start: &Point, center: &Point, end: &Point) -> Result<Value, RuntimeE
     Ok(Value::Line(Rc::new(edge.build()?)))
 }
 
+pub fn bezier(points: &[Value]) -> Result<Value, RuntimeError> {
+    let points = collect_points(points)?;
+
+    let mut edge = WireFactory::new();
+    edge.add_edge(&Edge::new_bezier(&points)?);
+
+    Ok(Value::Line(Rc::new(edge.build()?)))
+}
+
+pub fn spline(points: &[Value]) -> Result<Value, RuntimeError> {
+    let points = collect_points(points)?;
+
+    let mut edge = WireFactory::new();
+    edge.add_edge(&Edge::new_spline(&points)?);
+
+    Ok(Value::Line(Rc::new(edge.build()?)))
+}
+
+fn collect_points(values: &[Value]) -> Result<Vec<Point>, RuntimeError> {
+    values
+        .iter()
+        .map(|value| Ok((*value.to_point()?).clone()))
+        .collect()
+}
+
 pub fn square(x: Option<f64>, y: Option<f64>) -> Result<Value, RuntimeError> {
     let mut edge = WireFactory::new();
 
@@ -62,6 +87,20 @@ pub fn circle(radius: Option<f64>) -> Result<Value, RuntimeError> {
     edge.add_edge(&Edge::new_arc(&c, &d, &a)?);
 
     Ok(Value::Plane(Rc::new(edge.build()?)))
+}
+
+pub fn ellipse(x: Option<f64>, y: Option<f64>) -> Result<Value, RuntimeError> {
+    let x = x.unwrap_or(1.0);
+    let y = y.unwrap_or(0.5);
+
+    let mut edge = WireFactory::new();
+    edge.add_edge(&Edge::new_ellipse(x, y)?);
+    let wire = edge.build()?;
+
+    // Like `circle`, keep the shape in the positive quadrant.
+    let wire = Wire::translate(&wire, &Point::new(x, y, 0.0))?;
+
+    Ok(Value::Plane(Rc::new(wire)))
 }
 
 pub fn extrude(
@@ -261,6 +300,14 @@ pub fn center(
 
 pub fn offset(shape: &Wire, distance: f64) -> Result<Value, RuntimeError> {
     Ok(Value::Plane(Rc::new(shape.offset(distance)?)))
+}
+
+pub fn fillet(shape: &Wire, radius: f64) -> Result<Value, RuntimeError> {
+    Ok(Value::Plane(Rc::new(shape.fillet_2d(radius)?)))
+}
+
+pub fn chamfer(shape: &Wire, radius: f64) -> Result<Value, RuntimeError> {
+    Ok(Value::Plane(Rc::new(shape.chamfer_2d(radius)?)))
 }
 
 pub fn simplify(shape: Value, tolerance: Option<f64>) -> Result<Value, RuntimeError> {
