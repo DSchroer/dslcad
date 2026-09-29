@@ -1,5 +1,6 @@
 mod advanced;
 mod bend;
+mod boolean;
 mod bounds;
 mod command;
 mod compound;
@@ -15,6 +16,7 @@ mod taper;
 mod triangle_mesh;
 mod wire;
 
+pub use boolean::*;
 pub use edge::*;
 pub use error::*;
 pub use mesh::*;

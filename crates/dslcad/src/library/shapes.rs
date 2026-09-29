@@ -1,6 +1,6 @@
 use crate::runtime::{RuntimeError, Value};
 
-use dslcad_occt::{Axis, DsShape, Point, Shape, Wire};
+use dslcad_occt::{Axis, BooleanGlue, BooleanOperation, DsShape, Point, Shape, Wire};
 use std::rc::Rc;
 
 pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
@@ -79,8 +79,20 @@ pub(super) fn mirror_axes(
     ))
 }
 
-pub fn union_shape(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
-    Ok(Shape::fuse(left, right)?.into())
+pub fn union_shape(
+    left: &Shape,
+    right: &Shape,
+    glue: Option<String>,
+    fuzzy: Option<f64>,
+) -> Result<Value, RuntimeError> {
+    Ok(Shape::boolean(
+        left,
+        right,
+        BooleanOperation::Fuse,
+        parse_glue(glue)?,
+        fuzzy,
+    )?
+    .into())
 }
 
 pub fn loft(sections: &[Value]) -> Result<Value, RuntimeError> {
@@ -102,12 +114,52 @@ pub fn shell(shape: &Shape, thickness: f64) -> Result<Value, RuntimeError> {
     Ok(Shape::shell(shape, thickness)?.into())
 }
 
-pub fn difference(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
-    Ok(Shape::cut(left, right)?.into())
+pub fn difference(
+    left: &Shape,
+    right: &Shape,
+    glue: Option<String>,
+    fuzzy: Option<f64>,
+) -> Result<Value, RuntimeError> {
+    Ok(Shape::boolean(left, right, BooleanOperation::Cut, parse_glue(glue)?, fuzzy)?.into())
 }
 
-pub fn intersect(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
-    Ok(Shape::intersect(left, right)?.into())
+pub fn intersect(
+    left: &Shape,
+    right: &Shape,
+    glue: Option<String>,
+    fuzzy: Option<f64>,
+) -> Result<Value, RuntimeError> {
+    Ok(Shape::boolean(
+        left,
+        right,
+        BooleanOperation::Common,
+        parse_glue(glue)?,
+        fuzzy,
+    )?
+    .into())
+}
+
+/// Parse the glue option of a boolean operation.
+fn parse_glue(glue: Option<String>) -> Result<BooleanGlue, RuntimeError> {
+    Ok(match glue.as_deref() {
+        None | Some("off") => BooleanGlue::Off,
+        Some("shift") => BooleanGlue::Shift,
+        Some("full") => BooleanGlue::Full,
+        Some(_) => return Err(RuntimeError::UnexpectedType()),
+    })
+}
+
+pub fn transform(shape: &Shape, matrix: &[Value]) -> Result<Value, RuntimeError> {
+    let values: Vec<f64> = matrix
+        .iter()
+        .map(|value| value.to_number())
+        .collect::<Result<_, _>>()?;
+
+    if values.len() != 12 {
+        return Err(RuntimeError::UnexpectedType());
+    }
+
+    Ok(Shape::transform(shape, &values)?.into())
 }
 
 pub fn chamfer(shape: &Shape, radius: f64, axis: Option<String>) -> Result<Value, RuntimeError> {

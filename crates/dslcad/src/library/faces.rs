@@ -1,5 +1,5 @@
 use crate::runtime::{RuntimeError, Value};
-use dslcad_occt::{Axis, DsShape, Edge, Point, Shape, Wire, WireFactory};
+use dslcad_occt::{Axis, DsShape, Edge, OffsetJoin, Point, Shape, Wire, WireFactory};
 use std::rc::Rc;
 
 pub fn point(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
@@ -298,8 +298,31 @@ pub fn center(
     translate(shape, Some(x), Some(y), Some(z))
 }
 
-pub fn offset(shape: &Wire, distance: f64) -> Result<Value, RuntimeError> {
-    Ok(Value::Plane(Rc::new(shape.offset(distance)?)))
+pub fn offset(shape: &Wire, distance: f64, join: Option<String>) -> Result<Value, RuntimeError> {
+    let join = match join.as_deref() {
+        None | Some("arc") => OffsetJoin::Arc,
+        Some("tangent") => OffsetJoin::Tangent,
+        Some("intersection") => OffsetJoin::Intersection,
+        Some(_) => return Err(RuntimeError::UnexpectedType()),
+    };
+
+    Ok(Value::Plane(Rc::new(shape.offset_with(distance, join)?)))
+}
+
+pub fn transform(shape: Value, matrix: &[Value]) -> Result<Value, RuntimeError> {
+    let values: Vec<f64> = matrix
+        .iter()
+        .map(|value| value.to_number())
+        .collect::<Result<_, _>>()?;
+
+    if values.len() != 12 {
+        return Err(RuntimeError::UnexpectedType());
+    }
+
+    let wire = shape.to_wire()?;
+    let result = Wire::transform(&wire, &values)?;
+
+    Ok(same_type(&shape, result))
 }
 
 pub fn fillet(shape: &Wire, radius: f64) -> Result<Value, RuntimeError> {
