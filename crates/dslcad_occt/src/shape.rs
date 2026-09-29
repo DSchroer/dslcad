@@ -5,24 +5,30 @@ use crate::{Error, Mesh, Point, Wire};
 use cxx::UniquePtr;
 use log::debug;
 use opencascade_sys::ffi::{
-    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_vec, transfer_shape, write_step,
-    BRepAlgoAPI_Common, BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse, BRepAlgoAPI_Section,
+    gp_Ax2_ctor, gp_DZ, gp_OX, gp_OY, gp_OZ, new_list_of_shape, new_vec, transfer_shape,
+    write_step, BRepAlgoAPI_Common, BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse, BRepAlgoAPI_Section,
     BRepBuilderAPI_GTransform, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeFace_wire,
     BRepBuilderAPI_Transform, BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeChamfer_ctor,
     BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeFillet_ctor, BRepGProp_VolumeProperties,
-    BRepMesh_IncrementalMesh_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
+    BRepMesh_IncrementalMesh_ctor, BRepOffsetAPI_MakeThickSolid_ctor, BRepOffsetAPI_ThruSections,
+    BRepOffsetAPI_ThruSections_ctor, BRepPrimAPI_MakeBox, BRepPrimAPI_MakeBox_ctor,
     BRepPrimAPI_MakeCone, BRepPrimAPI_MakeCone_ctor, BRepPrimAPI_MakeCylinder,
     BRepPrimAPI_MakeCylinder_ctor, BRepPrimAPI_MakePrism, BRepPrimAPI_MakePrism_ctor,
     BRepPrimAPI_MakeRevol, BRepPrimAPI_MakeRevol_ctor, BRepPrimAPI_MakeSphere,
     BRepPrimAPI_MakeSphere_ctor, BRepPrimAPI_MakeTorus, BRepPrimAPI_MakeTorus_ctor, BRep_Tool_Pnt,
     BRep_Tool_Triangulation, GProp_GProps_CentreOfMass, GProp_GProps_ctor,
-    HandlePoly_Triangulation_Get, IFSelect_ReturnStatus, Poly_Triangulation_Node,
-    STEPControl_Writer_ctor, ShapeUpgrade_UnifySameDomain_ctor, TopAbs_Orientation,
-    TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge, TopoDS_Shape,
-    TopoDS_Shape_to_owned, TopoDS_Vertex, TopoDS_cast_to_face,
+    HandlePoly_Triangulation_Get, IFSelect_ReturnStatus, MakeThickSolidByJoin,
+    Poly_Triangulation_Node, STEPControl_Writer_ctor, ShapeUpgrade_UnifySameDomain_ctor,
+    TopAbs_Orientation, TopAbs_ShapeEnum, TopExp_Explorer_ctor, TopLoc_Location_ctor, TopoDS_Edge,
+    TopoDS_Shape, TopoDS_Shape_to_owned, TopoDS_Vertex, TopoDS_cast_to_face,
 };
 use std::f64::consts::PI;
+use std::os::raw::c_void;
 use std::path::Path;
+
+extern "C" {
+    fn dslcad_sweep_shape(profile: *const c_void, path: *const c_void) -> *mut c_void;
+}
 
 pub struct Shape {
     pub(crate) shape: UniquePtr<TopoDS_Shape>,
@@ -96,6 +102,81 @@ impl Shape {
         Self::from_contours(wire, |contour| {
             Self::revolve_contour(contour, axis, degrees)
         })
+    }
+
+    /// Loft a solid through a list of section wires.
+    pub fn loft(sections: &[Wire]) -> Result<Self, Error> {
+        if sections.len() < 2 {
+            return Err("a loft needs at least two sections".into());
+        }
+
+        let mut loft = BRepOffsetAPI_ThruSections_ctor(true);
+        for section in sections {
+            if section.is_compound() {
+                return Err("loft sections must each be a single contour".into());
+            }
+            loft.pin_mut().AddWire(section.wire());
+        }
+        loft.pin_mut().CheckCompatibility(true);
+
+        Ok(Builder::try_build(&mut loft)?.into())
+    }
+
+    /// Sweep a profile wire along a path wire.
+    pub fn sweep(profile: &Wire, path: &Wire) -> Result<Self, Error> {
+        if profile.is_compound() {
+            return Err("sweep profiles must be a single contour".into());
+        }
+        if path.is_compound() {
+            return Err("sweep paths must be a single wire".into());
+        }
+
+        let mut face_builder = BRepBuilderAPI_MakeFace_wire(profile.wire(), false);
+        let face = Builder::try_build(&mut face_builder)?;
+
+        let raw = unsafe {
+            dslcad_sweep_shape(
+                face as *const TopoDS_Shape as *const c_void,
+                path.as_ref() as *const TopoDS_Shape as *const c_void,
+            )
+        };
+        if raw.is_null() {
+            return Err("could not sweep the profile".into());
+        }
+
+        Ok(Shape {
+            shape: unsafe { UniquePtr::from_raw(raw as *mut TopoDS_Shape) },
+        })
+    }
+
+    /// Hollow a solid, leaving walls of the given thickness.
+    pub fn shell(shape: &Shape, thickness: f64) -> Result<Self, Error> {
+        if thickness <= 0.0 {
+            return Err("shell thickness must be positive".into());
+        }
+
+        // Offsetting the solid inward gives the cavity; cutting it out leaves
+        // the walls.
+        let closing_faces = new_list_of_shape();
+        let mut offset = BRepOffsetAPI_MakeThickSolid_ctor();
+        MakeThickSolidByJoin(
+            offset.pin_mut(),
+            shape.shape(),
+            &closing_faces,
+            -thickness,
+            1e-3,
+        );
+
+        if !offset.IsDone() {
+            return Err("could not shell the shape".into());
+        }
+
+        let inner = Shape::from(offset.pin_mut().Shape());
+        if inner.shape.ShapeType() != TopAbs_ShapeEnum::TopAbs_SOLID {
+            return Err("could not shell the shape".into());
+        }
+
+        shape.cut(&inner)
     }
 
     fn from_contours(
@@ -434,6 +515,7 @@ shape_builder!(BRepPrimAPI_MakePrism);
 shape_builder!(BRepFilletAPI_MakeFillet);
 shape_builder!(BRepFilletAPI_MakeChamfer);
 shape_builder!(BRepPrimAPI_MakeRevol);
+shape_builder!(BRepOffsetAPI_ThruSections);
 shape_builder!(BRepAlgoAPI_Fuse);
 shape_builder!(BRepAlgoAPI_Cut);
 shape_builder!(BRepAlgoAPI_Common);
@@ -577,6 +659,42 @@ mod tests {
         // Volume of a torus: 2 * pi^2 * R * r^2.
         let expected = 2. * PI * PI * 2. * 0.25;
         assert!((torus.volume() - expected).abs() < 1e-6);
+    }
+
+    #[test]
+    fn it_can_loft_between_sections() {
+        let bottom = square(0., 0., 10.);
+        let top = square(4., 4., 2.)
+            .translate(&Point::new(0., 0., 10.))
+            .unwrap();
+
+        let shape = Shape::loft(&[bottom, top]).unwrap();
+
+        // A linear transition between two centered squares gives
+        // h/3 * (A1 + A2 + sqrt(A1 * A2)).
+        let expected = 10. / 3. * (100. + 4. + (100. * 4.0f64).sqrt());
+        assert!((shape.volume() - expected).abs() < 0.1);
+    }
+
+    #[test]
+    fn it_can_sweep_a_profile_along_a_path() {
+        let profile = square(-1., -1., 2.);
+
+        let mut path = WireFactory::new();
+        path.add_edge(&Edge::new_line(&Point::new(0., 0., 0.), &Point::new(0., 0., 10.)).unwrap());
+        let path = path.build().unwrap();
+
+        let shape = Shape::sweep(&profile, &path).unwrap();
+
+        assert!((shape.volume() - 40.).abs() < 0.01);
+    }
+
+    #[test]
+    fn it_can_shell_a_shape() {
+        let cube = Shape::cube(10., 10., 10.).unwrap();
+        let hollow = Shape::shell(&cube, 1.).unwrap();
+
+        assert!((hollow.volume() - 488.).abs() < 0.1);
     }
 
     #[test]

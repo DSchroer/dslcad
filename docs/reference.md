@@ -125,6 +125,9 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 ## 3D
 - `extrude(shape=plane, x=[number], y=[number], z=[number])` extrude a face into a 3D shape
 - `revolve(shape=plane, x=[number], y=[number], z=[number])` revolve a face around the x, y or z axis (the value is the angle in degrees)
+- `loft(sections=list)` loft through a list of 2D sections
+- `sweep(profile=plane, path=line|plane)` sweep a 2D profile along a line or plane path
+- `shell(shape=shape, thickness=number)` hollow a shape leaving walls of the given thickness
 - `bend(shape=shape, x=[number], y=[number], z=[number])` bend a shape around the x, y and z axes (each value is an angle in degrees)
 - `taper(shape=shape, x=[number], y=[number], z=[number], axis=[text])` taper the walls running along the x, y or z axis inward along the given axis (the value is the angle in degrees; the axis selects the sides and defaults to every other axis, accepting combinations like "xy")
 - `simplify(shape=shape)` merge same-domain faces and edges of a shape to reduce its complexity
