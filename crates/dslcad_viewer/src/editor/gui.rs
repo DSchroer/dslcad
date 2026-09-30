@@ -41,7 +41,7 @@ impl GuiPlugin {
 impl Plugin for GuiPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CheatSheet {
-            cheetsheet: self.cheatsheet.clone(),
+            cheatsheet: self.cheatsheet.clone(),
         })
         .insert_resource(self.parameters.clone())
         .insert_resource(Console {
@@ -139,7 +139,7 @@ impl Console {
 
 #[derive(Resource)]
 struct CheatSheet {
-    cheetsheet: String,
+    cheatsheet: String,
 }
 
 /// The axis a resizable panel is sized along.

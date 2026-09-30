@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The preview's views, parameters and console panels remember their size between runs
 
 ### Modified
+- The preview's cheat sheet is split into collapsible sections with a search box, so operators are easier to find
 - Views are empty by default: a view draws only its body, and its geometry is no longer merged into the shared scene. Add `model();` to a view that should draw the default model
 - Views and variables share a namespace, so `view front` and `var front` cannot coexist
 - `view` statements are top level only
