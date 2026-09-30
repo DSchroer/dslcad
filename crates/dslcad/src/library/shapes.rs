@@ -110,12 +110,22 @@ pub fn intersect(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
     Ok(Shape::intersect(left, right)?.into())
 }
 
-pub fn chamfer(shape: &Shape, radius: f64) -> Result<Value, RuntimeError> {
-    Ok(Shape::chamfer(shape, radius)?.into())
+pub fn chamfer(shape: &Shape, radius: f64, axis: Option<String>) -> Result<Value, RuntimeError> {
+    let axes = match axis {
+        Some(axis) => parse_directions(&axis)?,
+        None => Vec::new(),
+    };
+
+    Ok(Shape::chamfer_edges(shape, radius, &axes)?.into())
 }
 
-pub fn fillet(shape: &Shape, radius: f64) -> Result<Value, RuntimeError> {
-    Ok(Shape::fillet(shape, radius)?.into())
+pub fn fillet(shape: &Shape, radius: f64, axis: Option<String>) -> Result<Value, RuntimeError> {
+    let axes = match axis {
+        Some(axis) => parse_directions(&axis)?,
+        None => Vec::new(),
+    };
+
+    Ok(Shape::fillet_edges(shape, radius, &axes)?.into())
 }
 
 pub fn translate(
