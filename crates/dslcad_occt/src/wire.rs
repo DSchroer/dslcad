@@ -16,6 +16,14 @@ use std::pin::Pin;
 
 const EPSILON: f64 = 1e-9;
 
+/// How an offset handles the corners of a wire.
+#[derive(Clone, Copy)]
+pub enum OffsetJoin {
+    Arc,
+    Tangent,
+    Intersection,
+}
+
 pub struct WireFactory {
     make_wire: UniquePtr<BRepBuilderAPI_MakeWire>,
 }
@@ -164,8 +172,18 @@ impl Wire {
     }
 
     pub fn offset(&self, distance: f64) -> Result<Self, Error> {
-        let mut offset =
-            BRepOffsetAPI_MakeOffset_wire_ctor(self.as_wire()?, GeomAbs_JoinType::GeomAbs_Arc);
+        self.offset_with(distance, OffsetJoin::Arc)
+    }
+
+    /// Offset the wire, choosing how the offset handles corners.
+    pub fn offset_with(&self, distance: f64, join: OffsetJoin) -> Result<Self, Error> {
+        let join = match join {
+            OffsetJoin::Arc => GeomAbs_JoinType::GeomAbs_Arc,
+            OffsetJoin::Tangent => GeomAbs_JoinType::GeomAbs_Tangent,
+            OffsetJoin::Intersection => GeomAbs_JoinType::GeomAbs_Intersection,
+        };
+
+        let mut offset = BRepOffsetAPI_MakeOffset_wire_ctor(self.as_wire()?, join);
         offset.pin_mut().Perform(distance, 0.0);
         Ok(Builder::try_build(&mut offset)?.into())
     }

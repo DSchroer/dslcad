@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Glue and fuzzy options for boolean operators, a `join` option for 2D `offset` and a `transform` operator
 - `distance`, `contains`, `split`, `defeature` and `hole` operators
 - Import `step` and `iges` files as 3D shapes, and `-o iges` export
 - Shape properties: `area` on 3D shapes, `length` and `area` on 2D shapes

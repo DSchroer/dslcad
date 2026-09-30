@@ -121,7 +121,8 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 - `mirror(shape=line|plane, x=[bool], y=[bool], z=[bool])` mirror a 2D shape across the plane perpendicular to the given axis
 - `normalize(shape=line|plane)` scale a 2D shape so its largest side is 1 unit long
 - `center(shape=line|plane, x=[bool], y=[bool], z=[bool])` center a 2D shape on the given axes (each axis defaults to true; pass false to leave it in place)
-- `offset(shape=plane, distance=number)` expand a closed 2D shape outward by distance
+- `offset(shape=plane, distance=number, join=[text])` expand a closed 2D shape outward by distance (join accepts arc, tangent or intersection)
+- `transform(shape=line|plane, matrix=list)` transform a 2D shape with a 3x4 matrix given as a list of 12 numbers
 - `fillet(shape=plane, radius=number)` round the corners of a 2D shape
 - `chamfer(shape=plane, radius=number)` chamfer the corners of a 2D shape
 - `simplify(shape=line|plane, tolerance=[number])` remove detail from a line or plane so it stays within tolerance of the original
@@ -142,15 +143,16 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 - `cone(radius1=[number], radius2=[number], height=[number])` create a cone or truncated cone (radius1 defaults to 0, radius2 to 0.5, height to 1)
 - `torus(radius=[number], tube=[number])` create a torus (radius defaults to 0.5, tube to 0.25)
 - `mirror(shape=shape, x=[bool], y=[bool], z=[bool])` mirror a shape across the plane perpendicular to the given axis
-- `union(left=shape, right=shape)` combine two shapes
+- `union(left=shape, right=shape, glue=[text], fuzzy=[number])` combine two shapes (glue accepts off, shift or full)
 - `chamfer(shape=shape, radius=number, axis=[text])` chamfer edges (pass an axis to only chamfer edges running along it)
 - `fillet(shape=shape, radius=number, axis=[text])` fillet edges (pass an axis to only fillet edges running along it)
-- `difference(left=shape, right=shape)` cut one shape out of another
-- `intersect(left=shape, right=shape)` intersection between two shapes
+- `difference(left=shape, right=shape, glue=[text], fuzzy=[number])` cut one shape out of another (glue accepts off, shift or full)
+- `intersect(left=shape, right=shape, glue=[text], fuzzy=[number])` intersection between two shapes (glue accepts off, shift or full)
 - `translate(shape=shape, x=[number], y=[number], z=[number])` move a shape
 - `rotate(shape=shape, x=[number], y=[number], z=[number])` rotate a shape around the x, y and z axes by degrees
 - `scale(shape=shape, scale=number)` scale a shape uniformly
 - `scale(shape=shape, x=[number], y=[number], z=[number])` scale a shape independently on the x, y and z axes
+- `transform(shape=shape, matrix=list)` transform a shape with a 3x4 matrix given as a list of 12 numbers
 - `normalize(shape=shape)` scale a shape so its largest side is 1 unit long
 - `center(shape=shape, x=[bool], y=[bool], z=[bool])` center a shape on the given axes (each axis defaults to true; pass false to leave it in place)
 - `slice(left=shape, right=line|plane)` cut a 2D cross-section out of a shape

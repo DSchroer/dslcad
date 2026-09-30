@@ -1,0 +1,25 @@
+// Boolean glue options, transforms and offset joins.
+
+// Two boxes sharing a face exactly: glue "shift" makes the union robust.
+var glued = cube(x=10, y=10, z=10)
+    -> union(right=cube(x=10, y=10, z=10) -> translate(x=10), glue="shift");
+
+glued;
+
+// A sheared block built from a 3x4 transform matrix.
+var sheared = cube(x=8, y=8, z=8)
+    -> transform(matrix=[
+        1, 0, 0.7, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+    ]) -> translate(x=30);
+
+sheared;
+
+// 2D offsets with an arc join and a sharp intersection join.
+square(x=10, y=10) -> offset(distance=2, join="arc") -> extrude(z=1) -> translate(y=-22);
+square(x=10, y=10) -> offset(distance=2, join="intersection") -> extrude(z=1) -> translate(x=22, y=-22);
+
+view overview (angle="iso", zoom=0.8) {
+    model();
+}

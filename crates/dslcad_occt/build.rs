@@ -9,6 +9,7 @@ fn main() {
         .file("src/advanced.cc")
         .file("src/bend.cc")
         .file("src/blend.cc")
+        .file("src/boolean.cc")
         .file("src/bounds.cc")
         .file("src/heal.cc")
         .file("src/point_map.cc")
@@ -28,6 +29,7 @@ fn main() {
     println!("cargo:rerun-if-changed=src/advanced.cc");
     println!("cargo:rerun-if-changed=src/bend.cc");
     println!("cargo:rerun-if-changed=src/blend.cc");
+    println!("cargo:rerun-if-changed=src/boolean.cc");
     println!("cargo:rerun-if-changed=src/bounds.cc");
     println!("cargo:rerun-if-changed=src/heal.cc");
     println!("cargo:rerun-if-changed=src/point_map.cc");
