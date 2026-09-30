@@ -518,6 +518,14 @@ impl Default for Library {
             // 3D
             bind!(extrude, faces::extrude[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "extrude a face into a 3D shape"),
             bind!(revolve, faces::revolve[shape=plane, x=option_number, y=option_number, z=option_number], Category::ThreeD, "revolve a face around the x, y or z axis (the value is the angle in degrees)"),
+            bind!(
+                loft,
+                shapes::loft[sections = list],
+                Category::ThreeD,
+                "loft through a list of 2D sections"
+            ),
+            bind!(sweep, shapes::sweep[profile=plane, path=shape2d], Category::ThreeD, "sweep a 2D profile along a line or plane path"),
+            bind!(shell, shapes::shell[shape=shape, thickness=number], Category::ThreeD, "hollow a shape leaving walls of the given thickness"),
             bind!(bend, shapes::bend[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "bend a shape around the x, y and z axes (each value is an angle in degrees)"),
             bind!(taper, shapes::taper[shape=shape, x=option_number, y=option_number, z=option_number, axis=option_text], Category::ThreeD, "taper the walls running along the x, y or z axis inward along the given axis (the value is the angle in degrees; the axis selects the sides and defaults to every other axis, accepting combinations like \"xy\")"),
             bind!(

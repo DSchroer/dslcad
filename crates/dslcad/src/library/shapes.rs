@@ -1,6 +1,6 @@
 use crate::runtime::{RuntimeError, Value};
 
-use dslcad_occt::{Axis, DsShape, Point, Shape};
+use dslcad_occt::{Axis, DsShape, Point, Shape, Wire};
 use std::rc::Rc;
 
 pub fn cube(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> Result<Value, RuntimeError> {
@@ -81,6 +81,25 @@ pub(super) fn mirror_axes(
 
 pub fn union_shape(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
     Ok(Shape::fuse(left, right)?.into())
+}
+
+pub fn loft(sections: &[Value]) -> Result<Value, RuntimeError> {
+    let mut wires = Vec::new();
+    for section in sections {
+        wires.push((*section.to_wire()?).clone());
+    }
+
+    Ok(Shape::loft(&wires)?.into())
+}
+
+pub fn sweep(profile: &Wire, path: Value) -> Result<Value, RuntimeError> {
+    let path = path.to_wire()?;
+
+    Ok(Shape::sweep(profile, &path)?.into())
+}
+
+pub fn shell(shape: &Shape, thickness: f64) -> Result<Value, RuntimeError> {
+    Ok(Shape::shell(shape, thickness)?.into())
 }
 
 pub fn difference(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {

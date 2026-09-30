@@ -1,0 +1,29 @@
+// Loft, sweep and shell.
+
+// Loft through a square, a circle and a smaller square.
+var lofted = loft(sections=[
+    square(x=8, y=8),
+    circle(radius=2) -> translate(x=2, y=2, z=5),
+    square(x=4, y=4) -> translate(x=2, y=2, z=10),
+]);
+
+lofted -> translate(x=-12);
+
+// Sweep a circular profile along a path with a smooth bend.
+var path = union(
+    left=line(start=point(x=0, y=0, z=0), end=point(x=0, y=0, z=6)),
+    right=union(
+        left=arc(start=point(x=0, y=0, z=6), center=point(x=1.2, y=0, z=8.8), end=point(x=4, y=0, z=10)),
+        right=line(start=point(x=4, y=0, z=10), end=point(x=10, y=0, z=10)),
+    ),
+);
+
+sweep(profile=circle(radius=1) -> center(), path=path) -> translate(x=4, y=-4);
+
+// Hollow a box with 1mm walls, cut a quarter away so the walls show.
+var hollow = cube(x=8, y=8, z=8) -> shell(thickness=1);
+hollow -> difference(right=cube(x=4, y=8, z=4) -> translate(x=4)) -> translate(x=16);
+
+view overview (angle="iso", zoom=0.8) {
+    model();
+}
