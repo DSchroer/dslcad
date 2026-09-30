@@ -18,6 +18,7 @@
 #include <BRepTools_Modifier.hxx>
 #include <GProp_GProps.hxx>
 #include <ShapeFix_Shape.hxx>
+#include <ShapeFix_Wireframe.hxx>
 #include <Standard_Failure.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
@@ -107,38 +108,62 @@ TopoDS_Shape merge_wrapped_ends(const TopoDS_Shape& shape, double tolerance, dou
         return shape;
     }
 
-    BRepBuilderAPI_Sewing sewing(center_tolerance);
-    for (size_t i = 0; i < faces.size(); ++i) {
-        if (!drop[i]) {
-            sewing.Add(faces[i]);
+    // Stitch the remaining faces back together along the seam. The two ends
+    // were fitted independently, so they only agree to around the deformation
+    // tolerance; sew with a tight tolerance first and fall back to the looser
+    // one used to recognise the end faces when the tight pass leaves free edges.
+    const double sew_tolerances[2] = {
+        std::max(diagonal * 1e-6, tolerance * 10.0),
+        center_tolerance,
+    };
+    for (double sew_tolerance : sew_tolerances) {
+        BRepBuilderAPI_Sewing sewing(sew_tolerance);
+        for (size_t i = 0; i < faces.size(); ++i) {
+            if (!drop[i]) {
+                sewing.Add(faces[i]);
+            }
         }
-    }
-    sewing.Perform();
-    if (sewing.NbFreeEdges() != 0 || sewing.SewedShape().IsNull()) {
-        return shape;
+        sewing.Perform();
+        if (sewing.NbFreeEdges() != 0 || sewing.SewedShape().IsNull()) {
+            continue;
+        }
+
+        TopoDS_Shape sewn = sewing.SewedShape();
+        int shell_count = 0;
+        TopoDS_Shell shell;
+        for (TopExp_Explorer shell_it(sewn, TopAbs_SHELL); shell_it.More(); shell_it.Next()) {
+            shell = TopoDS::Shell(shell_it.Current());
+            shell_count++;
+        }
+        if (shell_count != 1) {
+            continue;
+        }
+        BRepBuilderAPI_MakeSolid make_solid(shell);
+        if (!make_solid.IsDone()) {
+            continue;
+        }
+
+        TopoDS_Shape solid = make_solid.Solid();
+        if (!BRepCheck_Analyzer(solid).IsValid()) {
+            continue;
+        }
+
+        // Sewing can leave tiny edges where the independently fitted ends meet
+        // at slightly different vertices. They are smaller than the mesh
+        // tolerance but still make BRepMesh crack along the seam, so collapse
+        // them before returning.
+        ShapeFix_Wireframe wire(solid);
+        wire.SetPrecision(center_tolerance);
+        wire.FixSmallEdges();
+        TopoDS_Shape fixed = wire.Shape();
+        if (!fixed.IsNull() && BRepCheck_Analyzer(fixed).IsValid()) {
+            solid = fixed;
+        }
+
+        return solid;
     }
 
-    TopoDS_Shape sewn = sewing.SewedShape();
-    int shell_count = 0;
-    TopoDS_Shell shell;
-    for (TopExp_Explorer shell_it(sewn, TopAbs_SHELL); shell_it.More(); shell_it.Next()) {
-        shell = TopoDS::Shell(shell_it.Current());
-        shell_count++;
-    }
-    if (shell_count != 1) {
-        return shape;
-    }
-    BRepBuilderAPI_MakeSolid make_solid(shell);
-    if (!make_solid.IsDone()) {
-        return shape;
-    }
-
-    TopoDS_Shape solid = make_solid.Solid();
-    if (!BRepCheck_Analyzer(solid).IsValid()) {
-        return shape;
-    }
-
-    return solid;
+    return shape;
 }
 
 } // namespace
