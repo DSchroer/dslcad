@@ -279,3 +279,42 @@ pub fn slice_2d(left: &Shape, right: Value) -> Result<Value, RuntimeError> {
 pub fn slice(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
     Ok(Value::Plane(Rc::new(left.section(right)?)))
 }
+
+pub fn distance(left: &Shape, right: &Shape) -> Result<Value, RuntimeError> {
+    Ok(Shape::distance(left, right)?.into())
+}
+
+pub fn contains(shape: &Shape, at: &Point) -> Result<Value, RuntimeError> {
+    Ok(shape.contains(at).into())
+}
+
+pub fn split(left: &Shape, right: &Wire) -> Result<Value, RuntimeError> {
+    let pieces: Vec<Value> = left
+        .split(right)?
+        .into_iter()
+        .map(|shape| Value::Shape(Rc::new(shape)))
+        .collect();
+
+    Ok(Value::List(pieces))
+}
+
+pub fn defeature(shape: &Shape, radius: f64) -> Result<Value, RuntimeError> {
+    Ok(Shape::defeature(shape, radius)?.into())
+}
+
+pub fn hole(
+    shape: &Shape,
+    radius: f64,
+    at: &Point,
+    axis: Option<String>,
+    depth: Option<f64>,
+) -> Result<Value, RuntimeError> {
+    let axis = match axis.as_deref() {
+        None | Some("z") => Axis::Z,
+        Some("x") => Axis::X,
+        Some("y") => Axis::Y,
+        Some(_) => return Err(RuntimeError::UnexpectedType()),
+    };
+
+    Ok(Shape::hole(shape, at, axis, radius, depth)?.into())
+}

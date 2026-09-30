@@ -1,0 +1,24 @@
+// Advanced operations: hole, defeature, split, distance and contains.
+
+// A block with two drilled holes.
+var block = cube(x=30, y=16, z=10)
+    -> hole(radius=3, at=point(x=8, y=8, z=0))
+    -> hole(radius=3, at=point(x=22, y=8, z=0));
+
+block;
+
+// The same block with the holes removed again by radius.
+block -> defeature(radius=3) -> translate(x=40);
+
+// Splitting the block around z = 5 gives two independent pieces.
+var halves = split(left=block, right=square(x=40, y=24) -> translate(x=-5, y=-4, z=5));
+halves[0] -> translate(x=-20, y=-30);
+halves[1] -> translate(x=20, y=-30);
+
+formatln("split into {n} pieces", n=length(halves));
+formatln("the halves are {d} apart", d=round(distance(left=halves[0], right=halves[1] -> translate(z=50))));
+formatln("is the block center inside? {v}", v=contains(shape=block, at=point(x=15, y=8, z=5)));
+
+view overview (angle="iso", zoom=0.75) {
+    model();
+}
