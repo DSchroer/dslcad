@@ -169,7 +169,7 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 - `convert(value=number, source=text, target=text)` convert a value between units (mm, cm, m, in, ft)
 - `dimension(start=point, end=point, offset=[number], axis=[text], text=[text], units=[text], precision=[number], arrow=[text], plane=[text])` a linear dimension between two points
 - `dimension(radius=number, center=point, at=[point], text=[text], units=[text], precision=[number])` a radial dimension of a radius around a center
-- `dimension(angle=number, center=point, start=point, end=point, units=[text], precision=[number])` an angular dimension between two directions
+- `dimension(angle=[number], center=point, start=point, end=point, units=[text], precision=[number])` an angular dimension between two directions (angle defaults to the measured angle)
 - `label(text=text, at=point, anchor=[point], size=[number], plane=[text])` a text label with an optional leader
 - `leader(text=text, at=point, to=point)` a leader line with a note
 - `level(z=number, text=[text], at=[point])` an elevation datum marker

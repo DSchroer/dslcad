@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `view` statements are top level only
 - Updated the preview to Bevy 0.18 (from 0.15), together with `bevy_egui`, `bevy_points` and the orbit camera controller
 - Updated `thiserror`, `clap`, `indexmap`, `env_logger` and other dependencies
+- The angular `dimension`'s `angle` is now optional and defaults to the angle measured from `center`, `start` and `end`
 
 ## [v0.0.6]
 

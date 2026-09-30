@@ -67,6 +67,16 @@ fn format_measurement(value_mm: f64, units: Option<String>, precision: Option<f6
     format!("{converted:.precision$} {suffix}")
 }
 
+fn format_angle(angle: f64, precision: Option<f64>) -> String {
+    let precision = precision.unwrap_or(1.0).clamp(0.0, 10.0) as usize;
+    let text = format!("{angle:.precision$}");
+    if text.contains('.') {
+        text.trim_end_matches('0').trim_end_matches('.').to_string()
+    } else {
+        text
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Dimensions
 // ---------------------------------------------------------------------------
@@ -177,7 +187,7 @@ pub fn dimension_radial(
 }
 
 pub fn dimension_angular(
-    angle: f64,
+    angle: Option<f64>,
     center: &Point,
     start: &Point,
     end: &Point,
@@ -193,11 +203,14 @@ pub fn dimension_angular(
     let axis = vcross(v1, v2);
     let axis_length = vlen(axis);
 
-    if axis_length < 1e-9 || vlen(v1) < 1e-9 {
+    if axis_length < 1e-9 || vlen(v1) < 1e-9 || vlen(v2) < 1e-9 {
         return Err(RuntimeError::UserDefined(
             "angular dimension points must not be collinear".to_string(),
         ));
     }
+
+    // Without an explicit angle, measure it from the two directions.
+    let angle = angle.unwrap_or_else(|| angle_between(v1, v2));
 
     let axis = vnorm(axis);
     let radius = vlen(v1);
@@ -223,8 +236,8 @@ pub fn dimension_angular(
         ));
     }
 
-    let label = format!("{angle}°");
-    let _ = (units, precision);
+    let label = format!("{}°", format_angle(angle, precision));
+    let _ = units;
     drawing.text(
         &label,
         vadd(c, vscale(vnorm(vadd(v1, v2)), radius + 3.0)),
@@ -535,6 +548,14 @@ fn dot(left: V3, right: V3) -> f64 {
     left[0] * right[0] + left[1] * right[1] + left[2] * right[2]
 }
 
+/// The unsigned angle between two vectors, in degrees.
+fn angle_between(left: V3, right: V3) -> f64 {
+    dot(vnorm(left), vnorm(right))
+        .clamp(-1.0, 1.0)
+        .acos()
+        .to_degrees()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -608,6 +629,24 @@ mod tests {
     }
 
     #[test]
+    fn it_measures_angular_dimensions_from_points() {
+        assert!((angle_between([1.0, 0.0, 0.0], [0.0, 1.0, 0.0]) - 90.0).abs() < 1e-9);
+
+        let annotation = annotation(
+            r#"dimension(center=point(x=0,y=0,z=0), start=point(x=10,y=0,z=0), end=point(x=0,y=10,z=0));"#,
+        );
+
+        assert_eq!(AnnotationKind::Dimension, annotation.kind);
+        assert_eq!(1, annotation.texts.len());
+
+        // The auto-measured arc ends on the `end` direction.
+        let arc = annotation.lines.first().expect("arc");
+        let last = arc.last().expect("arc endpoint");
+        assert!(last[0].abs() < 1e-6);
+        assert!((last[1] - 10.0).abs() < 1e-6);
+    }
+
+    #[test]
     fn it_labels_the_measured_value_in_the_chosen_unit() {
         assert_eq!("60.0 mm", format_measurement(60.0, None, None));
         assert_eq!(
@@ -631,6 +670,7 @@ mod tests {
             r#"title(text="Plan", subtitle="1:50", scale="1:50");"#,
             r#"dimension(radius=5, center=point(x=0,y=0), at=point(x=5,y=0));"#,
             r#"dimension(angle=90, center=point(x=0,y=0,z=0), start=point(x=10,y=0,z=0), end=point(x=0,y=10,z=0));"#,
+            r#"dimension(center=point(x=0,y=0,z=0), start=point(x=10,y=0,z=0), end=point(x=0,y=10,z=0));"#,
         ] {
             let annotation = annotation(code);
             assert!(

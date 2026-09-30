@@ -596,7 +596,7 @@ impl Default for Library {
             bind!(convert, drawing::convert[value=number, source=text, target=text], Category::Drawing, "convert a value between units (mm, cm, m, in, ft)"),
             bind!(dimension, drawing::dimension[start=point, end=point, offset=option_number, axis=option_text, text=option_text, units=option_text, precision=option_number, arrow=option_text, plane=option_text], Category::Drawing, "a linear dimension between two points"),
             bind!(dimension, drawing::dimension_radial[radius=number, center=point, at=option_point, text=option_text, units=option_text, precision=option_number], Category::Drawing, "a radial dimension of a radius around a center"),
-            bind!(dimension, drawing::dimension_angular[angle=number, center=point, start=point, end=point, units=option_text, precision=option_number], Category::Drawing, "an angular dimension between two directions"),
+            bind!(dimension, drawing::dimension_angular[angle=option_number, center=point, start=point, end=point, units=option_text, precision=option_number], Category::Drawing, "an angular dimension between two directions (angle defaults to the measured angle)"),
             bind!(label, drawing::label[text=text, at=point, anchor=option_point, size=option_number, plane=option_text], Category::Drawing, "a text label with an optional leader"),
             bind!(leader, drawing::leader[text=text, at=point, to=point], Category::Drawing, "a leader line with a note"),
             bind!(level, drawing::level[z=number, text=option_text, at=option_point], Category::Drawing, "an elevation datum marker"),

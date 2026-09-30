@@ -133,7 +133,7 @@ measure(shape=shape)              // -> point, the x, y and z extents
 dimension(start=point, end=point, offset=[number], axis=[text],
           text=[text], units=[text], precision=[number], arrow=[text])
 dimension(radius=number, center=point, at=point, units=[text])                // radial
-dimension(angle=number, center=point, start=point, end=point, units=[text])  // angular
+dimension(angle=[number], center=point, start=point, end=point, units=[text])  // angular (angle defaults to the measured angle)
 ```
 
 - `offset=[number]` — signed distance from the measured line to the dimension
