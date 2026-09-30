@@ -548,7 +548,6 @@ impl Default for Library {
             bind!(union, shapes::union_shape[left=shape, right=shape], Category::ThreeD, "combine two shapes"),
             bind!(chamfer, shapes::chamfer[shape=shape, radius=number, axis=option_text], Category::ThreeD, "chamfer edges (pass an axis to only chamfer edges running along it)"),
             bind!(fillet, shapes::fillet[shape=shape, radius=number, axis=option_text], Category::ThreeD, "fillet edges (pass an axis to only fillet edges running along it)"),
-            bind!(fillet, shapes::fillet_variable[shape=shape, radii=list, axis=option_text], Category::ThreeD, "fillet edges with a radius that varies along each edge, from a list of [position, radius] pairs"),
             bind!(difference, shapes::difference[left=shape, right=shape], Category::ThreeD, "cut one shape out of another"),
             bind!(intersect, shapes::intersect[left=shape, right=shape], Category::ThreeD, "intersection between two shapes"),
             bind!(translate, shapes::translate[shape=shape, x=option_number, y=option_number, z=option_number], Category::ThreeD, "move a shape"),

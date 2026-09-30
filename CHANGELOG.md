@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `fillet` and `chamfer` can select edges by axis, and `fillet` accepts a variable radius along each edge
+- `fillet` and `chamfer` can select edges by axis
 - `loft`, `sweep` and `shell` operators to build solids from sections and paths, and to hollow them
 - `ellipse`, `spline` and `bezier` sketch curves
 - `fillet` and `chamfer` operators for the corners of 2D shapes

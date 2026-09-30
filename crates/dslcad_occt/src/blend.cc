@@ -1,17 +1,14 @@
-// Fillets and chamfers edges, optionally filtered by direction and with a
-// variable radius along each edge.
+// Fillets and chamfers edges, optionally filtered by direction.
 #include <cmath>
 
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <Standard_Failure.hxx>
-#include <TColgp_Array1OfPnt2d.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Shape.hxx>
-#include <gp_Pnt2d.hxx>
 #include <gp_Vec.hxx>
 
 namespace {
@@ -53,12 +50,9 @@ bool matches_axis(const TopoDS_Edge& edge, int axis_mask) {
 
 }  // namespace
 
-// Fillets the selected edges. count == 0 uses a uniform radius, otherwise the
-// arrays hold `count` (position along the edge, radius) pairs for a variable
-// radius.
-extern "C" void* dslcad_fillet(const void* shape, double radius, const double* positions,
-                               const double* radii, int count, int axis_mask) {
-    if (shape == nullptr || radius < 0.0 || (count > 0 && (positions == nullptr || radii == nullptr))) {
+// Fillets the selected edges.
+extern "C" void* dslcad_fillet(const void* shape, double radius, int axis_mask) {
+    if (shape == nullptr || radius <= 0.0) {
         return nullptr;
     }
 
@@ -73,21 +67,7 @@ extern "C" void* dslcad_fillet(const void* shape, double radius, const double* p
                 continue;
             }
 
-            if (count == 0) {
-                fillet.Add(radius, edge);
-            } else {
-                // Map the positions from the [0, 1] range to the edge's own
-                // parameter range.
-                BRepAdaptor_Curve curve(edge);
-                const double first = curve.FirstParameter();
-                const double last = curve.LastParameter();
-
-                TColgp_Array1OfPnt2d values(1, count);
-                for (int i = 0; i < count; ++i) {
-                    values.SetValue(i + 1, gp_Pnt2d(first + positions[i] * (last - first), radii[i]));
-                }
-                fillet.Add(values, edge);
-            }
+            fillet.Add(radius, edge);
             ++added;
         }
 
