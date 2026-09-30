@@ -9,6 +9,8 @@ impl Access for Wire {
     fn get(&self, identifier: &str) -> Option<Value> {
         match identifier {
             "center" => Some(self.center_of_mass().into()),
+            "length" => Some(self.length().into()),
+            "area" => Some(self.area().into()),
             _ => None,
         }
     }
@@ -19,6 +21,7 @@ impl Access for Shape {
         match identifier {
             "center" => Some(self.center_of_mass().into()),
             "volume" => Some(self.volume().into()),
+            "area" => Some(self.area().into()),
             _ => None,
         }
     }

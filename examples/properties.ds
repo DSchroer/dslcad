@@ -1,0 +1,20 @@
+// Shape properties: volume and surface area of 3D shapes, and the length and
+// area of 2D shapes.
+
+var part = cube(x=10, y=10, z=10)
+    -> difference(right=cylinder(radius=2, height=10) -> translate(x=5, y=5));
+
+var profile = circle(radius=4);
+var plate = profile -> extrude(z=1) -> translate(x=-16);
+
+part;
+plate;
+
+view overview (angle="iso", zoom=0.9) {
+    model();
+
+    label(text=format("volume {v}", v=round(part.volume)), at=point(x=5, y=0, z=13), size=1.5);
+    label(text=format("area {a}", a=round(part.area)), at=point(x=5, y=10, z=13), size=1.5);
+    label(text=format("length {l}", l=round(profile.length)), at=point(x=-14, y=4, z=8), size=1.5);
+    label(text=format("area {a}", a=round(profile.area)), at=point(x=-22, y=4, z=8), size=1.5);
+}

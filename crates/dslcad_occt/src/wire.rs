@@ -313,6 +313,20 @@ impl Wire {
         BRepGProp_LinearProperties(self.shape(), props.pin_mut());
         GProp_GProps_CentreOfMass(&props).into()
     }
+
+    /// Total length of the wire, the perimeter for a closed shape.
+    pub fn length(&self) -> f64 {
+        let mut props = GProp_GProps_ctor();
+        BRepGProp_LinearProperties(self.shape(), props.pin_mut());
+        props.Mass()
+    }
+
+    /// Area enclosed by a closed 2D shape. Open shapes have no area.
+    pub fn area(&self) -> f64 {
+        crate::Shape::extrude(self, 0., 0., 1.)
+            .map(|shape| shape.volume())
+            .unwrap_or(0.0)
+    }
 }
 
 fn douglas_peucker(points: &[Point], tolerance: f64) -> Vec<Point> {
@@ -480,6 +494,26 @@ mod tests {
 
         let flat = wire.simplify(2.0).unwrap();
         assert_eq!(1, flat.edges().len());
+    }
+
+    #[test]
+    fn it_measures_length_and_area() {
+        let square = polyline(
+            &[
+                Point::new(0., 0., 0.),
+                Point::new(4., 0., 0.),
+                Point::new(4., 3., 0.),
+                Point::new(0., 3., 0.),
+            ],
+            true,
+        );
+
+        assert!((square.length() - 14.).abs() < 1e-9);
+        assert!((square.area() - 12.).abs() < 1e-3);
+
+        let diagonal = line(Point::new(0., 0., 0.), Point::new(3., 4., 0.));
+        assert!((diagonal.length() - 5.).abs() < 1e-9);
+        assert_eq!(diagonal.area(), 0.);
     }
 
     #[test]
