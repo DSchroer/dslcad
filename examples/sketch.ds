@@ -1,0 +1,27 @@
+// Sketch curves: ellipse, spline and bezier, plus 2D corner rounding.
+
+// Rounded and chamfered plates.
+square(x=8, y=5) -> fillet(radius=1) -> extrude(z=1);
+square(x=8, y=5) -> chamfer(radius=1) -> extrude(z=1) -> translate(x=10);
+
+// An elliptical plate.
+ellipse(x=4, y=2.5) -> extrude(z=1) -> translate(x=20);
+
+// A profile whose wavy edge is a spline, closed with straight edges.
+var wave = face(parts=[
+    spline(points=[point(x=0, y=0), point(x=2, y=2), point(x=5, y=3), point(x=8, y=2)]),
+    line(start=point(x=8, y=2), end=point(x=8, y=-2)),
+    line(start=point(x=8, y=-2), end=point(x=0, y=-2)),
+]);
+wave -> extrude(z=1) -> translate(y=-9);
+
+// A leaf shape closed by a bezier curve.
+var leaf = face(parts=[
+    bezier(points=[point(x=0, y=0), point(x=2, y=5), point(x=6, y=5), point(x=8, y=0)]),
+    line(start=point(x=8, y=0), end=point(x=0, y=0)),
+]);
+leaf -> extrude(z=1) -> translate(x=13, y=-9);
+
+view overview (angle="iso", zoom=0.75) {
+    model();
+}

@@ -103,7 +103,10 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 - `line(start=point, end=point)` create a line between two points
 - `square(x=[number], y=[number])` create a rectangle (x and y default to 1)
 - `circle(radius=[number])` create a circle (radius defaults to 0.5)
+- `ellipse(x=[number], y=[number])` create an ellipse (x and y are the semi-axes, they default to 1 and 0.5)
 - `arc(start=point, center=point, end=point)` create an arcing line between three points
+- `bezier(points=list)` create a bezier curve from a list of control points
+- `spline(points=list)` create a spline that passes through a list of points
 - `union(left=line|plane, right=line|plane)` combine two 2D shapes
 - `face(parts=list)` make a closed face from a list of points, lines and arcs
 - `translate(shape=line|plane, x=[number], y=[number], z=[number])` move a 2D shape
@@ -114,6 +117,8 @@ Resource arguments can be any expression, so `./font.ttf(message=name)` works wi
 - `normalize(shape=line|plane)` scale a 2D shape so its largest side is 1 unit long
 - `center(shape=line|plane, x=[bool], y=[bool], z=[bool])` center a 2D shape on the given axes (each axis defaults to true; pass false to leave it in place)
 - `offset(shape=plane, distance=number)` expand a closed 2D shape outward by distance
+- `fillet(shape=plane, radius=number)` round the corners of a 2D shape
+- `chamfer(shape=plane, radius=number)` chamfer the corners of a 2D shape
 - `simplify(shape=line|plane, tolerance=[number])` remove detail from a line or plane so it stays within tolerance of the original
 - `thicken(shape=line, distance=[number], x=[number], y=[number], z=[number])` turn a line into a face by thickening it
 

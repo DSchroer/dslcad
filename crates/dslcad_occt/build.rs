@@ -9,6 +9,7 @@ fn main() {
         .file("src/bend.cc")
         .file("src/bounds.cc")
         .file("src/point_map.cc")
+        .file("src/sketch.cc")
         .file("src/taper.cc")
         .include(&include)
         .std("c++17")
@@ -24,6 +25,7 @@ fn main() {
     println!("cargo:rerun-if-changed=src/bounds.cc");
     println!("cargo:rerun-if-changed=src/point_map.cc");
     println!("cargo:rerun-if-changed=src/point_map.hxx");
+    println!("cargo:rerun-if-changed=src/sketch.cc");
     println!("cargo:rerun-if-changed=src/taper.cc");
 }
 

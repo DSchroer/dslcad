@@ -2,12 +2,15 @@ use crate::command::{Builder, Command};
 use crate::{Error, Point};
 use cxx::UniquePtr;
 use opencascade_sys::ffi::{
+    new_HandleGeomCurve_from_HandleGeom_BSplineCurve,
     new_HandleGeomCurve_from_HandleGeom_BezierCurve,
-    new_HandleGeomCurve_from_HandleGeom_TrimmedCurve, BRepBuilderAPI_MakeEdge,
+    new_HandleGeomCurve_from_HandleGeom_TrimmedCurve,
+    new_HandleTColgpHArray1OfPnt_from_TColgpHArray1OfPnt, BRepBuilderAPI_MakeEdge,
     BRepBuilderAPI_MakeEdge_HandleGeomCurve, BRep_Tool_Curve, GC_MakeArcOfCircle_Value,
     GC_MakeArcOfCircle_point_point_point, GC_MakeSegment_Value, GC_MakeSegment_point_point,
-    Geom_BezierCurve_ctor_points, Geom_BezierCurve_to_handle, HandleGeomCurve_Value,
-    TColgp_HArray1OfPnt_ctor, TopoDS_Edge, TopoDS_Edge_to_owned,
+    GeomAPI_Interpolate_Curve, GeomAPI_Interpolate_ctor, Geom_BezierCurve_ctor_points,
+    Geom_BezierCurve_to_handle, HandleGeomCurve_Value, TColgp_HArray1OfPnt_ctor, TopoDS_Edge,
+    TopoDS_Edge_to_owned,
 };
 use std::fmt::{Debug, Formatter};
 use std::pin::Pin;
@@ -50,6 +53,29 @@ impl Edge {
 
         let curve = new_HandleGeomCurve_from_HandleGeom_BezierCurve(&Geom_BezierCurve_to_handle(
             Geom_BezierCurve_ctor_points(&poles),
+        ));
+
+        let mut edge = BRepBuilderAPI_MakeEdge_HandleGeomCurve(&curve);
+        Ok(Edge(TopoDS_Edge_to_owned(Builder::try_build(&mut edge)?)))
+    }
+
+    /// An interpolated B-spline that passes through every point.
+    pub fn new_spline(points: &[Point]) -> Result<Self, Error> {
+        if points.len() < 2 {
+            return Err("a spline needs at least two points".into());
+        }
+
+        let mut poles = TColgp_HArray1OfPnt_ctor(1, points.len() as i32);
+        for (index, point) in points.iter().enumerate() {
+            poles.pin_mut().SetValue(index as i32 + 1, &point.point);
+        }
+
+        let poles = new_HandleTColgpHArray1OfPnt_from_TColgpHArray1OfPnt(poles);
+        let mut interpolate = GeomAPI_Interpolate_ctor(&poles, false, 1e-6);
+        interpolate.pin_mut().Perform();
+
+        let curve = new_HandleGeomCurve_from_HandleGeom_BSplineCurve(&GeomAPI_Interpolate_Curve(
+            &interpolate,
         ));
 
         let mut edge = BRepBuilderAPI_MakeEdge_HandleGeomCurve(&curve);
@@ -111,5 +137,22 @@ mod tests {
         let (start, end) = edge.start_end();
         assert_eq!(0., start.x());
         assert_eq!(4., end.x());
+    }
+
+    #[test]
+    fn it_can_create_spline_edges() {
+        let points = [
+            Point::new(0., 0., 0.),
+            Point::new(1., 2., 0.),
+            Point::new(3., -1., 0.),
+            Point::new(4., 0., 0.),
+        ];
+        let edge = Edge::new_spline(&points).unwrap();
+
+        let (start, end) = edge.start_end();
+        assert!((start.x() - 0.).abs() < 1e-9);
+        assert!((start.y() - 0.).abs() < 1e-9);
+        assert!((end.x() - 4.).abs() < 1e-9);
+        assert!((end.y() - 0.).abs() < 1e-9);
     }
 }
