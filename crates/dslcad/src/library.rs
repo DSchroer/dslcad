@@ -655,6 +655,8 @@ Coordinates are in millimetres.
 - `./part.ds(name=a)` run another script as if it were a function
 - `@lib/part.ds(name=a)` run a shared script from the nearest `modules` directory (searched upward from the current file)
 - `./model.stl()` import an STL mesh as a 3D shape
+- `./model.step()` import a STEP file as a 3D shape
+- `./model.iges()` import an IGES file as a 3D shape
 - `./drawing.svg()` import an SVG drawing as a 2D line or plane
 - `./font.ttf(message="hi")` import text from a TrueType/OpenType font as a 2D plane
 - `./data.ini()` import an INI file as an object of text values

@@ -1,4 +1,6 @@
+mod iges_loader;
 mod ini_loader;
+mod step_loader;
 mod stl_loader;
 mod svg_loader;
 mod ttf_loader;
@@ -10,6 +12,8 @@ use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
 use crate::resources::ini_loader::IniLoader;
+pub use iges_loader::IgesLoader;
+pub use step_loader::StepLoader;
 pub use stl_loader::StlLoader;
 pub use svg_loader::SvgLoader;
 pub(crate) use ttf_loader::text_fill_lines;
@@ -88,5 +92,9 @@ impl<R: Reader + 'static> ResourceExt for Parser<R> {
             .with_loader("ttf", TtfLoader)
             .with_loader("otf", TtfLoader)
             .with_loader("ini", IniLoader)
+            .with_loader("step", StepLoader)
+            .with_loader("stp", StepLoader)
+            .with_loader("iges", IgesLoader)
+            .with_loader("igs", IgesLoader)
     }
 }

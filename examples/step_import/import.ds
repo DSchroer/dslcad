@@ -1,0 +1,14 @@
+// Import a STEP part and an IGES part, then keep modelling.
+
+var bracket = ./bracket.step();
+var block = ./block.iges();
+
+// Cut a slot through the imported bracket.
+bracket -> difference(right=cube(x=4, y=20, z=8) -> translate(x=13, y=0));
+
+// The imported block sits next to it.
+block -> translate(x=40, y=4);
+
+view overview (angle="iso", zoom=0.85) {
+    model();
+}
